@@ -290,7 +290,7 @@ const Terminal = () => {
   }, [waitingForInput, handleInput]);
 
   return (
-    <div className="crt-screen relative z-10 flex min-h-screen flex-col">
+    <div className="relative z-10 flex min-h-screen flex-col">
       {/* Header bar */}
       <div className="crt-header border-b border-border px-4 py-2 text-xs tracking-widest text-muted-foreground">
         <span className="text-primary text-glow">■</span>
