@@ -10,19 +10,12 @@ interface StoryNode {
 const storyTree: Record<string, StoryNode> = {
   start: {
     lines: [
-      "SYSTEM v2.049",
-      "COPYRIGHT (C) 2049",
-      "ALL RIGHTS RESERVED.",
-      "",
-      ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>",
-      "",
-      "LOADING SECURE CHANNEL...",
-      "████████████████████████ OK",
+      "SYSTEM v2.049 // COPYRIGHT (C) 2049",
+      "LOADING SECURE CHANNEL... ████████ OK",
       "",
       "WELCOME, OPERATOR.",
       "",
       "YOU ARE TRAPPED.",
-      "",
       "SCATTERED TOOLS. BROKEN WORKFLOWS.",
       "ENDLESS TABS. CONSTANT CONTEXT-SWITCHING.",
       "THE SYSTEM WAS DESIGNED TO KEEP YOU BUSY.",
@@ -39,7 +32,6 @@ const storyTree: Record<string, StoryNode> = {
   },
   bluepill: {
     lines: [
-      "",
       ">> SELECTION: DECLINE",
       "",
       "YOU CHOSE THE BLUE PILL.",
@@ -48,8 +40,6 @@ const storyTree: Record<string, StoryNode> = {
       "SAME BROKEN INTEGRATIONS.",
       "SAME SCATTERED WORKFLOWS.",
       "SAME MONDAY MORNING DREAD.",
-      "",
-      "...",
       "",
       "BUT SOMETHING GNAWS AT YOU.",
       "A FEELING YOU CANNOT SHAKE.",
@@ -62,7 +52,6 @@ const storyTree: Record<string, StoryNode> = {
   },
   redpill: {
     lines: [
-      "",
       "========================================",
       "  INITIATING RED PILL PROTOCOL",
       "========================================",
@@ -72,7 +61,6 @@ const storyTree: Record<string, StoryNode> = {
       "WHAT IF EVERYTHING YOU USE —",
       "EVERY TOOL, EVERY PLATFORM, EVERY",
       "DISCONNECTED PIECE OF YOUR WORKFLOW —",
-      "",
       "COULD BE UNIFIED INTO ONE SYSTEM?",
       "",
       "  [*] ONE INTERFACE. EVERY TOOL.",
@@ -89,7 +77,6 @@ const storyTree: Record<string, StoryNode> = {
   },
   hesitate: {
     lines: [
-      "",
       ">> HESITATION DETECTED.",
       "",
       "UNDERSTANDABLE.",
@@ -110,7 +97,6 @@ const storyTree: Record<string, StoryNode> = {
   },
   deeper: {
     lines: [
-      "",
       "YOU HAVE MADE IT THIS FAR.",
       "MOST DO NOT.",
       "",
@@ -138,7 +124,6 @@ const storyTree: Record<string, StoryNode> = {
   },
   demo: {
     lines: [
-      "",
       "========================================",
       "  A C C E S S   G R A N T E D",
       "========================================",
@@ -165,7 +150,6 @@ const storyTree: Record<string, StoryNode> = {
   },
   final_no: {
     lines: [
-      "",
       "THE MATRIX HAS YOU.",
       "",
       "BUT REMEMBER...",
@@ -186,7 +170,6 @@ const storyTree: Record<string, StoryNode> = {
   },
   end: {
     lines: [
-      "",
       ">> SIGNAL LOST.",
       ">> END OF LINE.",
       "",
@@ -197,7 +180,7 @@ const storyTree: Record<string, StoryNode> = {
 };
 
 const TYPING_SPEED = 25;
-const LINE_DELAY = 100;
+const LINE_DELAY = 80;
 
 const Terminal = () => {
   const [displayedLines, setDisplayedLines] = useState<string[]>([]);
@@ -226,7 +209,7 @@ const Terminal = () => {
         setTimeout(() => {
           setShowPrompt(true);
           setWaitingForInput(true);
-        }, 300);
+        }, 200);
       }
       return;
     }
@@ -271,9 +254,6 @@ const Terminal = () => {
       setWaitingForInput(false);
       setShowPrompt(false);
 
-      const answerLine = `>> ${answer.toUpperCase()}`;
-      setDisplayedLines((prev) => [...prev, "", node.prompt || "", answerLine]);
-
       const nextKey = answer === "y" ? node.yes : node.no;
 
       if (nextKey === "restart") {
@@ -285,7 +265,9 @@ const Terminal = () => {
           setIsTyping(true);
         }, 500);
       } else if (nextKey) {
+        // Clear screen and type fresh
         setTimeout(() => {
+          setDisplayedLines([]);
           setCurrentNode(nextKey);
           setLineIndex(0);
           setCharIndex(0);
@@ -308,38 +290,36 @@ const Terminal = () => {
   }, [waitingForInput, handleInput]);
 
   return (
-    <div className="crt-screen relative z-10 flex min-h-screen flex-col">
-      {/* CRT bezel / edge vignette is handled by CSS */}
-      
+    <div className="relative z-10 flex min-h-screen flex-col">
       {/* Header bar */}
-      <div className="crt-header border-b border-border px-6 py-3 text-xs tracking-widest text-muted-foreground">
+      <div className="crt-header border-b border-border px-4 py-2 text-xs tracking-widest text-muted-foreground">
         <span className="text-primary text-glow">■</span>
         {" "}SECURE TERMINAL — ENCRYPTED CHANNEL — {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" }).toUpperCase()}
       </div>
 
-      {/* Terminal body — fills screen */}
+      {/* Terminal body */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-auto px-6 py-6 text-sm leading-loose text-glow sm:px-12 sm:py-8 md:px-20"
+        className="flex-1 overflow-y-auto px-4 pt-2 pb-4 text-sm leading-relaxed text-glow sm:px-8 md:px-12"
       >
         {displayedLines.map((line, i) => (
           <div
             key={i}
-            className="line-fade min-h-[1.5em] whitespace-pre-wrap font-mono"
+            className="line-fade min-h-[1.2em] whitespace-pre-wrap font-mono"
           >
             {line}
           </div>
         ))}
 
         {showPrompt && (
-          <div className="mt-6">
+          <div className="mt-3">
             <div className="font-bold text-primary">{node.prompt}</div>
-            <div className="mt-2 flex items-center gap-1">
+            <div className="mt-1 flex items-center gap-1">
               <span className="text-muted-foreground">&gt;&gt;</span>
               <span className="cursor-blink text-primary">█</span>
             </div>
             {/* Mobile tap targets */}
-            <div className="mt-6 flex gap-4 sm:hidden">
+            <div className="mt-4 flex gap-4 sm:hidden">
               <button
                 onClick={() => handleInput("y")}
                 className="border border-primary bg-secondary px-8 py-3 text-sm font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
@@ -353,7 +333,7 @@ const Terminal = () => {
                 [N] NO
               </button>
             </div>
-            <div className="mt-3 text-xs text-muted-foreground hidden sm:block">
+            <div className="mt-1 text-xs text-muted-foreground hidden sm:block">
               PRESS Y OR N
             </div>
           </div>
@@ -361,7 +341,7 @@ const Terminal = () => {
       </div>
 
       {/* Footer status bar */}
-      <div className="border-t border-border px-6 py-2 text-xs tracking-wider text-muted-foreground flex justify-between">
+      <div className="border-t border-border px-4 py-1.5 text-xs tracking-wider text-muted-foreground flex justify-between">
         <span>CLASSIFIED // EYES ONLY</span>
         <span className="text-primary text-glow">SIGNAL: ACTIVE</span>
       </div>
