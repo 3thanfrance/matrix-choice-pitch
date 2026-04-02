@@ -290,58 +290,60 @@ const Terminal = () => {
   }, [waitingForInput, handleInput]);
 
   return (
-    <div className="relative z-10 flex min-h-screen flex-col">
+    <div className="relative z-10 flex h-screen flex-col overflow-hidden">
       {/* Header bar */}
-      <div className="crt-header border-b border-border px-4 py-2 text-xs tracking-widest text-muted-foreground">
+      <div className="crt-header border-b border-border px-4 py-1.5 text-xs tracking-widest text-muted-foreground">
         <span className="text-primary text-glow">■</span>
         {" "}SECURE TERMINAL — ENCRYPTED CHANNEL — {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" }).toUpperCase()}
       </div>
 
-      {/* Terminal body */}
+      {/* Terminal body — centered */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-auto px-4 pt-2 pb-4 text-sm leading-relaxed text-glow sm:px-8 md:px-12"
+        className="flex flex-1 items-center justify-center overflow-hidden px-4 sm:px-8 md:px-12"
       >
-        {displayedLines.map((line, i) => (
-          <div
-            key={i}
-            className="line-fade min-h-[1.2em] whitespace-pre-wrap font-mono"
-          >
-            {line}
-          </div>
-        ))}
+        <div className="w-full max-w-2xl text-sm leading-snug text-glow">
+          {displayedLines.map((line, i) => (
+            <div
+              key={i}
+              className="line-fade min-h-[1.15em] whitespace-pre-wrap font-mono"
+            >
+              {line}
+            </div>
+          ))}
 
-        {showPrompt && (
-          <div className="mt-3">
-            <div className="font-bold text-primary">{node.prompt}</div>
-            <div className="mt-1 flex items-center gap-1">
-              <span className="text-muted-foreground">&gt;&gt;</span>
-              <span className="cursor-blink text-primary">█</span>
+          {showPrompt && (
+            <div className="mt-2">
+              <div className="font-bold text-primary">{node.prompt}</div>
+              <div className="mt-1 flex items-center gap-1">
+                <span className="text-muted-foreground">&gt;&gt;</span>
+                <span className="cursor-blink text-primary">█</span>
+              </div>
+              {/* Mobile tap targets */}
+              <div className="mt-3 flex gap-4 sm:hidden">
+                <button
+                  onClick={() => handleInput("y")}
+                  className="border border-primary bg-secondary px-8 py-3 text-sm font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+                >
+                  [Y] YES
+                </button>
+                <button
+                  onClick={() => handleInput("n")}
+                  className="border border-border bg-secondary px-8 py-3 text-sm font-bold text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
+                >
+                  [N] NO
+                </button>
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground hidden sm:block">
+                PRESS Y OR N
+              </div>
             </div>
-            {/* Mobile tap targets */}
-            <div className="mt-4 flex gap-4 sm:hidden">
-              <button
-                onClick={() => handleInput("y")}
-                className="border border-primary bg-secondary px-8 py-3 text-sm font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
-              >
-                [Y] YES
-              </button>
-              <button
-                onClick={() => handleInput("n")}
-                className="border border-border bg-secondary px-8 py-3 text-sm font-bold text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
-              >
-                [N] NO
-              </button>
-            </div>
-            <div className="mt-1 text-xs text-muted-foreground hidden sm:block">
-              PRESS Y OR N
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Footer status bar */}
-      <div className="border-t border-border px-4 py-1.5 text-xs tracking-wider text-muted-foreground flex justify-between">
+      <div className="border-t border-border px-4 py-1 text-xs tracking-wider text-muted-foreground flex justify-between">
         <span>CLASSIFIED // EYES ONLY</span>
         <span className="text-primary text-glow">SIGNAL: ACTIVE</span>
       </div>
