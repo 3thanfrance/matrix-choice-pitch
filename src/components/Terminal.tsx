@@ -181,36 +181,38 @@ const storyTree: Record<string, StoryNode> = {
 
 const TYPING_SPEED = 25;
 const LINE_DELAY = 80;
+const DELETE_SPEED = 15;
+const LINGER_DURATION = 1200;
+
+type Phase = "typing" | "lingering" | "deleting" | "idle";
 
 const Terminal = () => {
   const [displayedLines, setDisplayedLines] = useState<string[]>([]);
   const [currentNode, setCurrentNode] = useState("start");
   const [lineIndex, setLineIndex] = useState(0);
   const [charIndex, setCharIndex] = useState(0);
-  const [isTyping, setIsTyping] = useState(true);
+  const [phase, setPhase] = useState<Phase>("typing");
   const [showPrompt, setShowPrompt] = useState(false);
   const [waitingForInput, setWaitingForInput] = useState(false);
+  const [nextNodeKey, setNextNodeKey] = useState<string | null>(null);
+  const [deleteLineIdx, setDeleteLineIdx] = useState(0);
+  const [deleteCharIdx, setDeleteCharIdx] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const node = storyTree[currentNode];
 
+  // Typing phase
   useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
-    }
-  }, [displayedLines, showPrompt]);
-
-  useEffect(() => {
-    if (!isTyping || !node) return;
+    if (phase !== "typing" || !node) return;
 
     if (lineIndex >= node.lines.length) {
-      setIsTyping(false);
       if (node.prompt) {
         setTimeout(() => {
           setShowPrompt(true);
           setWaitingForInput(true);
         }, 200);
       }
+      setPhase("idle");
       return;
     }
 
@@ -229,8 +231,8 @@ const Terminal = () => {
       const timer = setTimeout(() => {
         setDisplayedLines((prev) => {
           const copy = [...prev];
-          if (copy.length <= displayedLines.length - 1 || charIndex === 0) {
-            copy.push(currentLine.slice(0, charIndex + 1));
+          if (charIndex === 0) {
+            copy.push(currentLine.slice(0, 1));
           } else {
             copy[copy.length - 1] = currentLine.slice(0, charIndex + 1);
           }
@@ -245,7 +247,49 @@ const Terminal = () => {
         setCharIndex(0);
       }, LINE_DELAY);
     }
-  }, [isTyping, lineIndex, charIndex, node, displayedLines.length]);
+  }, [phase, lineIndex, charIndex, node]);
+
+  // Deleting phase — delete character by character from end
+  useEffect(() => {
+    if (phase !== "deleting") return;
+
+    if (displayedLines.length === 0) {
+      // Done deleting, transition to new node
+      if (nextNodeKey) {
+        setCurrentNode(nextNodeKey);
+        setNextNodeKey(null);
+        setLineIndex(0);
+        setCharIndex(0);
+        setPhase("typing");
+      }
+      return;
+    }
+
+    const lastLine = displayedLines[displayedLines.length - 1];
+
+    if (lastLine === "" || lastLine.length === 0) {
+      // Remove empty line instantly
+      const timer = setTimeout(() => {
+        setDisplayedLines((prev) => prev.slice(0, -1));
+      }, DELETE_SPEED);
+      return () => clearTimeout(timer);
+    }
+
+    // Delete one char from last line
+    const timer = setTimeout(() => {
+      setDisplayedLines((prev) => {
+        const copy = [...prev];
+        const line = copy[copy.length - 1];
+        if (line.length <= 1) {
+          copy.pop();
+        } else {
+          copy[copy.length - 1] = line.slice(0, -1);
+        }
+        return copy;
+      });
+    }, DELETE_SPEED);
+    return () => clearTimeout(timer);
+  }, [phase, displayedLines, nextNodeKey]);
 
   const handleInput = useCallback(
     (answer: "y" | "n") => {
@@ -257,22 +301,12 @@ const Terminal = () => {
       const nextKey = answer === "y" ? node.yes : node.no;
 
       if (nextKey === "restart") {
-        setTimeout(() => {
-          setDisplayedLines([]);
-          setCurrentNode("start");
-          setLineIndex(0);
-          setCharIndex(0);
-          setIsTyping(true);
-        }, 500);
+        setNextNodeKey("start");
+        setTimeout(() => setPhase("deleting"), LINGER_DURATION);
       } else if (nextKey) {
-        // Clear screen and type fresh
-        setTimeout(() => {
-          setDisplayedLines([]);
-          setCurrentNode(nextKey);
-          setLineIndex(0);
-          setCharIndex(0);
-          setIsTyping(true);
-        }, 300);
+        setNextNodeKey(nextKey);
+        // Linger, then start deleting
+        setTimeout(() => setPhase("deleting"), LINGER_DURATION);
       }
     },
     [waitingForInput, node]
@@ -294,7 +328,7 @@ const Terminal = () => {
       {/* Header bar */}
       <div className="crt-header border-b border-border px-4 py-1.5 text-xs tracking-widest text-muted-foreground">
         <span className="text-primary text-glow">■</span>
-        {" "}SECURE TERMINAL — ENCRYPTED CHANNEL — {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" }).toUpperCase()}
+        {" "}OMNI TERMINAL — ENCRYPTED CHANNEL — {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" }).toUpperCase()}
       </div>
 
       {/* Terminal body — centered */}
@@ -302,7 +336,7 @@ const Terminal = () => {
         ref={containerRef}
         className="flex flex-1 items-center justify-center overflow-hidden px-4 sm:px-8 md:px-12"
       >
-        <div className="w-full max-w-2xl text-sm leading-snug text-glow">
+        <div className="w-full max-w-2xl text-center text-sm leading-snug text-glow">
           {displayedLines.map((line, i) => (
             <div
               key={i}
@@ -315,12 +349,12 @@ const Terminal = () => {
           {showPrompt && (
             <div className="mt-2">
               <div className="font-bold text-primary">{node.prompt}</div>
-              <div className="mt-1 flex items-center gap-1">
+              <div className="mt-1 flex items-center justify-center gap-1">
                 <span className="text-muted-foreground">&gt;&gt;</span>
                 <span className="cursor-blink text-primary">█</span>
               </div>
               {/* Mobile tap targets */}
-              <div className="mt-3 flex gap-4 sm:hidden">
+              <div className="mt-3 flex justify-center gap-4 sm:hidden">
                 <button
                   onClick={() => handleInput("y")}
                   className="border border-primary bg-secondary px-8 py-3 text-sm font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
