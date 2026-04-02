@@ -312,7 +312,7 @@ const Terminal = () => {
       {/* Header bar */}
       <div className="crt-header border-b border-border px-6 py-3 text-xs tracking-widest text-muted-foreground">
         <span className="text-primary text-glow">■</span>
-        {" "}OMNI SYSTEMS TERMINAL — SECURE CHANNEL — {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" }).toUpperCase()}
+        {" "}SECURE TERMINAL — ENCRYPTED CHANNEL — {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" }).toUpperCase()}
       </div>
 
       {/* Terminal body — fills screen */}
