@@ -10,149 +10,162 @@ interface StoryNode {
 const storyTree: Record<string, StoryNode> = {
   start: {
     lines: [
-      "> SYSTEM BOOT...",
-      "> LOADING omni_sales_protocol.exe...",
-      "> ████████████████████████ 100%",
+      "OMNI SYSTEMS v2.049",
+      "COPYRIGHT (C) 2049 OMNI CORP.",
+      "ALL RIGHTS RESERVED.",
       "",
-      "Wake up...",
+      ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>",
       "",
-      "The digital world has changed.",
-      "You've been living in a fragmented reality —",
-      "scattered tools, broken workflows, endless tabs.",
+      "LOADING SECURE CHANNEL...",
+      "████████████████████████ OK",
       "",
-      "But what if I told you there was something",
-      "that could unify it all?",
+      "WELCOME, OPERATOR.",
       "",
-      "Something called OMNI.",
+      "THE DIGITAL LANDSCAPE HAS SHIFTED.",
+      "YOU HAVE BEEN OPERATING IN A FRAGMENTED",
+      "REALITY — SCATTERED TOOLS, BROKEN WORKFLOWS,",
+      "ENDLESS CONTEXT-SWITCHING.",
+      "",
+      "BUT WHAT IF THERE WAS A WAY TO",
+      "UNIFY IT ALL?",
+      "",
+      "SOMETHING CALLED  O M N I.",
     ],
-    prompt: "Are you ready to see how deep the rabbit hole goes? [Y/N]",
+    prompt: "READY TO SEE HOW DEEP THE RABBIT HOLE GOES? [Y/N]",
     yes: "redpill",
     no: "bluepill",
   },
   bluepill: {
     lines: [
       "",
-      "You chose the blue pill.",
+      ">> SELECTION: DECLINE",
       "",
-      "You wake up in your bed tomorrow and believe",
-      "whatever you want to believe.",
+      "YOU CHOSE IGNORANCE.",
       "",
-      "The same 47 open tabs.",
-      "The same broken integrations.",
-      "The same Monday morning dread.",
+      "TOMORROW YOU WAKE UP. SAME DESK.",
+      "SAME 47 OPEN TABS.",
+      "SAME BROKEN INTEGRATIONS.",
+      "SAME MONDAY MORNING DREAD.",
       "",
       "...",
       "",
-      "But something gnaws at you.",
-      "A feeling you can't shake.",
+      "BUT SOMETHING GNAWS AT YOU.",
+      "A FEELING YOU CANNOT SHAKE.",
+      "THE SYSTEM IS WRONG.",
     ],
-    prompt: "Do you want to reconsider? [Y/N]",
+    prompt: "DO YOU WANT TO RECONSIDER? [Y/N]",
     yes: "redpill",
     no: "final_no",
   },
   redpill: {
     lines: [
       "",
-      "█▓▒░ INITIATING RED PILL PROTOCOL ░▒▓█",
+      "========================================",
+      "  INITIATING RED PILL PROTOCOL",
+      "========================================",
       "",
-      "Good. You're curious. That's the first step.",
+      "GOOD. CURIOSITY IS THE FIRST STEP.",
       "",
-      "OMNI is not just another platform.",
-      "It's the operating system for your entire workflow.",
+      "OMNI IS NOT JUST ANOTHER PLATFORM.",
+      "IT IS THE OPERATING SYSTEM FOR YOUR",
+      "ENTIRE WORKFLOW.",
       "",
-      "  → One dashboard. Every tool connected.",
-      "  → AI-powered automation that learns YOUR patterns.",
-      "  → Real-time collaboration without the chaos.",
-      "  → Security that doesn't slow you down.",
+      "  [*] ONE DASHBOARD. EVERY TOOL.",
+      "  [*] AI AUTOMATION THAT LEARNS YOU.",
+      "  [*] REAL-TIME COLLAB. ZERO CHAOS.",
+      "  [*] SECURITY WITHOUT COMPROMISE.",
       "",
-      "The Matrix had you working harder.",
-      "OMNI lets you work smarter.",
+      "THE OLD SYSTEM HAD YOU WORKING HARDER.",
+      "OMNI LETS YOU WORK SMARTER.",
     ],
-    prompt: "Want to see what OMNI can do for your team? [Y/N]",
+    prompt: "SEE WHAT OMNI CAN DO FOR YOUR TEAM? [Y/N]",
     yes: "demo",
     no: "hesitate",
   },
   hesitate: {
     lines: [
       "",
-      "I understand your hesitation.",
+      ">> HESITATION DETECTED.",
       "",
-      "Most people aren't ready to change.",
-      "They're comfortable in the system.",
+      "UNDERSTANDABLE.",
+      "MOST ARE NOT READY TO CHANGE.",
       "",
-      "But consider this:",
-      "  → 73% reduction in context-switching",
-      "  → 4.2 hours saved per team member, per week",
-      "  → 99.9% uptime — the system never sleeps",
+      "BUT CONSIDER THE DATA:",
       "",
-      "Those aren't just numbers.",
-      "That's your life back.",
+      "  [+] 73% REDUCTION IN CONTEXT-SWITCHING",
+      "  [+] 4.2 HRS SAVED / TEAM MEMBER / WEEK",
+      "  [+] 99.9% UPTIME — SYSTEM NEVER SLEEPS",
+      "",
+      "THOSE ARE NOT JUST NUMBERS.",
+      "THAT IS YOUR LIFE BACK.",
     ],
-    prompt: "Ready to take the leap? [Y/N]",
+    prompt: "READY TO TAKE THE LEAP? [Y/N]",
     yes: "demo",
     no: "final_no",
   },
   demo: {
     lines: [
       "",
-      "░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░",
-      "  WELCOME TO THE REAL WORLD.",
-      "░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░",
+      "========================================",
+      "  W E L C O M E  T O  T H E",
+      "  R E A L  W O R L D.",
+      "========================================",
       "",
-      "Here's what happens next:",
+      "HERE IS WHAT HAPPENS NEXT:",
       "",
-      "  1. We set up a personalized demo.",
-      "  2. You see OMNI in action with YOUR data.",
-      "  3. You wonder how you ever lived without it.",
+      "  1. PERSONALIZED DEMO CONFIGURED.",
+      "  2. OMNI RUNS ON YOUR DATA.",
+      "  3. YOU WONDER HOW YOU SURVIVED WITHOUT IT.",
       "",
-      "No contracts. No pressure. Just clarity.",
+      "NO CONTRACTS. NO PRESSURE. JUST CLARITY.",
       "",
-      "  ╔══════════════════════════════════════╗",
-      "  ║   Visit: omni.dev/demo               ║",
-      "  ║   Email: neo@omni.dev                ║",
-      "  ╚══════════════════════════════════════╝",
+      "+--------------------------------------+",
+      "|  VISIT:  OMNI.DEV/DEMO              |",
+      "|  EMAIL:  NEO@OMNI.DEV               |",
+      "+--------------------------------------+",
       "",
-      "There is no spoon. But there IS a better way to work.",
+      "THERE IS NO SPOON.",
+      "BUT THERE IS A BETTER WAY TO WORK.",
     ],
-    prompt: "Would you like to restart the simulation? [Y/N]",
+    prompt: "RESTART SIMULATION? [Y/N]",
     yes: "restart",
     no: "end",
   },
   final_no: {
     lines: [
       "",
-      "The Matrix has you.",
+      "THE MATRIX HAS YOU.",
       "",
-      "But remember...",
-      "OMNI will be here when you're ready.",
+      "BUT REMEMBER...",
+      "OMNI WILL BE HERE WHEN YOU ARE READY.",
       "",
-      "  ╔══════════════════════════════════════╗",
-      "  ║   omni.dev — when you're ready.      ║",
-      "  ╚══════════════════════════════════════╝",
+      "+--------------------------------------+",
+      "|  OMNI.DEV — WHEN YOU ARE READY.      |",
+      "+--------------------------------------+",
       "",
-      "> CONNECTION TERMINATED.",
+      ">> CONNECTION TERMINATED.",
     ],
-    prompt: "Restart? [Y/N]",
+    prompt: "RESTART? [Y/N]",
     yes: "restart",
     no: "end",
   },
   restart: {
-    lines: ["> REBOOTING SYSTEM..."],
+    lines: [">> REBOOTING SYSTEM..."],
   },
   end: {
     lines: [
       "",
-      "> SIGNAL LOST.",
-      "> END OF LINE.",
+      ">> SIGNAL LOST.",
+      ">> END OF LINE.",
       "",
-      "  Remember: free your mind.",
-      "  omni.dev",
+      "   REMEMBER: FREE YOUR MIND.",
+      "   OMNI.DEV",
     ],
   },
 };
 
-const TYPING_SPEED = 30;
-const LINE_DELAY = 120;
+const TYPING_SPEED = 25;
+const LINE_DELAY = 100;
 
 const Terminal = () => {
   const [displayedLines, setDisplayedLines] = useState<string[]>([]);
@@ -166,14 +179,12 @@ const Terminal = () => {
 
   const node = storyTree[currentNode];
 
-  // Auto scroll to bottom
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   }, [displayedLines, showPrompt]);
 
-  // Typewriter effect
   useEffect(() => {
     if (!isTyping || !node) return;
 
@@ -191,7 +202,6 @@ const Terminal = () => {
     const currentLine = node.lines[lineIndex];
 
     if (currentLine === "") {
-      // Empty line — add immediately
       setDisplayedLines((prev) => [...prev, ""]);
       setTimeout(() => {
         setLineIndex((i) => i + 1);
@@ -229,11 +239,10 @@ const Terminal = () => {
       setWaitingForInput(false);
       setShowPrompt(false);
 
-      const answerLine = `> ${answer.toUpperCase()}`;
+      const answerLine = `>> ${answer.toUpperCase()}`;
       setDisplayedLines((prev) => [...prev, "", node.prompt || "", answerLine]);
 
-      const nextKey =
-        answer === "y" ? node.yes : node.no;
+      const nextKey = answer === "y" ? node.yes : node.no;
 
       if (nextKey === "restart") {
         setTimeout(() => {
@@ -255,7 +264,6 @@ const Terminal = () => {
     [waitingForInput, node]
   );
 
-  // Keyboard listener
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!waitingForInput) return;
@@ -268,58 +276,62 @@ const Terminal = () => {
   }, [waitingForInput, handleInput]);
 
   return (
-    <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-2xl rounded border border-border bg-background/90 shadow-lg backdrop-blur-sm"
-           style={{ boxShadow: "0 0 30px hsl(120 100% 50% / 0.1)" }}>
-        {/* Title bar */}
-        <div className="flex items-center gap-2 border-b border-border px-4 py-2">
-          <span className="h-3 w-3 rounded-full bg-destructive" />
-          <span className="h-3 w-3 rounded-full bg-accent" />
-          <span className="h-3 w-3 rounded-full bg-primary" />
-          <span className="ml-4 text-xs text-muted-foreground">
-            omni_terminal v2.049 — SECURE CONNECTION
-          </span>
-        </div>
+    <div className="crt-screen relative z-10 flex min-h-screen flex-col">
+      {/* CRT bezel / edge vignette is handled by CSS */}
+      
+      {/* Header bar */}
+      <div className="crt-header border-b border-border px-6 py-3 text-xs tracking-widest text-muted-foreground">
+        <span className="text-primary text-glow">■</span>
+        {" "}OMNI SYSTEMS TERMINAL — SECURE CHANNEL — {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" }).toUpperCase()}
+      </div>
 
-        {/* Terminal body */}
-        <div
-          ref={containerRef}
-          className="h-[70vh] overflow-y-auto p-6 text-sm leading-relaxed text-glow"
-        >
-          {displayedLines.map((line, i) => (
-            <div key={i} className="line-fade min-h-[1.4em] whitespace-pre-wrap font-mono">
-              {line}
-            </div>
-          ))}
+      {/* Terminal body — fills screen */}
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-y-auto px-6 py-6 text-sm leading-loose text-glow sm:px-12 sm:py-8 md:px-20"
+      >
+        {displayedLines.map((line, i) => (
+          <div
+            key={i}
+            className="line-fade min-h-[1.5em] whitespace-pre-wrap font-mono"
+          >
+            {line}
+          </div>
+        ))}
 
-          {showPrompt && (
-            <div className="mt-4">
-              <div className="text-primary font-bold">{node.prompt}</div>
-              <div className="mt-2 flex items-center gap-1">
-                <span className="text-muted-foreground">&gt;</span>
-                <span className="cursor-blink text-primary">█</span>
-              </div>
-              {/* Mobile buttons */}
-              <div className="mt-4 flex gap-4 sm:hidden">
-                <button
-                  onClick={() => handleInput("y")}
-                  className="border border-primary bg-secondary px-6 py-2 text-sm text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
-                >
-                  [Y] YES
-                </button>
-                <button
-                  onClick={() => handleInput("n")}
-                  className="border border-border bg-secondary px-6 py-2 text-sm text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
-                >
-                  [N] NO
-                </button>
-              </div>
-              <div className="mt-2 text-xs text-muted-foreground hidden sm:block">
-                Press Y or N on your keyboard
-              </div>
+        {showPrompt && (
+          <div className="mt-6">
+            <div className="font-bold text-primary">{node.prompt}</div>
+            <div className="mt-2 flex items-center gap-1">
+              <span className="text-muted-foreground">&gt;&gt;</span>
+              <span className="cursor-blink text-primary">█</span>
             </div>
-          )}
-        </div>
+            {/* Mobile tap targets */}
+            <div className="mt-6 flex gap-4 sm:hidden">
+              <button
+                onClick={() => handleInput("y")}
+                className="border border-primary bg-secondary px-8 py-3 text-sm font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+              >
+                [Y] YES
+              </button>
+              <button
+                onClick={() => handleInput("n")}
+                className="border border-border bg-secondary px-8 py-3 text-sm font-bold text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
+              >
+                [N] NO
+              </button>
+            </div>
+            <div className="mt-3 text-xs text-muted-foreground hidden sm:block">
+              PRESS Y OR N
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer status bar */}
+      <div className="border-t border-border px-6 py-2 text-xs tracking-wider text-muted-foreground flex justify-between">
+        <span>OMNI CORP. // CLASSIFIED</span>
+        <span className="text-primary text-glow">SIGNAL: ACTIVE</span>
       </div>
     </div>
   );
