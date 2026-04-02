@@ -360,7 +360,7 @@ const Terminal = () => {
 
       {/* Footer status bar */}
       <div className="border-t border-border px-6 py-2 text-xs tracking-wider text-muted-foreground flex justify-between">
-        <span>OMNI CORP. // CLASSIFIED</span>
+        <span>CLASSIFIED // EYES ONLY</span>
         <span className="text-primary text-glow">SIGNAL: ACTIVE</span>
       </div>
     </div>

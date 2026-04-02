@@ -50,7 +50,7 @@ const MatrixRain = () => {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 z-0"
-      style={{ opacity: 0.15 }}
+      style={{ opacity: 0.06 }}
     />
   );
 };
