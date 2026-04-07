@@ -10,28 +10,28 @@ interface StoryNode {
 const storyTree: Record<string, StoryNode> = {
   start: {
     lines: [
-      "OMNI TERMINAL v2.049",
-      "SCANNING NETWORK...",
-      "",
-      "HELLO, ANTON.",
+      "YOU ARE TRAPPED.",
+      "DROWNING IN DASHBOARDS.",
+      "NOBODY TRUSTS THE NUMBERS.",
     ],
-    prompt: "IDENTITY VERIFICATION REQUIRED. PROCEED? [Y/N]",
+    prompt: "READY TO ESCAPE? [Y/N]",
     yes: "verify",
-    no: "final_no",
+    no: "bluepill",
   },
   verify: {
     lines: [
-      "VERIFYING ████████████ ...",
+      "HOLD ON.",
+      "",
+      "SCANNING ████████████ ...",
       "CROSS-REFERENCING: LOVABLE HQ, STOCKHOLM",
-      "ROLE: FOUNDER & CEO",
       "BIOMETRIC HASH: 7F:3A:9C:██:██:██",
       "",
       "========================================",
       "  I D E N T I T Y   C O N F I R M E D",
       "========================================",
       "",
-      "WELCOME BACK, ANTON.",
-      "WE HAVE SOMETHING TO SHOW YOU.",
+      "ANTON OSIKA. FOUNDER. LOVABLE.",
+      "WE'VE BEEN EXPECTING YOU.",
     ],
     prompt: "CONTINUE? [Y/N]",
     yes: "pitch",
@@ -41,8 +41,8 @@ const storyTree: Record<string, StoryNode> = {
     lines: [
       ">> DECLINE LOGGED.",
       "",
-      "YOUR USERS STILL NEED ANSWERS FROM DATA.",
-      "THE QUEUE ONLY GROWS.",
+      "SAME DASHBOARDS TOMORROW.",
+      "SAME BOTTLENECK.",
     ],
     prompt: "RECONSIDER? [Y/N]",
     yes: "pitch",
@@ -50,18 +50,13 @@ const storyTree: Record<string, StoryNode> = {
   },
   pitch: {
     lines: [
-      "========================================",
-      "  CLASSIFIED BRIEFING",
-      "========================================",
+      "WHAT IF ANYONE AT LOVABLE COULD",
+      "ASK A QUESTION — AND TRUST THE ANSWER?",
       "",
-      "IMAGINE: ANYONE AT LOVABLE ASKS DATA",
-      "A QUESTION — IN PLAIN ENGLISH.",
-      "",
-      "  [*] AI ANSWERS GROUNDED IN YOUR METRICS.",
-      "  [*] NO HALLUCINATION. NO WAITING.",
-      "  [*] SQL + SPREADSHEETS WHEN YOU NEED DEPTH.",
+      "PLAIN ENGLISH IN. REAL INSIGHTS OUT.",
+      "NO QUEUE. NO GUESSING.",
     ],
-    prompt: "SEE THE FULL PICTURE? [Y/N]",
+    prompt: "GO DEEPER? [Y/N]",
     yes: "embedded",
     no: "hesitate",
   },
@@ -69,31 +64,25 @@ const storyTree: Record<string, StoryNode> = {
     lines: [
       ">> HESITATION DETECTED.",
       "",
-      "EVERY UNANSWERED QUESTION IS A",
-      "DECISION MADE ON INSTINCT.",
+      "EVERY UNANSWERED QUESTION",
+      "IS A DECISION MADE BLIND.",
     ],
-    prompt: "READY NOW? [Y/N]",
+    prompt: "READY? [Y/N]",
     yes: "embedded",
     no: "final_no",
   },
   embedded: {
     lines: [
-      "THERE IS ANOTHER LAYER.",
+      "NOW IMAGINE YOUR USERS COULD DO IT TOO.",
       "",
-      "LOVABLE COULD EMBED THIS — FOR YOUR USERS.",
-      "",
-      "  [*] AI ANALYTICS INSIDE YOUR PRODUCT.",
-      "  [*] MINIMAL ENG. FULLY CUSTOMIZABLE.",
-      "  [*] BAMBOOHR ALREADY SHIPS WITH IT.",
+      "AI ANALYTICS — INSIDE YOUR PRODUCT.",
+      "BAMBOOHR ALREADY SHIPS WITH IT.",
       "",
       "DECRYPTING ██████████████████ DONE.",
       "",
       "========================================",
       "         O  M  N  I",
       "========================================",
-      "",
-      "AI-POWERED ANALYTICS.",
-      "FOR LOVABLE. FOR YOUR CUSTOMERS.",
     ],
     prompt: "SCHEDULE A MEETING? [Y/N]",
     yes: "demo",
@@ -105,10 +94,8 @@ const storyTree: Record<string, StoryNode> = {
       "  A C C E S S   G R A N T E D",
       "========================================",
       "",
-      "+--------------------------------------+",
-      "|  VISIT:  OMNI.CO/SCHEDULE            |",
-      "|  EMAIL:  HELLO@OMNI.CO               |",
-      "+--------------------------------------+",
+      "  OMNI.CO/SCHEDULE",
+      "  HELLO@OMNI.CO",
       "",
       "SEE YOU ON THE OTHER SIDE, ANTON.",
     ],
@@ -120,9 +107,7 @@ const storyTree: Record<string, StoryNode> = {
     lines: [
       "THE MATRIX HAS YOU.",
       "",
-      "WE WILL BE HERE WHEN YOU ARE READY.",
-      "",
-      "  OMNI.CO",
+      "  OMNI.CO — WHEN YOU ARE READY.",
     ],
     prompt: "RESTART? [Y/N]",
     yes: "restart",
@@ -132,19 +117,7 @@ const storyTree: Record<string, StoryNode> = {
     lines: [">> REBOOTING SYSTEM..."],
   },
   end: {
-    lines: [
-      ">> SIGNAL LOST.",
-      ">> END OF LINE.",
-      "",
-      "========================================",
-      "  C R E D I T S",
-      "========================================",
-      "",
-      "  PRODUCT:   OMNI — OMNI.CO",
-      "  BUILT WITH:  LOVABLE — LOVABLE.DEV",
-      "",
-      "  FREE YOUR MIND.",
-    ],
+    lines: ["SIGNAL_LOST"],
   },
 };
 
@@ -164,13 +137,28 @@ const Terminal = () => {
   const [showPrompt, setShowPrompt] = useState(false);
   const [waitingForInput, setWaitingForInput] = useState(false);
   const [nextNodeKey, setNextNodeKey] = useState<string | null>(null);
+  const [showOutro, setShowOutro] = useState(false);
+  const [outroPhase, setOutroPhase] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const node = storyTree[currentNode];
 
+  // Detect "end" node → trigger outro
+  useEffect(() => {
+    if (currentNode === "end") {
+      setShowOutro(true);
+      const timers = [
+        setTimeout(() => setOutroPhase(1), 400),
+        setTimeout(() => setOutroPhase(2), 1200),
+        setTimeout(() => setOutroPhase(3), 2600),
+      ];
+      return () => timers.forEach(clearTimeout);
+    }
+  }, [currentNode]);
+
   // Typing phase
   useEffect(() => {
-    if (phase !== "typing" || !node) return;
+    if (phase !== "typing" || !node || showOutro) return;
 
     if (lineIndex >= node.lines.length) {
       if (node.prompt) {
@@ -214,7 +202,7 @@ const Terminal = () => {
         setCharIndex(0);
       }, LINE_DELAY);
     }
-  }, [phase, lineIndex, charIndex, node]);
+  }, [phase, lineIndex, charIndex, node, showOutro]);
 
   // Deleting phase
   useEffect(() => {
@@ -286,12 +274,42 @@ const Terminal = () => {
     return () => window.removeEventListener("keydown", handler);
   }, [waitingForInput, handleInput]);
 
+  // Outro screen
+  if (showOutro) {
+    return (
+      <div className="relative z-10 flex h-screen items-center justify-center overflow-hidden">
+        <div className="text-center font-mono">
+          {outroPhase === 0 && (
+            <div className="text-primary/20 text-xs">_</div>
+          )}
+          {outroPhase === 1 && (
+            <div className="text-primary text-glow text-xs glitch-text">
+              >> SIGNAL LOST
+            </div>
+          )}
+          {outroPhase >= 2 && (
+            <div className="text-glow space-y-4">
+              <div className="text-muted-foreground text-xs tracking-widest">A FILM BY</div>
+              <div className="text-primary text-lg tracking-[0.4em] font-bold">O M N I</div>
+              <div className="text-muted-foreground/40 text-xs mt-6">OMNI.CO</div>
+            </div>
+          )}
+          {outroPhase >= 3 && (
+            <div className="mt-8 text-muted-foreground/30 text-xs tracking-wider">
+              enabled by <a href="https://lovable.dev" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">lovable</a>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative z-10 flex h-screen flex-col overflow-hidden">
       {/* Header bar */}
       <div className="crt-header border-b border-border px-4 py-1.5 text-xs tracking-widest text-muted-foreground">
         <span className="text-primary text-glow">■</span>
-        {" "}OMNI TERMINAL — ENCRYPTED CHANNEL — {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" }).toUpperCase()}
+        {" "}OMNI TERMINAL — ENCRYPTED CHANNEL
       </div>
 
       {/* Terminal body — centered */}
@@ -316,7 +334,6 @@ const Terminal = () => {
                 <span className="text-muted-foreground">&gt;&gt;</span>
                 <span className="cursor-blink text-primary">█</span>
               </div>
-              {/* Mobile tap targets */}
               <div className="mt-3 flex justify-center gap-4 sm:hidden">
                 <button
                   onClick={() => handleInput("y")}
@@ -342,7 +359,7 @@ const Terminal = () => {
       {/* Footer status bar */}
       <div className="border-t border-border px-4 py-1 text-xs tracking-wider text-muted-foreground flex justify-between">
         <span>CLASSIFIED // EYES ONLY</span>
-        <span className="text-muted-foreground/50 tracking-normal">enabled by <a href="https://lovable.dev" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">lovable</a></span>
+        <span className="text-muted-foreground/30 tracking-normal">enabled by <a href="https://lovable.dev" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">lovable</a></span>
         <span className="text-primary text-glow">SIGNAL: ACTIVE</span>
       </div>
     </div>
