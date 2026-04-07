@@ -11,8 +11,7 @@ const storyTree: Record<string, StoryNode> = {
   start: {
     lines: [
       "YOU ARE TRAPPED.",
-      "DROWNING IN DASHBOARDS.",
-      "NOBODY TRUSTS THE NUMBERS.",
+      "DROWNING IN DASHBOARDS. NOBODY TRUSTS THE NUMBERS.",
     ],
     prompt: "READY TO ESCAPE? [Y/N]",
     yes: "verify",
@@ -23,12 +22,10 @@ const storyTree: Record<string, StoryNode> = {
       "HOLD ON.",
       "",
       "SCANNING ████████████ ...",
-      "CROSS-REFERENCING: LOVABLE HQ, STOCKHOLM",
+      "LOCATION: LOVABLE HQ, STOCKHOLM",
       "BIOMETRIC HASH: 7F:3A:9C:██:██:██",
       "",
-      "========================================",
       "  I D E N T I T Y   C O N F I R M E D",
-      "========================================",
       "",
       "ANTON OSIKA. FOUNDER. LOVABLE.",
       "WE'VE BEEN EXPECTING YOU.",
@@ -40,9 +37,7 @@ const storyTree: Record<string, StoryNode> = {
   bluepill: {
     lines: [
       ">> DECLINE LOGGED.",
-      "",
-      "SAME DASHBOARDS TOMORROW.",
-      "SAME BOTTLENECK.",
+      "SAME DASHBOARDS TOMORROW. SAME BOTTLENECK.",
     ],
     prompt: "RECONSIDER? [Y/N]",
     yes: "pitch",
@@ -63,9 +58,7 @@ const storyTree: Record<string, StoryNode> = {
   hesitate: {
     lines: [
       ">> HESITATION DETECTED.",
-      "",
-      "EVERY UNANSWERED QUESTION",
-      "IS A DECISION MADE BLIND.",
+      "EVERY UNANSWERED QUESTION IS A DECISION MADE BLIND.",
     ],
     prompt: "READY? [Y/N]",
     yes: "embedded",
@@ -75,14 +68,8 @@ const storyTree: Record<string, StoryNode> = {
     lines: [
       "NOW IMAGINE YOUR USERS COULD DO IT TOO.",
       "",
-      "AI ANALYTICS — INSIDE YOUR PRODUCT.",
-      "BAMBOOHR ALREADY SHIPS WITH IT.",
-      "",
-      "DECRYPTING ██████████████████ DONE.",
-      "",
-      "========================================",
-      "         O  M  N  I",
-      "========================================",
+      "AI ANALYTICS — EMBEDDED INSIDE YOUR PRODUCT.",
+      "FULLY CUSTOMIZABLE. GROUNDED IN YOUR METRICS.",
     ],
     prompt: "SCHEDULE A MEETING? [Y/N]",
     yes: "demo",
@@ -99,25 +86,12 @@ const storyTree: Record<string, StoryNode> = {
       "",
       "SEE YOU ON THE OTHER SIDE, ANTON.",
     ],
-    prompt: "RESTART? [Y/N]",
-    yes: "restart",
-    no: "end",
   },
   final_no: {
     lines: [
       "THE MATRIX HAS YOU.",
-      "",
-      "  OMNI.CO — WHEN YOU ARE READY.",
+      "OMNI.CO — WHEN YOU ARE READY.",
     ],
-    prompt: "RESTART? [Y/N]",
-    yes: "restart",
-    no: "end",
-  },
-  restart: {
-    lines: [">> REBOOTING SYSTEM..."],
-  },
-  end: {
-    lines: ["SIGNAL_LOST"],
   },
 };
 
@@ -137,28 +111,72 @@ const Terminal = () => {
   const [showPrompt, setShowPrompt] = useState(false);
   const [waitingForInput, setWaitingForInput] = useState(false);
   const [nextNodeKey, setNextNodeKey] = useState<string | null>(null);
-  const [showOutro, setShowOutro] = useState(false);
-  const [outroPhase, setOutroPhase] = useState(0);
+  const [outroStage, setOutroStage] = useState<"none" | "omni" | "omni-glitch" | "lovable" | "lovable-glitch" | "tvoff" | "dead">("none");
+  const [requestReboot, setRequestReboot] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const node = storyTree[currentNode];
 
-  // Detect "end" node → trigger outro
+  // When typing finishes on a terminal node (no prompt), trigger outro
   useEffect(() => {
-    if (currentNode === "end") {
-      setShowOutro(true);
-      const timers = [
-        setTimeout(() => setOutroPhase(1), 400),
-        setTimeout(() => setOutroPhase(2), 1200),
-        setTimeout(() => setOutroPhase(3), 2600),
-      ];
-      return () => timers.forEach(clearTimeout);
+    if (phase === "idle" && node && !node.prompt && (currentNode === "demo" || currentNode === "final_no")) {
+      const timer = setTimeout(() => {
+        setOutroStage("omni");
+      }, 2000);
+      return () => clearTimeout(timer);
     }
-  }, [currentNode]);
+  }, [phase, node, currentNode]);
+
+  // Outro sequence
+  useEffect(() => {
+    if (outroStage === "none") return;
+    let timers: ReturnType<typeof setTimeout>[] = [];
+
+    if (outroStage === "omni") {
+      timers.push(setTimeout(() => setOutroStage("omni-glitch"), 2000));
+    } else if (outroStage === "omni-glitch") {
+      timers.push(setTimeout(() => setOutroStage("lovable"), 600));
+    } else if (outroStage === "lovable") {
+      timers.push(setTimeout(() => setOutroStage("lovable-glitch"), 2000));
+    } else if (outroStage === "lovable-glitch") {
+      timers.push(setTimeout(() => setOutroStage("tvoff"), 600));
+    } else if (outroStage === "tvoff") {
+      timers.push(setTimeout(() => {
+        setOutroStage("dead");
+        setRequestReboot(true);
+      }, 800));
+    }
+
+    return () => timers.forEach(clearTimeout);
+  }, [outroStage]);
+
+  // Listen for any key to reboot
+  useEffect(() => {
+    if (!requestReboot) return;
+    const handler = () => {
+      setRequestReboot(false);
+      setOutroStage("none");
+      setDisplayedLines([]);
+      setCurrentNode("start");
+      setLineIndex(0);
+      setCharIndex(0);
+      setShowPrompt(false);
+      setWaitingForInput(false);
+      setNextNodeKey(null);
+      // Trigger boot sequence via callback
+      window.dispatchEvent(new CustomEvent("terminal-reboot"));
+    };
+    window.addEventListener("keydown", handler);
+    window.addEventListener("click", handler);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      window.removeEventListener("click", handler);
+    };
+  }, [requestReboot]);
 
   // Typing phase
   useEffect(() => {
-    if (phase !== "typing" || !node || showOutro) return;
+    if (phase !== "typing" || !node || outroStage !== "none") return;
 
     if (lineIndex >= node.lines.length) {
       if (node.prompt) {
@@ -202,7 +220,7 @@ const Terminal = () => {
         setCharIndex(0);
       }, LINE_DELAY);
     }
-  }, [phase, lineIndex, charIndex, node, showOutro]);
+  }, [phase, lineIndex, charIndex, node, outroStage]);
 
   // Deleting phase
   useEffect(() => {
@@ -252,10 +270,7 @@ const Terminal = () => {
 
       const nextKey = answer === "y" ? node.yes : node.no;
 
-      if (nextKey === "restart") {
-        setNextNodeKey("start");
-        setTimeout(() => setPhase("deleting"), LINGER_DURATION);
-      } else if (nextKey) {
+      if (nextKey) {
         setNextNodeKey(nextKey);
         setTimeout(() => setPhase("deleting"), LINGER_DURATION);
       }
@@ -275,28 +290,36 @@ const Terminal = () => {
   }, [waitingForInput, handleInput]);
 
   // Outro screen
-  if (showOutro) {
+  if (outroStage !== "none") {
     return (
       <div className="relative z-10 flex h-screen items-center justify-center overflow-hidden">
         <div className="text-center font-mono">
-          {outroPhase === 0 && (
-            <div className="text-primary/20 text-xs">_</div>
-          )}
-          {outroPhase === 1 && (
-            <div className="text-primary text-glow text-xs glitch-text">
-              {">> SIGNAL LOST"}
+          {/* TV off effect */}
+          {(outroStage === "tvoff" || outroStage === "dead") && (
+            <div className="fixed inset-0 bg-background z-50 flex items-center justify-center">
+              {outroStage === "tvoff" && (
+                <div className="w-full h-[2px] bg-primary/60 animate-pulse" />
+              )}
             </div>
           )}
-          {outroPhase >= 2 && (
-            <div className="text-glow space-y-4">
-              <div className="text-muted-foreground text-xs tracking-widest">A FILM BY</div>
-              <div className="text-primary text-lg tracking-[0.4em] font-bold">O M N I</div>
-              <div className="text-muted-foreground/40 text-xs mt-6">OMNI.CO</div>
+
+          {/* OMNI reveal */}
+          {(outroStage === "omni" || outroStage === "omni-glitch") && (
+            <div className={`text-glow space-y-2 ${outroStage === "omni-glitch" ? "glitch-text" : ""}`}>
+              <div className="text-primary text-2xl tracking-[0.5em] font-bold">
+                O M N I
+              </div>
+              <div className="text-muted-foreground/40 text-xs">OMNI.CO</div>
             </div>
           )}
-          {outroPhase >= 3 && (
-            <div className="mt-8 text-muted-foreground/30 text-xs tracking-wider">
-              enabled by <a href="https://lovable.dev" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">lovable</a>
+
+          {/* Lovable reveal */}
+          {(outroStage === "lovable" || outroStage === "lovable-glitch") && (
+            <div className={`text-glow space-y-2 ${outroStage === "lovable-glitch" ? "glitch-text" : ""}`}>
+              <div className="text-muted-foreground/50 text-xs tracking-widest">ENABLED BY</div>
+              <div className="text-primary text-lg tracking-[0.4em]">
+                L O V A B L E
+              </div>
             </div>
           )}
         </div>
@@ -359,7 +382,6 @@ const Terminal = () => {
       {/* Footer status bar */}
       <div className="border-t border-border px-4 py-1 text-xs tracking-wider text-muted-foreground flex justify-between">
         <span>CLASSIFIED // EYES ONLY</span>
-        <span className="text-muted-foreground/30 tracking-normal">enabled by <a href="https://lovable.dev" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">lovable</a></span>
         <span className="text-primary text-glow">SIGNAL: ACTIVE</span>
       </div>
     </div>
