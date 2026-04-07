@@ -146,3 +146,34 @@
   text-shadow: 0 0 6px hsl(120 100% 50% / 0.3);
   letter-spacing: 0.15em;
 }
+
+/* Glitch text effect */
+@keyframes glitch {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-2px, 1px); }
+  40% { transform: translate(2px, -1px); }
+  60% { transform: translate(-1px, -2px); }
+  80% { transform: translate(1px, 2px); }
+}
+
+.glitch-text {
+  animation: glitch 0.3s ease-in-out infinite;
+}
+
+/* Boot static noise */
+.boot-static {
+  background: repeating-radial-gradient(
+    circle at 50% 50%,
+    transparent 0,
+    hsl(120 100% 50% / 0.03) 1px,
+    transparent 2px
+  );
+  animation: staticNoise 0.1s steps(3) infinite;
+}
+
+@keyframes staticNoise {
+  0% { background-position: 0 0; }
+  33% { background-position: 5px -5px; }
+  66% { background-position: -5px 3px; }
+  100% { background-position: 3px 7px; }
+}
