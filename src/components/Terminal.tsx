@@ -10,89 +10,90 @@ interface StoryNode {
 const storyTree: Record<string, StoryNode> = {
   start: {
     lines: [
-      "SYSTEM v2.049 // SECURE CHANNEL",
-      "LOADING... ████████ OK",
+      "OMNI TERMINAL v2.049",
+      "SCANNING NETWORK...",
       "",
-      "WELCOME, OPERATOR.",
-      "",
-      "YOU ARE TRAPPED.",
-      "DROWNING IN DASHBOARDS. BURIED IN TICKETS.",
-      "NOBODY TRUSTS THE NUMBERS.",
-      "A QUESTION THAT SHOULD TAKE SECONDS...",
-      "TAKES DAYS.",
+      "HELLO, ANTON.",
     ],
-    prompt: "READY TO ESCAPE? [Y/N]",
-    yes: "redpill",
+    prompt: "IDENTITY VERIFICATION REQUIRED. PROCEED? [Y/N]",
+    yes: "verify",
+    no: "final_no",
+  },
+  verify: {
+    lines: [
+      "VERIFYING ████████████ ...",
+      "CROSS-REFERENCING: LOVABLE HQ, STOCKHOLM",
+      "ROLE: FOUNDER & CEO",
+      "BIOMETRIC HASH: 7F:3A:9C:██:██:██",
+      "",
+      "========================================",
+      "  I D E N T I T Y   C O N F I R M E D",
+      "========================================",
+      "",
+      "WELCOME BACK, ANTON.",
+      "WE HAVE SOMETHING TO SHOW YOU.",
+    ],
+    prompt: "CONTINUE? [Y/N]",
+    yes: "pitch",
     no: "bluepill",
   },
   bluepill: {
     lines: [
       ">> DECLINE LOGGED.",
       "",
-      "SAME DASHBOARDS TOMORROW.",
-      "SAME BOTTLENECK. SAME BROKEN SPREADSHEET.",
-      "",
-      "BUT WHAT IF ANYONE COULD JUST... ASK?",
-      "AND TRUST THE ANSWER?",
+      "YOUR USERS STILL NEED ANSWERS FROM DATA.",
+      "THE QUEUE ONLY GROWS.",
     ],
     prompt: "RECONSIDER? [Y/N]",
-    yes: "redpill",
+    yes: "pitch",
     no: "final_no",
   },
-  redpill: {
+  pitch: {
     lines: [
       "========================================",
-      "  RED PILL PROTOCOL INITIATED",
+      "  CLASSIFIED BRIEFING",
       "========================================",
       "",
-      "WHAT IF YOU COULD ASK YOUR DATA",
-      "A QUESTION — IN PLAIN LANGUAGE?",
+      "IMAGINE: ANYONE AT LOVABLE ASKS DATA",
+      "A QUESTION — IN PLAIN ENGLISH.",
       "",
-      "  [*] ASK LIKE CHATGPT. GET REAL ANSWERS.",
-      "  [*] AI GROUNDED IN YOUR METRICS.",
-      "  [*] NO HALLUCINATION. NO GUESSING.",
-      "",
-      "SQL, POINT-AND-CLICK, OR PLAIN ENGLISH.",
-      "EVERYONE SELF-SERVES. NO QUEUE.",
+      "  [*] AI ANSWERS GROUNDED IN YOUR METRICS.",
+      "  [*] NO HALLUCINATION. NO WAITING.",
+      "  [*] SQL + SPREADSHEETS WHEN YOU NEED DEPTH.",
     ],
-    prompt: "GO DEEPER? [Y/N]",
-    yes: "deeper",
+    prompt: "SEE THE FULL PICTURE? [Y/N]",
+    yes: "embedded",
     no: "hesitate",
   },
   hesitate: {
     lines: [
       ">> HESITATION DETECTED.",
       "",
-      "EVERY UNANSWERED QUESTION",
-      "IS A DECISION MADE ON INSTINCT.",
-      "",
-      "  [+] GOVERNED BY YOUR DEFINITIONS.",
-      "  [+] ACCURATE BY DESIGN.",
-      "",
-      "HOW LONG CAN YOU AFFORD TO GUESS?",
+      "EVERY UNANSWERED QUESTION IS A",
+      "DECISION MADE ON INSTINCT.",
     ],
-    prompt: "READY? [Y/N]",
-    yes: "deeper",
+    prompt: "READY NOW? [Y/N]",
+    yes: "embedded",
     no: "final_no",
   },
-  deeper: {
+  embedded: {
     lines: [
       "THERE IS ANOTHER LAYER.",
-      "WHAT IF YOUR CUSTOMERS COULD DO THIS TOO?",
       "",
-      "  [*] EMBEDDED ANALYTICS — IN YOUR PRODUCT.",
-      "  [*] MINIMAL ENGINEERING. FULLY CUSTOMIZABLE.",
-      "  [*] TEAMS LIKE BAMBOOHR USE IT TO WIN.",
+      "LOVABLE COULD EMBED THIS — FOR YOUR USERS.",
       "",
-      "DECRYPTING ██████████ ...",
-      "DECRYPTING ████████████████████████ DONE.",
+      "  [*] AI ANALYTICS INSIDE YOUR PRODUCT.",
+      "  [*] MINIMAL ENG. FULLY CUSTOMIZABLE.",
+      "  [*] BAMBOOHR ALREADY SHIPS WITH IT.",
+      "",
+      "DECRYPTING ██████████████████ DONE.",
       "",
       "========================================",
       "         O  M  N  I",
       "========================================",
       "",
       "AI-POWERED ANALYTICS.",
-      "FOR YOUR TEAM. FOR YOUR CUSTOMERS.",
+      "FOR LOVABLE. FOR YOUR CUSTOMERS.",
     ],
     prompt: "SCHEDULE A MEETING? [Y/N]",
     yes: "demo",
@@ -104,20 +105,14 @@ const storyTree: Record<string, StoryNode> = {
       "  A C C E S S   G R A N T E D",
       "========================================",
       "",
-      "  1. WE LEARN YOUR DATA LANDSCAPE.",
-      "  2. YOUR ORG STARTS SELF-SERVING.",
-      "",
-      "NO CONTRACTS. NO PRESSURE. JUST CLARITY.",
-      "",
       "+--------------------------------------+",
       "|  VISIT:  OMNI.CO/SCHEDULE            |",
       "|  EMAIL:  HELLO@OMNI.CO               |",
       "+--------------------------------------+",
       "",
-      "THERE IS NO SPOON.",
-      "JUST A BETTER WAY TO WORK WITH DATA.",
+      "SEE YOU ON THE OTHER SIDE, ANTON.",
     ],
-    prompt: "RESTART SIMULATION? [Y/N]",
+    prompt: "RESTART? [Y/N]",
     yes: "restart",
     no: "end",
   },
@@ -127,9 +122,7 @@ const storyTree: Record<string, StoryNode> = {
       "",
       "WE WILL BE HERE WHEN YOU ARE READY.",
       "",
-      "+--------------------------------------+",
-      "|  OMNI.CO — WHEN YOU ARE READY.       |",
-      "+--------------------------------------+",
+      "  OMNI.CO",
     ],
     prompt: "RESTART? [Y/N]",
     yes: "restart",
@@ -143,7 +136,14 @@ const storyTree: Record<string, StoryNode> = {
       ">> SIGNAL LOST.",
       ">> END OF LINE.",
       "",
-      "   FREE YOUR MIND. OMNI.CO",
+      "========================================",
+      "  C R E D I T S",
+      "========================================",
+      "",
+      "  PRODUCT:   OMNI — OMNI.CO",
+      "  BUILT WITH:  LOVABLE — LOVABLE.DEV",
+      "",
+      "  FREE YOUR MIND.",
     ],
   },
 };
@@ -164,8 +164,6 @@ const Terminal = () => {
   const [showPrompt, setShowPrompt] = useState(false);
   const [waitingForInput, setWaitingForInput] = useState(false);
   const [nextNodeKey, setNextNodeKey] = useState<string | null>(null);
-  const [deleteLineIdx, setDeleteLineIdx] = useState(0);
-  const [deleteCharIdx, setDeleteCharIdx] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const node = storyTree[currentNode];
@@ -218,12 +216,11 @@ const Terminal = () => {
     }
   }, [phase, lineIndex, charIndex, node]);
 
-  // Deleting phase — delete character by character from end
+  // Deleting phase
   useEffect(() => {
     if (phase !== "deleting") return;
 
     if (displayedLines.length === 0) {
-      // Done deleting, transition to new node
       if (nextNodeKey) {
         setCurrentNode(nextNodeKey);
         setNextNodeKey(null);
@@ -237,14 +234,12 @@ const Terminal = () => {
     const lastLine = displayedLines[displayedLines.length - 1];
 
     if (lastLine === "" || lastLine.length === 0) {
-      // Remove empty line instantly
       const timer = setTimeout(() => {
         setDisplayedLines((prev) => prev.slice(0, -1));
       }, DELETE_SPEED);
       return () => clearTimeout(timer);
     }
 
-    // Delete one char from last line
     const timer = setTimeout(() => {
       setDisplayedLines((prev) => {
         const copy = [...prev];
@@ -274,7 +269,6 @@ const Terminal = () => {
         setTimeout(() => setPhase("deleting"), LINGER_DURATION);
       } else if (nextKey) {
         setNextNodeKey(nextKey);
-        // Linger, then start deleting
         setTimeout(() => setPhase("deleting"), LINGER_DURATION);
       }
     },
@@ -348,6 +342,7 @@ const Terminal = () => {
       {/* Footer status bar */}
       <div className="border-t border-border px-4 py-1 text-xs tracking-wider text-muted-foreground flex justify-between">
         <span>CLASSIFIED // EYES ONLY</span>
+        <span className="text-muted-foreground/50 tracking-normal">enabled by <a href="https://lovable.dev" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">lovable</a></span>
         <span className="text-primary text-glow">SIGNAL: ACTIVE</span>
       </div>
     </div>
