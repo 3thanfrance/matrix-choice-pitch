@@ -284,7 +284,7 @@ const Terminal = () => {
           )}
           {outroPhase === 1 && (
             <div className="text-primary text-glow text-xs glitch-text">
-              >> SIGNAL LOST
+              {">> SIGNAL LOST"}
             </div>
           )}
           {outroPhase >= 2 && (
