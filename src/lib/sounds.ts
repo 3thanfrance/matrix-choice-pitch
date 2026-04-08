@@ -1,4 +1,4 @@
-// Web Audio API synthesized sound effects — no external files needed
+// Web Audio API — 90s CRT terminal aesthetic: clacky keys, warm static, analog hum
 
 let ctx: AudioContext | null = null;
 
@@ -8,198 +8,227 @@ const getCtx = (): AudioContext => {
   return ctx;
 };
 
-// Soft mechanical key click
+// Warm noise buffer helper
+const createNoise = (c: AudioContext, duration: number): AudioBufferSourceNode => {
+  const bufferSize = Math.floor(c.sampleRate * duration);
+  const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
+  const source = c.createBufferSource();
+  source.buffer = buffer;
+  return source;
+};
+
+// Mechanical keyboard clack — short noise burst with resonant filter
 export const playKeyClick = () => {
   try {
     const c = getCtx();
-    const osc = c.createOscillator();
+    const noise = createNoise(c, 0.025);
+    const filter = c.createBiquadFilter();
     const gain = c.createGain();
-    osc.connect(gain);
+
+    filter.type = "bandpass";
+    filter.frequency.value = 3000 + Math.random() * 2000;
+    filter.Q.value = 2 + Math.random() * 3;
+
+    noise.connect(filter);
+    filter.connect(gain);
     gain.connect(c.destination);
 
-    osc.type = "square";
-    osc.frequency.setValueAtTime(800 + Math.random() * 600, c.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(200, c.currentTime + 0.02);
+    gain.gain.setValueAtTime(0.06 + Math.random() * 0.03, c.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.025);
 
-    gain.gain.setValueAtTime(0.03, c.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.03);
-
-    osc.start(c.currentTime);
-    osc.stop(c.currentTime + 0.03);
+    noise.start(c.currentTime);
+    noise.stop(c.currentTime + 0.025);
   } catch {}
 };
 
-// Heavier "enter" key sound
+// Heavier clack for enter/return key — lower, slightly longer
 export const playEnterKey = () => {
   try {
     const c = getCtx();
-    const osc = c.createOscillator();
+    const noise = createNoise(c, 0.06);
+    const filter = c.createBiquadFilter();
     const gain = c.createGain();
-    osc.connect(gain);
+
+    filter.type = "bandpass";
+    filter.frequency.value = 1200;
+    filter.Q.value = 1.5;
+
+    noise.connect(filter);
+    filter.connect(gain);
     gain.connect(c.destination);
 
-    osc.type = "square";
-    osc.frequency.setValueAtTime(400, c.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(100, c.currentTime + 0.05);
-
-    gain.gain.setValueAtTime(0.06, c.currentTime);
+    gain.gain.setValueAtTime(0.1, c.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.06);
 
-    osc.start(c.currentTime);
-    osc.stop(c.currentTime + 0.06);
+    noise.start(c.currentTime);
+    noise.stop(c.currentTime + 0.06);
   } catch {}
 };
 
-// CRT power-on thump
+// CRT power-on — low warm thump with tube warmup whine
 export const playPowerOn = () => {
   try {
     const c = getCtx();
-    const osc = c.createOscillator();
+    // Thump
+    const noise = createNoise(c, 0.5);
+    const lpf = c.createBiquadFilter();
     const gain = c.createGain();
-    osc.connect(gain);
+    lpf.type = "lowpass";
+    lpf.frequency.value = 150;
+    noise.connect(lpf);
+    lpf.connect(gain);
     gain.connect(c.destination);
+    gain.gain.setValueAtTime(0.12, c.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.5);
+    noise.start(c.currentTime);
+    noise.stop(c.currentTime + 0.5);
 
+    // Tube warmup whine
+    const osc = c.createOscillator();
+    const oscGain = c.createGain();
+    osc.connect(oscGain);
+    oscGain.connect(c.destination);
     osc.type = "sine";
-    osc.frequency.setValueAtTime(80, c.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(30, c.currentTime + 0.3);
-
-    gain.gain.setValueAtTime(0.15, c.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.4);
-
+    osc.frequency.setValueAtTime(40, c.currentTime);
+    osc.frequency.linearRampToValueAtTime(60, c.currentTime + 0.8);
+    oscGain.gain.setValueAtTime(0, c.currentTime);
+    oscGain.gain.linearRampToValueAtTime(0.04, c.currentTime + 0.3);
+    oscGain.gain.linearRampToValueAtTime(0, c.currentTime + 0.8);
     osc.start(c.currentTime);
-    osc.stop(c.currentTime + 0.4);
+    osc.stop(c.currentTime + 0.8);
   } catch {}
 };
 
-// Low CRT hum — returns stop function
+// Low CRT hum — 60Hz mains + harmonics, very subtle
 export const startCRTHum = (): (() => void) => {
   try {
     const c = getCtx();
-    const osc = c.createOscillator();
-    const osc2 = c.createOscillator();
     const gain = c.createGain();
-
-    osc.connect(gain);
-    osc2.connect(gain);
     gain.connect(c.destination);
-
-    osc.type = "sine";
-    osc.frequency.value = 60;
-    osc2.type = "sine";
-    osc2.frequency.value = 120;
-
     gain.gain.value = 0;
-    gain.gain.linearRampToValueAtTime(0.015, c.currentTime + 1);
+    gain.gain.linearRampToValueAtTime(0.008, c.currentTime + 2);
 
-    osc.start();
-    osc2.start();
+    const freqs = [60, 120, 180];
+    const oscs = freqs.map((f, i) => {
+      const osc = c.createOscillator();
+      const oscGain = c.createGain();
+      osc.type = "sine";
+      osc.frequency.value = f;
+      oscGain.gain.value = 1 / (i + 1); // harmonics decay
+      osc.connect(oscGain);
+      oscGain.connect(gain);
+      osc.start();
+      return osc;
+    });
 
     return () => {
       gain.gain.linearRampToValueAtTime(0, c.currentTime + 0.5);
-      setTimeout(() => {
-        osc.stop();
-        osc2.stop();
-      }, 600);
+      setTimeout(() => oscs.forEach((o) => o.stop()), 600);
     };
   } catch {
     return () => {};
   }
 };
 
-// Static burst noise
+// Warm analog static — brown noise (lowpass filtered white noise)
 export const playStatic = (duration = 0.15, volume = 0.08) => {
   try {
     const c = getCtx();
-    const bufferSize = Math.floor(c.sampleRate * duration);
-    const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * volume;
-    }
-
-    const source = c.createBufferSource();
+    const noise = createNoise(c, duration);
+    const lpf = c.createBiquadFilter();
+    const hpf = c.createBiquadFilter();
     const gain = c.createGain();
-    const filter = c.createBiquadFilter();
 
-    source.buffer = buffer;
-    filter.type = "highpass";
-    filter.frequency.value = 2000;
+    // Brown-ish noise: cut highs, keep it warm
+    lpf.type = "lowpass";
+    lpf.frequency.value = 4000;
+    hpf.type = "highpass";
+    hpf.frequency.value = 200;
 
-    source.connect(filter);
-    filter.connect(gain);
+    noise.connect(hpf);
+    hpf.connect(lpf);
+    lpf.connect(gain);
     gain.connect(c.destination);
 
     gain.gain.setValueAtTime(volume, c.currentTime);
+    gain.gain.linearRampToValueAtTime(volume * 0.8, c.currentTime + duration * 0.7);
     gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + duration);
 
-    source.start();
+    noise.start(c.currentTime);
+    noise.stop(c.currentTime + duration);
   } catch {}
 };
 
-// Glitch / digital corruption burst
+// Glitch — rapid static pops, analog feel
 export const playGlitch = () => {
   try {
     const c = getCtx();
-    for (let i = 0; i < 3; i++) {
-      const osc = c.createOscillator();
+    // Several short static pops
+    for (let i = 0; i < 4; i++) {
+      const t = c.currentTime + i * 0.05 + Math.random() * 0.02;
+      const noise = createNoise(c, 0.04);
+      const filter = c.createBiquadFilter();
       const gain = c.createGain();
-      osc.connect(gain);
+      filter.type = "bandpass";
+      filter.frequency.value = 500 + Math.random() * 3000;
+      filter.Q.value = 1;
+      noise.connect(filter);
+      filter.connect(gain);
       gain.connect(c.destination);
-
-      osc.type = "sawtooth";
-      osc.frequency.value = 200 + Math.random() * 2000;
-
-      const t = c.currentTime + i * 0.06;
-      gain.gain.setValueAtTime(0.04, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-
-      osc.start(t);
-      osc.stop(t + 0.05);
+      gain.gain.setValueAtTime(0.06, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+      noise.start(t);
+      noise.stop(t + 0.04);
     }
-    playStatic(0.2, 0.05);
+    playStatic(0.25, 0.06);
   } catch {}
 };
 
-// TV power-off sound — descending whine
+// CRT power-off — degauss whine descending into silence
 export const playTVOff = () => {
   try {
     const c = getCtx();
+    // Descending flyback whine
     const osc = c.createOscillator();
     const gain = c.createGain();
     osc.connect(gain);
     gain.connect(c.destination);
-
     osc.type = "sine";
-    osc.frequency.setValueAtTime(2000, c.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(40, c.currentTime + 0.6);
-
-    gain.gain.setValueAtTime(0.08, c.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.7);
-
+    osc.frequency.setValueAtTime(800, c.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(30, c.currentTime + 0.5);
+    gain.gain.setValueAtTime(0.06, c.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.6);
     osc.start(c.currentTime);
-    osc.stop(c.currentTime + 0.7);
+    osc.stop(c.currentTime + 0.6);
+
+    // Static pop at the end
+    setTimeout(() => playStatic(0.08, 0.1), 400);
   } catch {}
 };
 
-// "Access granted" confirmation beep
+// Subtle confirmation — soft double-tap, not a game beep
 export const playConfirm = () => {
   try {
     const c = getCtx();
-    [600, 800, 1000].forEach((freq, i) => {
-      const osc = c.createOscillator();
+    [0, 0.08].forEach((delay) => {
+      const noise = createNoise(c, 0.03);
+      const filter = c.createBiquadFilter();
       const gain = c.createGain();
-      osc.connect(gain);
+      filter.type = "bandpass";
+      filter.frequency.value = 2000;
+      filter.Q.value = 2;
+      noise.connect(filter);
+      filter.connect(gain);
       gain.connect(c.destination);
-
-      osc.type = "sine";
-      osc.frequency.value = freq;
-
-      const t = c.currentTime + i * 0.1;
-      gain.gain.setValueAtTime(0.05, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
-
-      osc.start(t);
-      osc.stop(t + 0.12);
+      const t = c.currentTime + delay;
+      gain.gain.setValueAtTime(0.07, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+      noise.start(t);
+      noise.stop(t + 0.03);
     });
   } catch {}
 };
