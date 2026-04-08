@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { playKeyClick, playEnterKey, playStatic, playGlitch, playTVOff, playConfirm } from "@/lib/sounds";
 
 interface StoryNode {
   lines: string[];
@@ -114,8 +115,25 @@ const Terminal = () => {
   const [outroStage, setOutroStage] = useState<"none" | "omni" | "omni-glitch" | "lovable" | "lovable-glitch" | "tvoff" | "dead">("none");
   const [requestReboot, setRequestReboot] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const clickCountRef = useRef(0);
 
   const node = storyTree[currentNode];
+
+  // Play key click on every typed character (throttled)
+  useEffect(() => {
+    if (phase !== "typing") return;
+    clickCountRef.current++;
+    // Play every other char to avoid overwhelming audio
+    if (clickCountRef.current % 2 === 0) {
+      playKeyClick();
+    }
+  }, [charIndex, phase]);
+
+  // Sound on node transitions
+  useEffect(() => {
+    if (currentNode === "verify") playStatic(0.2, 0.06);
+    if (currentNode === "demo") playConfirm();
+  }, [currentNode]);
 
   // When typing finishes on a terminal node (no prompt), trigger outro
   useEffect(() => {
@@ -127,7 +145,7 @@ const Terminal = () => {
     }
   }, [phase, node, currentNode]);
 
-  // Outro sequence
+  // Outro sequence with sounds
   useEffect(() => {
     if (outroStage === "none") return;
     let timers: ReturnType<typeof setTimeout>[] = [];
@@ -135,12 +153,15 @@ const Terminal = () => {
     if (outroStage === "omni") {
       timers.push(setTimeout(() => setOutroStage("omni-glitch"), 2000));
     } else if (outroStage === "omni-glitch") {
+      playGlitch();
       timers.push(setTimeout(() => setOutroStage("lovable"), 600));
     } else if (outroStage === "lovable") {
       timers.push(setTimeout(() => setOutroStage("lovable-glitch"), 2000));
     } else if (outroStage === "lovable-glitch") {
+      playGlitch();
       timers.push(setTimeout(() => setOutroStage("tvoff"), 600));
     } else if (outroStage === "tvoff") {
+      playTVOff();
       timers.push(setTimeout(() => {
         setOutroStage("dead");
         setRequestReboot(true);
@@ -163,7 +184,6 @@ const Terminal = () => {
       setShowPrompt(false);
       setWaitingForInput(false);
       setNextNodeKey(null);
-      // Trigger boot sequence via callback
       window.dispatchEvent(new CustomEvent("terminal-reboot"));
     };
     window.addEventListener("keydown", handler);
@@ -265,6 +285,7 @@ const Terminal = () => {
     (answer: "y" | "n") => {
       if (!waitingForInput || !node) return;
 
+      playEnterKey();
       setWaitingForInput(false);
       setShowPrompt(false);
 
@@ -272,7 +293,10 @@ const Terminal = () => {
 
       if (nextKey) {
         setNextNodeKey(nextKey);
-        setTimeout(() => setPhase("deleting"), LINGER_DURATION);
+        setTimeout(() => {
+          playStatic(0.1, 0.04);
+          setPhase("deleting");
+        }, LINGER_DURATION);
       }
     },
     [waitingForInput, node]
@@ -294,7 +318,6 @@ const Terminal = () => {
     return (
       <div className="relative z-10 flex h-screen items-center justify-center overflow-hidden">
         <div className="text-center font-mono">
-          {/* TV off effect */}
           {(outroStage === "tvoff" || outroStage === "dead") && (
             <div className="fixed inset-0 bg-background z-50 flex items-center justify-center">
               {outroStage === "tvoff" && (
@@ -303,7 +326,6 @@ const Terminal = () => {
             </div>
           )}
 
-          {/* OMNI reveal */}
           {(outroStage === "omni" || outroStage === "omni-glitch") && (
             <div className={`text-glow space-y-2 ${outroStage === "omni-glitch" ? "glitch-text" : ""}`}>
               <div className="text-primary text-2xl tracking-[0.5em] font-bold">
@@ -313,7 +335,6 @@ const Terminal = () => {
             </div>
           )}
 
-          {/* Lovable reveal */}
           {(outroStage === "lovable" || outroStage === "lovable-glitch") && (
             <div className={`text-glow space-y-2 ${outroStage === "lovable-glitch" ? "glitch-text" : ""}`}>
               <div className="text-muted-foreground/50 text-xs tracking-widest">ENABLED BY</div>
@@ -329,13 +350,11 @@ const Terminal = () => {
 
   return (
     <div className="relative z-10 flex h-screen flex-col overflow-hidden">
-      {/* Header bar */}
       <div className="crt-header border-b border-border px-4 py-1.5 text-xs tracking-widest text-muted-foreground">
         <span className="text-primary text-glow">■</span>
         {" "}OMNI TERMINAL — ENCRYPTED CHANNEL
       </div>
 
-      {/* Terminal body — centered */}
       <div
         ref={containerRef}
         className="flex flex-1 items-center justify-center overflow-hidden px-4 sm:px-8 md:px-12"
@@ -379,7 +398,6 @@ const Terminal = () => {
         </div>
       </div>
 
-      {/* Footer status bar */}
       <div className="border-t border-border px-4 py-1 text-xs tracking-wider text-muted-foreground flex justify-between">
         <span>CLASSIFIED // EYES ONLY</span>
         <span className="text-primary text-glow">SIGNAL: ACTIVE</span>

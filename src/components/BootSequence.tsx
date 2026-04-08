@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { playPowerOn, startCRTHum, playStatic, playKeyClick, playGlitch } from "@/lib/sounds";
 
 const BOOT_DURATION = 10000;
 
@@ -8,16 +9,37 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
   const [scanlinePos, setScanlinePos] = useState(0);
   const [postLines, setPostLines] = useState<string[]>([]);
   const [loadingPct, setLoadingPct] = useState(0);
+  const [audioStarted, setAudioStarted] = useState(false);
+  const humStopRef = useRef<(() => void) | null>(null);
+
+  // Start audio on first user interaction (browser policy)
+  useEffect(() => {
+    const startAudio = () => {
+      if (!audioStarted) {
+        setAudioStarted(true);
+        playPowerOn();
+        humStopRef.current = startCRTHum();
+      }
+    };
+    // Try immediately, and also on interaction
+    startAudio();
+    window.addEventListener("click", startAudio, { once: true });
+    window.addEventListener("keydown", startAudio, { once: true });
+    return () => {
+      window.removeEventListener("click", startAudio);
+      window.removeEventListener("keydown", startAudio);
+    };
+  }, [audioStarted]);
+
+  // Stop hum on unmount
+  useEffect(() => {
+    return () => {
+      humStopRef.current?.();
+    };
+  }, []);
 
   // Phase timeline
   useEffect(() => {
-    // Phase 0: Dead black screen (0-1200ms) — CRT warming up
-    // Phase 1: Power surge flicker (1200-2400ms)
-    // Phase 2: POST diagnostics scroll (2400-5500ms)
-    // Phase 3: Matrix code cascade (5500-7000ms)
-    // Phase 4: System loading bar (7000-8800ms)
-    // Phase 5: CONNECTED flash (8800-10000ms)
-
     const timers = [
       setTimeout(() => setPhase(1), 1200),
       setTimeout(() => setPhase(2), 2400),
@@ -29,7 +51,14 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
     return () => timers.forEach(clearTimeout);
   }, [onComplete]);
 
-  // POST diagnostic lines — typewriter reveal
+  // Sound effects per phase
+  useEffect(() => {
+    if (phase === 1) playStatic(0.3, 0.1);
+    if (phase === 3) playGlitch();
+    if (phase === 5) playStatic(0.1, 0.04);
+  }, [phase]);
+
+  // POST diagnostic lines — typewriter reveal with key clicks
   useEffect(() => {
     if (phase !== 2) return;
 
@@ -49,6 +78,7 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
     const timers = lines.map((line, i) =>
       setTimeout(() => {
         setPostLines((prev) => [...prev, line]);
+        playKeyClick();
       }, i * 280)
     );
 
@@ -80,10 +110,8 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
 
     const interval = setInterval(() => {
       if (phase === 1) {
-        // Aggressive power-on flicker
         setFlickerClass(Math.random() > 0.4 ? "opacity-100" : "opacity-0");
       } else {
-        // Subtle occasional flicker
         setFlickerClass(Math.random() > 0.08 ? "opacity-100" : "opacity-70");
       }
     }, phase === 1 ? 60 : 200);
@@ -133,33 +161,26 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background overflow-hidden font-mono">
-      {/* Scan line sweep */}
       <div
         className="absolute left-0 right-0 h-1 bg-primary/20 blur-sm pointer-events-none z-20"
         style={{ top: `${scanlinePos}%`, transition: "none" }}
       />
 
-      {/* Static noise overlay */}
       {phase >= 1 && phase < 5 && (
         <div className="absolute inset-0 pointer-events-none boot-static z-10" />
       )}
 
-      {/* Green screen flash on phase transitions */}
       {(phase === 1 || phase === 3) && (
         <div className="absolute inset-0 bg-primary/5 pointer-events-none animate-pulse z-10" />
       )}
 
-      {/* Content */}
       <div className={`w-full max-w-2xl px-6 transition-opacity duration-75 ${flickerClass}`}>
-
-        {/* Phase 0: Dead screen — just a blinking underscore */}
         {phase === 0 && (
           <div className="text-center">
             <span className="text-primary/20 text-xs cursor-blink">_</span>
           </div>
         )}
 
-        {/* Phase 1: Power surge */}
         {phase === 1 && (
           <div className="text-center space-y-2 glitch-text">
             <div className="text-primary text-glow text-xs">
@@ -171,7 +192,6 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
           </div>
         )}
 
-        {/* Phase 2: POST diagnostics */}
         {phase === 2 && (
           <div className="text-left text-xs text-primary/80 space-y-0.5 text-glow">
             {postLines.map((line, i) => (
@@ -186,7 +206,6 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
           </div>
         )}
 
-        {/* Phase 3: Matrix code cascade */}
         {phase === 3 && (
           <div className="text-center space-y-3">
             <div className="text-xs text-primary/60 leading-none overflow-hidden">
@@ -202,7 +221,6 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
           </div>
         )}
 
-        {/* Phase 4: Loading bar */}
         {phase === 4 && (
           <div className="text-center space-y-3">
             <div className="text-xs text-muted-foreground">OMNI TERMINAL v2.049</div>
@@ -210,7 +228,7 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
               INITIALIZING SYSTEM
             </div>
             <div className="text-xs text-primary/70 tracking-wider">
-              [{loadingBar}] {Math.min(loadingPct, 100)}%
+              [{loadingBar}] {clampedPct}%
             </div>
             <div className="text-xs text-muted-foreground mt-1">
               ESTABLISHING ENCRYPTED CHANNEL...
@@ -218,7 +236,6 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
           </div>
         )}
 
-        {/* Phase 5: Connected */}
         {phase === 5 && (
           <div className="text-center space-y-2">
             <div className="text-xs text-muted-foreground">STATUS:</div>
