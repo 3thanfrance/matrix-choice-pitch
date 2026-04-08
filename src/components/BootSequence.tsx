@@ -125,8 +125,10 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
     return () => clearInterval(interval);
   }, [phase]);
 
+  const clampedPct = Math.min(loadingPct, 100);
+  const filled = Math.floor(clampedPct / 4);
   const loadingBar = phase === 4
-    ? "█".repeat(Math.floor(loadingPct / 4)) + "░".repeat(25 - Math.floor(loadingPct / 4))
+    ? "█".repeat(filled) + "░".repeat(Math.max(0, 25 - filled))
     : "";
 
   return (

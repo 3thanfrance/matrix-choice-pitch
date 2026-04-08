@@ -10,7 +10,7 @@ interface StoryNode {
 const storyTree: Record<string, StoryNode> = {
   start: {
     lines: [
-      "YOU ARE TRAPPED.",
+      "YOU'RE TRAPPED — AND YOU DON'T EVEN KNOW IT.",
       "DROWNING IN DASHBOARDS. NOBODY TRUSTS THE NUMBERS.",
     ],
     prompt: "READY TO ESCAPE? [Y/N]",
