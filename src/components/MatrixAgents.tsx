@@ -1,202 +1,178 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Pretext-inspired typographic ASCII art.
+ * Dense typographic silhouette rendering.
+ * Characters form agent shapes through brightness contrast:
+ * - Suit body = near-invisible (negative space)
+ * - Face/shirt/hands = bright, heavy, rapidly cycling multilingual glyphs
+ * - Background = subtle dim rain
  * 
- * Uses a brightness field (offscreen canvas with blurred agent silhouettes)
- * to drive character selection: heavier/denser glyphs for bright areas,
- * lighter ones for dim areas. Multilingual characters from pretext's
- * corpus languages (Japanese, Chinese, Korean, Thai, Arabic, Hindi, etc.)
- * create the rich typographic texture.
- * 
- * Suits = negative space (no characters).
- * Faces/shirts = dense, bright, heavy glyphs.
- * Background = sparse, light characters with subtle rain.
+ * Inspired by pretext's multilingual corpus density.
  */
 
-// Characters sorted roughly by visual weight (light → heavy)
-// Multilingual corpus: Japanese, Chinese, Korean, Thai, Arabic, Hindi, Hebrew + ASCII
-const CHARS_BY_WEIGHT = [
-  // Very light
-  "·.,:;'-`~\"",
-  // Light  
-  "+=*^!?|/\\(){}[]<>",
-  // Medium-light
-  "アイウエオカキクケコサシスセソタチツテトナニヌネノ01234",
-  // Medium
-  "ハヒフヘホマミムメモヤユヨラリルレロワヲン56789ABCDEF",
-  // Medium-heavy (Chinese, Korean, Thai, Arabic, Hindi)
-  "故鄉祝福羅生門蜘蛛糸운수좋은날소나기เวตาล",
-  // Heavy
-  "الغفرانالبخلاءईदगाहמסעות曙光黎明覺醒GHIJKLMNOPQRSTUVWXYZ",
-  // Very heavy — used for brightest areas
-  "#@$%&█▓▒░ΩΣΔΨ■□▪▫●○◆◇★☆",
-];
+// Multilingual character pools by visual weight
+const LIGHT = "·.·:;·.·,·.·";
+const MEDIUM = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホ01234567";
+const HEAVY = "故鄉祝福羅生門蜘蛛糸운수좋은날소나기เวตาลالغفرانईदगाह█▓▒ΩΣΔΨ■●◆★#@%&";
+const BRIGHT = "█████▓▓▓▒▒###@@@ΩΩΣΣΔΔ●●■■★★◆◆";
 
-// Flatten for random picks at each weight level
-const WEIGHT_LEVELS = CHARS_BY_WEIGHT.map(s => [...s]);
-const NUM_LEVELS = WEIGHT_LEVELS.length;
+const ALL = LIGHT + MEDIUM + HEAVY;
+const allArr = [...ALL];
+const heavyArr = [...HEAVY];
+const brightArr = [...BRIGHT];
+const medArr = [...MEDIUM];
+const lightArr = [...LIGHT];
 
-// All chars combined for background rain
-const ALL_CHARS = CHARS_BY_WEIGHT.join("");
+const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
 
-interface Agent {
+interface AgentData {
   x: number;
   speed: number;
-  walkPhase: number;
-  walkSpeed: number;
+  phase: number;
+  phaseSpeed: number;
   scale: number;
-  depth: number;
+  depth: number; // 0-1, affects size/brightness
 }
 
 /**
- * Draw the agent silhouette brightness field onto the offscreen canvas.
- * White = bright (face, shirt, hands) → heavy characters
- * Black = suit (negative space) → no characters  
- * Gray = medium areas (fedora, tie) → medium characters
- * The silhouette is drawn with soft edges (blur) for smooth transitions.
+ * Draw detailed agent silhouette onto offscreen canvas.
+ * Uses distinct brightness levels:
+ * - White (255) = face, hands
+ * - Light gray (200) = shirt/collar  
+ * - Medium gray (120) = fedora, tie
+ * - Dark (30) = suit body (negative space)
  */
-function drawAgentField(
+function drawAgent(
   ctx: CanvasRenderingContext2D,
   cx: number,
-  groundY: number,
-  scale: number,
-  walkPhase: number,
-  depth: number
+  baseY: number,
+  s: number,
+  walkPhase: number
 ) {
-  const s = scale;
   ctx.save();
-  ctx.translate(cx, groundY);
+  ctx.translate(cx, baseY);
 
-  const blurAmount = 2 + depth * 3;
+  const armSwing = Math.sin(walkPhase) * s * 10;
+  const legSwing = Math.sin(walkPhase) * s * 18;
 
-  // ---- SUIT BODY (dark silhouette that BLOCKS background) ----
-  ctx.filter = `blur(${blurAmount}px)`;
-  ctx.fillStyle = `rgba(10, 10, 10, ${0.85 + depth * 0.15})`;
+  // === SUIT BODY (dark = negative space) ===
+  ctx.fillStyle = "rgb(30, 30, 30)";
 
-  // Fedora
+  // Fedora brim
   ctx.beginPath();
-  ctx.ellipse(0, -s * 192, s * 24, s * 15, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(0, -s * 172, s * 42, s * 7, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, -s * 175, s * 44, s * 8, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Head
+  // Fedora crown  
   ctx.beginPath();
-  ctx.ellipse(0, -s * 148, s * 19, s * 23, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, -s * 195, s * 26, s * 18, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Torso
+  // Head/neck
   ctx.beginPath();
-  ctx.moveTo(-s * 46, -s * 118);
-  ctx.quadraticCurveTo(-s * 48, -s * 80, -s * 32, -s * 42);
-  ctx.lineTo(s * 32, -s * 42);
-  ctx.quadraticCurveTo(s * 48, -s * 80, s * 46, -s * 118);
+  ctx.ellipse(0, -s * 150, s * 20, s * 24, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Shoulders + Torso
+  ctx.beginPath();
+  ctx.moveTo(-s * 50, -s * 120);
+  ctx.quadraticCurveTo(-s * 52, -s * 80, -s * 36, -s * 40);
+  ctx.lineTo(s * 36, -s * 40);
+  ctx.quadraticCurveTo(s * 52, -s * 80, s * 50, -s * 120);
   ctx.closePath();
   ctx.fill();
 
   // Left arm
-  const armSwing = Math.sin(walkPhase) * s * 8;
   ctx.beginPath();
-  ctx.moveTo(-s * 46, -s * 118);
-  ctx.quadraticCurveTo(-s * 58, -s * 90, -s * 52 + armSwing, -s * 52);
-  ctx.lineTo(-s * 42 + armSwing, -s * 48);
-  ctx.quadraticCurveTo(-s * 40, -s * 80, -s * 38, -s * 110);
+  ctx.moveTo(-s * 50, -s * 120);
+  ctx.quadraticCurveTo(-s * 62, -s * 90, -s * 56 + armSwing, -s * 48);
+  ctx.lineTo(-s * 44 + armSwing, -s * 44);
+  ctx.quadraticCurveTo(-s * 42, -s * 82, -s * 42, -s * 115);
   ctx.closePath();
   ctx.fill();
 
-  // Right arm
+  // Right arm  
   ctx.beginPath();
-  ctx.moveTo(s * 46, -s * 118);
-  ctx.quadraticCurveTo(s * 58, -s * 90, s * 52 - armSwing, -s * 52);
-  ctx.lineTo(s * 42 - armSwing, -s * 48);
-  ctx.quadraticCurveTo(s * 40, -s * 80, s * 38, -s * 110);
+  ctx.moveTo(s * 50, -s * 120);
+  ctx.quadraticCurveTo(s * 62, -s * 90, s * 56 - armSwing, -s * 48);
+  ctx.lineTo(s * 44 - armSwing, -s * 44);
+  ctx.quadraticCurveTo(s * 42, -s * 82, s * 42, -s * 115);
   ctx.closePath();
   ctx.fill();
 
-  // Legs
-  const legSwing = Math.sin(walkPhase) * s * 15;
   // Left leg
   ctx.beginPath();
-  ctx.moveTo(-s * 22, -s * 42);
-  ctx.lineTo(-s * 4, -s * 42);
-  ctx.lineTo(-s * 2 - legSwing, s * 5);
-  ctx.lineTo(-s * 22 - legSwing, s * 8);
+  ctx.moveTo(-s * 24, -s * 40);
+  ctx.lineTo(-s * 4, -s * 40);
+  ctx.lineTo(-s * 2 - legSwing, s * 10);
+  ctx.lineTo(-s * 24 - legSwing, s * 12);
   ctx.closePath();
-  ctx.fill();
-  // Left shoe
-  ctx.beginPath();
-  ctx.ellipse(-s * 12 - legSwing, s * 8, s * 14, s * 5, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // Right leg
   ctx.beginPath();
-  ctx.moveTo(s * 4, -s * 42);
-  ctx.lineTo(s * 22, -s * 42);
-  ctx.lineTo(s * 22 + legSwing, s * 5);
-  ctx.lineTo(s * 2 + legSwing, s * 8);
-  ctx.closePath();
-  ctx.fill();
-  // Right shoe
-  ctx.beginPath();
-  ctx.ellipse(s * 12 + legSwing, s * 8, s * 14, s * 5, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // ---- BRIGHT AREAS (face, shirt, hands) — drawn ON TOP ----
-  ctx.filter = `blur(${blurAmount + 1}px)`;
-  const bright = `rgba(255, 255, 255, ${0.7 + depth * 0.3})`;
-
-  // Face
-  ctx.fillStyle = bright;
-  ctx.beginPath();
-  ctx.ellipse(0, -s * 150, s * 14, s * 17, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Shirt (V between lapels)
-  ctx.fillStyle = `rgba(255, 255, 255, ${0.6 + depth * 0.3})`;
-  ctx.beginPath();
-  ctx.moveTo(-s * 10, -s * 128);
-  ctx.lineTo(s * 10, -s * 128);
-  ctx.lineTo(s * 7, -s * 44);
-  ctx.lineTo(-s * 7, -s * 44);
+  ctx.moveTo(s * 4, -s * 40);
+  ctx.lineTo(s * 24, -s * 40);
+  ctx.lineTo(s * 24 + legSwing, s * 10);
+  ctx.lineTo(s * 2 + legSwing, s * 12);
   ctx.closePath();
   ctx.fill();
 
-  // Hands
-  ctx.fillStyle = `rgba(220, 220, 220, ${0.5 + depth * 0.3})`;
+  // Shoes
   ctx.beginPath();
-  ctx.ellipse(-s * 50 + armSwing, -s * 49, s * 6, s * 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(-s * 14 - legSwing, s * 14, s * 16, s * 6, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(s * 50 - armSwing, -s * 49, s * 6, s * 5, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // ---- MEDIUM AREAS (fedora crown, tie) ----
-  ctx.fillStyle = `rgba(160, 160, 160, ${0.5 + depth * 0.2})`;
-  ctx.filter = `blur(${blurAmount}px)`;
-  // Fedora crown
-  ctx.beginPath();
-  ctx.ellipse(0, -s * 192, s * 22, s * 13, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // Fedora brim
-  ctx.fillStyle = `rgba(120, 120, 120, ${0.4 + depth * 0.2})`;
-  ctx.beginPath();
-  ctx.ellipse(0, -s * 172, s * 40, s * 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(s * 14 + legSwing, s * 14, s * 16, s * 6, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Tie
-  ctx.fillStyle = `rgba(140, 140, 140, ${0.4 + depth * 0.2})`;
+  // === BRIGHT: Face ===
+  ctx.fillStyle = "rgb(255, 255, 255)";
   ctx.beginPath();
-  ctx.moveTo(-s * 3.5, -s * 125);
-  ctx.lineTo(s * 3.5, -s * 125);
-  ctx.lineTo(s * 2.5, -s * 50);
-  ctx.lineTo(0, -s * 44);
-  ctx.lineTo(-s * 2.5, -s * 50);
+  ctx.ellipse(0, -s * 153, s * 15, s * 18, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // === BRIGHT: Shirt (V-shape between lapels) ===
+  ctx.fillStyle = "rgb(220, 220, 220)";
+  ctx.beginPath();
+  ctx.moveTo(-s * 12, -s * 130);
+  ctx.lineTo(s * 12, -s * 130);
+  ctx.lineTo(s * 8, -s * 45);
+  ctx.lineTo(-s * 8, -s * 45);
   ctx.closePath();
   ctx.fill();
 
-  ctx.filter = "none";
+  // === BRIGHT: Hands ===
+  ctx.fillStyle = "rgb(240, 240, 240)";
+  ctx.beginPath();
+  ctx.ellipse(-s * 54 + armSwing, -s * 45, s * 7, s * 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(s * 54 - armSwing, -s * 45, s * 7, s * 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // === MEDIUM: Fedora detail ===
+  ctx.fillStyle = "rgb(120, 120, 120)";
+  ctx.beginPath();
+  ctx.ellipse(0, -s * 195, s * 24, s * 16, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Brim edge
+  ctx.fillStyle = "rgb(100, 100, 100)";
+  ctx.beginPath();
+  ctx.ellipse(0, -s * 175, s * 42, s * 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // === MEDIUM: Tie ===
+  ctx.fillStyle = "rgb(110, 110, 110)";
+  ctx.beginPath();
+  ctx.moveTo(-s * 4, -s * 128);
+  ctx.lineTo(s * 4, -s * 128);
+  ctx.lineTo(s * 3, -s * 48);
+  ctx.lineTo(0, -s * 42);
+  ctx.lineTo(-s * 3, -s * 48);
+  ctx.closePath();
+  ctx.fill();
+
   ctx.restore();
 }
 
@@ -206,65 +182,73 @@ const MatrixAgents = () => {
 
   useEffect(() => {
     const canvas = canvasRef.current!;
-    const ctx = canvas.getContext("2d")!;
+    const ctx = canvas.getContext("2d", { alpha: false })!;
 
     let W = window.innerWidth;
     let H = window.innerHeight;
 
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
     const resize = () => {
       W = window.innerWidth;
       H = window.innerHeight;
-      canvas.width = W;
-      canvas.height = H;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      canvas.style.width = W + "px";
+      canvas.style.height = H + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       offscreen.width = W;
       offscreen.height = H;
     };
 
-    // Offscreen canvas for brightness field
     const offscreen = document.createElement("canvas");
     offscreen.width = W;
     offscreen.height = H;
-    const offCtx = offscreen.getContext("2d")!;
+    const offCtx = offscreen.getContext("2d", { alpha: false })!;
 
-    canvas.width = W;
-    canvas.height = H;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
     window.addEventListener("resize", resize);
 
-    // Dense character grid
-    const fontSize = Math.max(7, Math.min(10, Math.floor(W / 150)));
-    const charW = fontSize * 0.58;
-    const charH = fontSize * 1.05;
-    const cols = Math.ceil(W / charW) + 1;
-    const rows = Math.ceil(H / charH) + 1;
-
-    // Character state per cell
+    // Character grid sizing
+    const fontSize = Math.max(9, Math.min(13, Math.floor(W / 100)));
+    const cW = fontSize * 0.62;
+    const cH = fontSize * 1.1;
+    const cols = Math.ceil(W / cW) + 1;
+    const rows = Math.ceil(H / cH) + 1;
     const gridSize = cols * rows;
-    const charGrid: string[] = new Array(gridSize);
-    const charAge: number[] = new Array(gridSize);
+
+    // Per-cell state
+    const grid: string[] = new Array(gridSize);
+    const age: number[] = new Array(gridSize);
     for (let i = 0; i < gridSize; i++) {
-      charGrid[i] = ALL_CHARS[Math.floor(Math.random() * ALL_CHARS.length)];
-      charAge[i] = Math.floor(Math.random() * 80);
+      grid[i] = pick(allArr);
+      age[i] = Math.floor(Math.random() * 60);
     }
 
-    // Rain columns
+    // Rain drops
     const rainY: number[] = new Array(cols);
-    const rainSpeed: number[] = new Array(cols);
+    const rainSpd: number[] = new Array(cols);
     for (let c = 0; c < cols; c++) {
       rainY[c] = Math.random() * rows;
-      rainSpeed[c] = 0.08 + Math.random() * 0.25;
+      rainSpd[c] = 0.06 + Math.random() * 0.2;
     }
 
-    // Agents — speed calibrated so they cross the full screen during the intro
-    const numAgents = Math.max(2, Math.min(4, Math.floor(W / 300)));
-    const agents: Agent[] = [];
+    // Agents — start off-screen left, walk right
+    const numAgents = Math.max(2, Math.min(5, Math.floor(W / 250)));
+    const agents: AgentData[] = [];
     for (let i = 0; i < numAgents; i++) {
-      const depth = 0.3 + (i / Math.max(1, numAgents - 1)) * 0.7;
+      const depth = 0.25 + (i / Math.max(1, numAgents - 1)) * 0.75;
       agents.push({
-        x: -150 - i * W * 0.25,
-        speed: 1.2 + depth * 1.5,
-        walkPhase: Math.random() * Math.PI * 2,
-        walkSpeed: 0.035 + depth * 0.02,
-        scale: 0.5 + depth * 0.9,
+        x: -200 - i * W * 0.3,
+        speed: 0.8 + depth * 1.8,
+        phase: Math.random() * Math.PI * 2,
+        phaseSpeed: 0.03 + depth * 0.015,
+        scale: 0.55 + depth * 0.85,
         depth,
       });
     }
@@ -275,113 +259,102 @@ const MatrixAgents = () => {
     const draw = () => {
       tick++;
 
-      // Fade trail
-      ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+      // Clear
+      ctx.fillStyle = "#000";
       ctx.fillRect(0, 0, W, H);
 
-      // ---- Draw agent brightness field ----
-      offCtx.fillStyle = "#000000";
+      // Draw agent brightness field to offscreen
+      offCtx.fillStyle = "#000";
       offCtx.fillRect(0, 0, W, H);
 
-      agents.forEach((agent) => {
-        agent.walkPhase += agent.walkSpeed;
+      for (const agent of agents) {
+        agent.phase += agent.phaseSpeed;
         agent.x += agent.speed;
-        if (agent.x > W + 350) {
-          agent.x = -300 - Math.random() * 300;
-          agent.depth = 0.3 + Math.random() * 0.7;
-          agent.scale = 0.5 + agent.depth * 0.9;
-          agent.speed = 1.2 + agent.depth * 1.5;
+        if (agent.x > W + 400) {
+          agent.x = -350 - Math.random() * 250;
         }
-        drawAgentField(offCtx, agent.x, H * 0.82, agent.scale, agent.walkPhase, agent.depth);
-      });
+        drawAgent(offCtx, agent.x, H * 0.8, agent.scale, agent.phase);
+      }
 
-      // Sample the brightness field
-      const imageData = offCtx.getImageData(0, 0, W, H);
-      const pxData = imageData.data;
+      // Read brightness field
+      const imgData = offCtx.getImageData(0, 0, W, H);
+      const px = imgData.data;
 
       // Update rain
       for (let c = 0; c < cols; c++) {
-        rainY[c] += rainSpeed[c];
-        if (rainY[c] >= rows) rainY[c] = -Math.random() * 12;
+        rainY[c] += rainSpd[c];
+        if (rainY[c] >= rows) rainY[c] = -Math.random() * 10;
         const ry = Math.floor(rainY[c]);
         if (ry >= 0 && ry < rows) {
           const idx = ry * cols + c;
-          charGrid[idx] = ALL_CHARS[Math.floor(Math.random() * ALL_CHARS.length)];
-          charAge[idx] = 0;
+          grid[idx] = pick(allArr);
+          age[idx] = 0;
         }
       }
 
-      // Ambient character cycling
-      if (tick % 3 === 0) {
-        const numCycles = Math.floor(gridSize * 0.002);
-        for (let i = 0; i < numCycles; i++) {
+      // Cycle some chars
+      if (tick % 2 === 0) {
+        const n = Math.floor(gridSize * 0.003);
+        for (let i = 0; i < n; i++) {
           const idx = Math.floor(Math.random() * gridSize);
-          charGrid[idx] = ALL_CHARS[Math.floor(Math.random() * ALL_CHARS.length)];
-          charAge[idx] = Math.floor(Math.random() * 20);
+          grid[idx] = pick(allArr);
+          age[idx] = Math.floor(Math.random() * 15);
         }
       }
 
-      // ---- Render ----
+      // Render character grid
       ctx.textBaseline = "top";
       ctx.font = `${fontSize}px 'Fira Code', monospace`;
 
       for (let r = 0; r < rows; r++) {
-        const py = r * charH;
+        const py = r * cH;
         for (let c = 0; c < cols; c++) {
-          const px = c * charW;
+          const pxX = c * cW;
           const idx = r * cols + c;
 
-          // Sample brightness field
-          const sx = Math.min(W - 1, Math.floor(px + charW * 0.5));
-          const sy = Math.min(H - 1, Math.floor(py + charH * 0.5));
+          // Sample brightness at center of this cell
+          const sx = Math.min(W - 1, Math.floor(pxX + cW * 0.5));
+          const sy = Math.min(H - 1, Math.floor(py + cH * 0.5));
           const pi = (sy * W + sx) * 4;
-          const pr = pxData[pi] || 0;
-          const pg = pxData[pi + 1] || 0;
-          const pb = pxData[pi + 2] || 0;
-          const pa = pxData[pi + 3] || 0;
-
-          const brightness = (pr * 0.3 + pg * 0.59 + pb * 0.11); // luminance
-          const isAgent = pa > 15 && (pr > 5 || pg > 5 || pb > 5);
+          const red = px[pi] || 0;
+          const brightness = red; // grayscale, so R≈G≈B
 
           let alpha: number;
-          let glow = 0;
-          let charToUse: string;
+          let glow: number;
+          let ch: string;
 
-          if (isAgent && brightness > 30) {
-            // BRIGHT agent area — map brightness to character weight
-            const normalizedBright = Math.min(1, brightness / 255);
-            const weightIndex = Math.min(NUM_LEVELS - 1, Math.floor(normalizedBright * NUM_LEVELS));
-            const chars = WEIGHT_LEVELS[weightIndex];
-            charToUse = chars[Math.floor(Math.random() * chars.length)];
-
-            alpha = 0.3 + normalizedBright * 0.7;
-            glow = normalizedBright * 12;
-
-            // Cycle characters faster in bright areas
-            if (tick % 2 === 0 && Math.random() > 0.3) {
-              charGrid[idx] = charToUse;
-            } else {
-              charToUse = charGrid[idx];
-              // Still re-pick weight-appropriate char periodically
-              if (tick % 5 === 0) charGrid[idx] = chars[Math.floor(Math.random() * chars.length)];
-            }
-          } else if (isAgent && brightness <= 30) {
-            // DARK suit area — nearly invisible negative space
-            continue; // skip rendering entirely for clean negative space
+          if (brightness > 180) {
+            // BRIGHT area: face, hands — dense bright heavy glyphs, rapidly cycling
+            ch = tick % 3 === 0 ? pick(brightArr) : grid[idx];
+            if (tick % 3 === 0) grid[idx] = ch;
+            alpha = 0.85 + (brightness / 255) * 0.15;
+            glow = 8 + (brightness / 255) * 10;
+          } else if (brightness > 100) {
+            // MEDIUM: shirt, fedora, tie
+            ch = tick % 4 === 0 ? pick(heavyArr) : grid[idx];
+            if (tick % 4 === 0) grid[idx] = ch;
+            alpha = 0.4 + ((brightness - 100) / 155) * 0.45;
+            glow = 3 + ((brightness - 100) / 155) * 6;
+          } else if (brightness > 20) {
+            // SUIT: dark negative space — very dim, sparse
+            ch = grid[idx];
+            alpha = 0.015;
+            glow = 0;
           } else {
-            // Background — subtle ambient rain
-            charAge[idx]++;
-            const freshness = Math.max(0, 1 - charAge[idx] / 50);
-            alpha = 0.025 + freshness * 0.09;
-            charToUse = charGrid[idx];
+            // BACKGROUND: subtle rain
+            age[idx]++;
+            const freshness = Math.max(0, 1 - age[idx] / 45);
+            alpha = 0.02 + freshness * 0.07;
+            glow = 0;
+            ch = grid[idx];
 
-            // Rain head
+            // Rain head glow
             const ry = Math.floor(rainY[c]);
             if (r === ry) {
-              alpha = 0.22;
+              alpha = 0.18;
               glow = 2;
             } else if (r === ry - 1) {
-              alpha = 0.1;
+              alpha = 0.08;
             }
           }
 
@@ -396,7 +369,7 @@ const MatrixAgents = () => {
           }
 
           ctx.fillStyle = `rgba(0, 255, 65, ${Math.min(1, alpha)})`;
-          ctx.fillText(charToUse, px, py);
+          ctx.fillText(ch, pxX, py);
         }
       }
 
