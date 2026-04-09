@@ -4,8 +4,9 @@ import { prepareWithSegments, layoutWithLines } from "@chenglou/pretext";
 /**
  * NEGATIVE SPACE eye via @chenglou/pretext.
  *
- * Listens for "eye-blink" custom events to perform forced blinks
- * (used to transition between credit texts during boot).
+ * Listens for "eye-blink" custom events to perform forced blinks.
+ * The blink fully closes — lids cover everything including pupil/iris.
+ * The eye shape itself acts as the lid, shrinking to zero height.
  */
 
 const CORPUS = [
@@ -15,7 +16,7 @@ const CORPUS = [
   "새침하게 흐린 품이 눈이 올 듯하더니 눈은 아니 오고 얼다가 만 비가 추적추적 내리었다。",
   "ในสมัยหนึ่ง มีพระราชาองค์หนึ่ง ทรงพระนามว่า วิกรมาทิตย์",
   "بسم الله الرحمن الرحيم وصلى الله على سيدنا محمد وآله وصحبه وسلم",
-  "רמज़ान के पूरे तीस रोज़े रख कर ईद मनाने की तैयारियां हो रही थीं।",
+  "רמज़ان के पूरे तीस रोज़े रख कर ईद मनाने की तैयारियां हो रही थीं।",
   "ויהי בימים ההם ויצא משה אל אחיו וירא בסבלתם",
   "တစ်ခါတစ်ရံ ဗျိုင်းငှက်သည် လူတို့အား သင်ခန်းစာပေးလိုသောအခါ",
   "ایک دن کی بات ہے کہ ایک شخص اپنے گھر میں بیٹھا ہوا تھا",
@@ -23,6 +24,12 @@ const CORPUS = [
 
 const FULL_CORPUS = (CORPUS + " ").repeat(12);
 
+/**
+ * Draw the eye mask. When blinkProgress=1, the lids meet at center
+ * forming a horizontal line — NO pupil/iris visible.
+ * The iris/pupil are only drawn AFTER the eye shape clip, so they
+ * naturally disappear as the lids close.
+ */
 function drawEyeMask(
   ctx: CanvasRenderingContext2D,
   W: number,
@@ -39,24 +46,52 @@ function drawEyeMask(
   const pupilR = pupilBase + pupilPulse;
   const irisR = eyeW * 0.17;
 
+  // Smooth easing for blink
+  const eased = blinkProgress < 0.5
+    ? 2 * blinkProgress * blinkProgress
+    : 1 - Math.pow(-2 * blinkProgress + 2, 2) / 2;
+
+  // The opening height — goes to zero when fully closed
+  const openAmount = 1 - eased;
+
   ctx.save();
 
-  // Outer eye shape (almond)
-  ctx.fillStyle = "#ffffff";
+  // --- Define the eye shape as a clip path ---
+  // This ensures NOTHING (iris, pupil) renders outside the lids
   ctx.beginPath();
   ctx.moveTo(cx - eyeW / 2, cy);
-  ctx.quadraticCurveTo(cx, cy - eyeH * (1 - blinkProgress * 0.95), cx + eyeW / 2, cy);
-  ctx.quadraticCurveTo(cx, cy + eyeH * (1 - blinkProgress * 0.95), cx - eyeW / 2, cy);
+  ctx.quadraticCurveTo(cx, cy - eyeH * openAmount, cx + eyeW / 2, cy);
+  ctx.quadraticCurveTo(cx, cy + eyeH * openAmount, cx - eyeW / 2, cy);
   ctx.closePath();
-  ctx.fill();
 
-  // Iris
+  // If eye is nearly closed, just draw the slit line
+  if (openAmount < 0.03) {
+    // Draw a thin bright line where the lids meet
+    ctx.strokeStyle = "rgb(200, 200, 200)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx - eyeW / 2, cy);
+    ctx.lineTo(cx + eyeW / 2, cy);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  // Use clip so iris/pupil are masked by lid shape
+  ctx.save();
+  ctx.clip();
+
+  // Fill eye white area
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(cx - eyeW / 2 - 10, cy - eyeH - 10, eyeW + 20, eyeH * 2 + 20);
+
+  // Iris (medium gray — partial negative space)
   ctx.fillStyle = "rgb(100, 100, 100)";
   ctx.beginPath();
   ctx.arc(cx, cy, irisR, 0, Math.PI * 2);
   ctx.fill();
 
-  // Iris rings
+  // Iris detail rings
   ctx.strokeStyle = "rgb(140, 140, 140)";
   ctx.lineWidth = 2;
   for (let r = irisR * 0.4; r < irisR; r += irisR * 0.2) {
@@ -77,7 +112,7 @@ function drawEyeMask(
     ctx.stroke();
   }
 
-  // Pupil
+  // Pupil (brightest white — total void)
   ctx.fillStyle = "#ffffff";
   ctx.beginPath();
   ctx.arc(cx, cy, pupilR, 0, Math.PI * 2);
@@ -88,16 +123,18 @@ function drawEyeMask(
   ctx.arc(cx - pupilR * 0.6, cy - pupilR * 0.5, pupilR * 0.25, 0, Math.PI * 2);
   ctx.fill();
 
-  // Lid edges
+  ctx.restore(); // pop clip
+
+  // Lid edge lines (drawn outside clip so they're always visible)
   ctx.strokeStyle = "rgb(200, 200, 200)";
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(cx - eyeW / 2, cy);
-  ctx.quadraticCurveTo(cx, cy - eyeH * (1 - blinkProgress * 0.95), cx + eyeW / 2, cy);
+  ctx.quadraticCurveTo(cx, cy - eyeH * openAmount, cx + eyeW / 2, cy);
   ctx.stroke();
   ctx.beginPath();
   ctx.moveTo(cx - eyeW / 2, cy);
-  ctx.quadraticCurveTo(cx, cy + eyeH * (1 - blinkProgress * 0.95), cx + eyeW / 2, cy);
+  ctx.quadraticCurveTo(cx, cy + eyeH * openAmount, cx + eyeW / 2, cy);
   ctx.stroke();
 
   ctx.restore();
@@ -175,7 +212,6 @@ const MatrixAgents = () => {
     let nextBlinkAt = 180 + Math.random() * 200;
     let forcedBlink = false;
 
-    // Listen for forced blink events (credit transitions)
     const handleForcedBlink = () => {
       if (!isBlinking) {
         isBlinking = true;
@@ -188,7 +224,6 @@ const MatrixAgents = () => {
     const draw = () => {
       tick++;
 
-      // Blink logic — forced blinks are slower/smoother
       blinkTimer++;
       if (!isBlinking && blinkTimer > nextBlinkAt) {
         isBlinking = true;
@@ -197,10 +232,9 @@ const MatrixAgents = () => {
       }
       if (isBlinking) {
         if (forcedBlink) {
-          // Slow, dramatic blink for credit transitions
-          const closeFrames = 12;
-          const holdFrames = 10;
-          const openFrames = 14;
+          const closeFrames = 14;
+          const holdFrames = 12;
+          const openFrames = 16;
           if (blinkTimer < closeFrames) {
             blinkProgress = blinkTimer / closeFrames;
           } else if (blinkTimer < closeFrames + holdFrames) {
@@ -215,7 +249,6 @@ const MatrixAgents = () => {
             nextBlinkAt = 180 + Math.random() * 300;
           }
         } else {
-          // Normal quick blink
           if (blinkTimer < 8) {
             blinkProgress = blinkTimer / 8;
           } else if (blinkTimer < 12) {
