@@ -13,11 +13,11 @@ const storyTree: Record<string, StoryNode> = {
     lines: [
       "HELLO, ANTON.",
       "",
-      "YOUR DATA IS LYING TO YOU.",
+      "YOU'RE TRAPPED — AND YOU DON'T EVEN KNOW IT.",
       "DIFFERENT TEAMS. DIFFERENT NUMBERS.",
-      "SAME QUESTION. NO ONE AGREES.",
+      "NOBODY AGREES ON WHAT'S TRUE.",
     ],
-    prompt: "WANT TO BREAK FREE? [Y/N]",
+    prompt: "READY TO BREAK FREE? [Y/N]",
     yes: "verify",
     no: "bluepill",
   },
@@ -31,7 +31,7 @@ const storyTree: Record<string, StoryNode> = {
       "",
       ">> RED PILL PROTOCOL: ACTIVATED",
     ],
-    prompt: "READY FOR THE TRUTH? [Y/N]",
+    prompt: "SEE WHAT'S REALLY GOING ON? [Y/N]",
     yes: "pitch",
     no: "bluepill",
   },
@@ -47,20 +47,21 @@ const storyTree: Record<string, StoryNode> = {
   },
   pitch: {
     lines: [
-      "YOUR ANALYSTS ARE BOTTLENECKED.",
-      "EVERY QUESTION GOES THROUGH THEM.",
-      "YOUR AI RUNS ON UNGOVERNED DATA —",
-      "FAST ANSWERS, WRONG ANSWERS.",
+      "YOUR TEAM ASKS A QUESTION.",
+      "YOUR AI GIVES A FAST ANSWER.",
+      "WRONG ANSWER. NO ONE NOTICES.",
+      "",
+      "THAT'S THE MATRIX.",
     ],
-    prompt: "WHAT IF ANYONE COULD ASK AND TRUST THE ANSWER? [Y/N]",
+    prompt: "WANT TO SEE THE WAY OUT? [Y/N]",
     yes: "solution",
     no: "hesitate",
   },
   hesitate: {
     lines: [
       ">> HESITATION NOTED.",
-      "EVERY QUESTION LEFT UNASKED",
-      "IS A DECISION MADE IN THE DARK.",
+      "EVERY QUESTION LEFT UNASKED —",
+      "A DECISION MADE IN THE DARK.",
     ],
     prompt: "RECONSIDER? [Y/N]",
     yes: "solution",
@@ -68,11 +69,10 @@ const storyTree: Record<string, StoryNode> = {
   },
   solution: {
     lines: [
-      "OMNI. ONE SEMANTIC LAYER.",
-      "METRICS DEFINED ONCE. TRUSTED EVERYWHERE.",
-      "ANYONE ASKS IN PLAIN ENGLISH.",
-      "AI THAT CAN'T GO ROGUE.",
-      "ALREADY ON DBT? PLUG IN NATIVELY.",
+      "OMNI. ONE LAYER OF TRUTH.",
+      "ASK IN PLAIN ENGLISH. GET REAL ANSWERS.",
+      "NO BOTTLENECKS. NO ROGUE AI.",
+      "PLUGS INTO WHAT YOU ALREADY HAVE.",
     ],
     prompt: "READY TO SEE THE OTHER SIDE? [Y/N]",
     yes: "demo",
@@ -85,7 +85,6 @@ const storyTree: Record<string, StoryNode> = {
       "========================================",
       "",
       "  OMNI.CO/SCHEDULE",
-      "  HELLO@OMNI.CO",
       "",
       "SEE YOU ON THE OTHER SIDE, ANTON.",
     ],
@@ -93,7 +92,7 @@ const storyTree: Record<string, StoryNode> = {
   final_no: {
     lines: [
       "THE MATRIX HAS YOU, ANTON.",
-      "OMNI.CO — WHEN YOU'RE READY TO WAKE UP.",
+      "OMNI.CO — WHEN YOU'RE READY.",
     ],
   },
 };
@@ -286,7 +285,7 @@ const Terminal = () => {
   // Outro screen
   if (outroStage !== "none") {
     return (
-      <div className="relative z-10 flex h-screen items-center justify-center overflow-hidden">
+      <div className="relative z-10 flex h-[100dvh] items-center justify-center overflow-hidden">
         <div className="text-center font-mono">
           {(outroStage === "tvoff" || outroStage === "dead") && (
             <div className="fixed inset-0 bg-background z-50 flex items-center justify-center">
@@ -297,21 +296,20 @@ const Terminal = () => {
           )}
           {(outroStage === "omni" || outroStage === "omni-glitch") && (
             <div className={`text-glow space-y-2 ${outroStage === "omni-glitch" ? "glitch-text" : ""}`}>
-              <div className="text-primary text-2xl tracking-[0.5em] font-bold">O M N I</div>
+              <div className="text-primary text-xl sm:text-2xl tracking-[0.5em] font-bold">O M N I</div>
               <div className="text-muted-foreground/40 text-xs">OMNI.CO</div>
             </div>
           )}
           {(outroStage === "lovable" || outroStage === "lovable-glitch") && (
             <div className={`text-glow space-y-2 ${outroStage === "lovable-glitch" ? "glitch-text" : ""}`}>
               <div className="text-muted-foreground/50 text-xs tracking-widest">ENABLED BY</div>
-              <div className="text-primary text-lg tracking-[0.4em]">L O V A B L E</div>
+              <div className="text-primary text-base sm:text-lg tracking-[0.4em]">L O V A B L E</div>
             </div>
           )}
         </div>
 
-        {/* Persistent footer even in outro */}
         {outroStage !== "tvoff" && outroStage !== "dead" && (
-          <div className="fixed bottom-0 left-0 right-0 border-t border-border px-4 py-1 text-xs tracking-wider text-muted-foreground/40 flex justify-center z-40">
+          <div className="fixed bottom-0 left-0 right-0 border-t border-border px-4 py-1 text-[10px] sm:text-xs tracking-wider text-muted-foreground/40 flex justify-center z-40">
             <span>MISSION BRIEF BY <span className="text-primary/50">OMNI.CO</span></span>
           </div>
         )}
@@ -320,8 +318,8 @@ const Terminal = () => {
   }
 
   return (
-    <div className="relative z-10 flex h-screen flex-col overflow-hidden">
-      <div className="crt-header border-b border-border px-4 py-1.5 text-xs tracking-widest text-muted-foreground">
+    <div className="relative z-10 flex h-[100dvh] flex-col overflow-hidden">
+      <div className="crt-header border-b border-border px-3 sm:px-4 py-1.5 text-[10px] sm:text-xs tracking-widest text-muted-foreground">
         <span className="text-primary text-glow">■</span>
         {" "}OMNI TERMINAL — ENCRYPTED CHANNEL
       </div>
@@ -330,7 +328,7 @@ const Terminal = () => {
         ref={containerRef}
         className="flex flex-1 items-center justify-center overflow-hidden px-4 sm:px-8 md:px-12"
       >
-        <div className="w-full max-w-2xl text-center text-sm leading-snug text-glow">
+        <div className="w-full max-w-2xl text-center text-xs sm:text-sm leading-snug text-glow">
           {displayedLines.map((line, i) => (
             <div key={i} className="line-fade min-h-[1.15em] whitespace-pre-wrap font-mono">
               {line}
@@ -338,26 +336,27 @@ const Terminal = () => {
           ))}
           {showPrompt && (
             <div className="mt-2">
-              <div className="font-bold text-primary">{node.prompt}</div>
-              <div className="mt-1 flex items-center justify-center gap-1">
+              <div className="font-bold text-primary text-xs sm:text-sm">{node.prompt}</div>
+              <div className="mt-1 flex items-center justify-center gap-1 hidden sm:flex">
                 <span className="text-muted-foreground">&gt;&gt;</span>
                 <span className="cursor-blink text-primary">█</span>
               </div>
-              <div className="mt-3 flex justify-center gap-4 sm:hidden">
+              {/* Mobile tap buttons — always visible on small screens */}
+              <div className="mt-3 flex justify-center gap-3 sm:hidden">
                 <button
                   onClick={() => handleInput("y")}
-                  className="border border-primary bg-secondary px-8 py-3 text-sm font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+                  className="border border-primary bg-secondary px-6 py-2.5 text-xs font-bold text-primary active:bg-primary active:text-primary-foreground transition-colors"
                 >
                   [Y] YES
                 </button>
                 <button
                   onClick={() => handleInput("n")}
-                  className="border border-border bg-secondary px-8 py-3 text-sm font-bold text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
+                  className="border border-border bg-secondary px-6 py-2.5 text-xs font-bold text-muted-foreground active:bg-primary active:text-primary-foreground transition-colors"
                 >
                   [N] NO
                 </button>
               </div>
-              <div className="mt-1 text-xs text-muted-foreground hidden sm:block">
+              <div className="mt-1 text-[10px] text-muted-foreground hidden sm:block">
                 PRESS Y OR N
               </div>
             </div>
@@ -365,7 +364,7 @@ const Terminal = () => {
         </div>
       </div>
 
-      <div className="border-t border-border px-4 py-1 text-xs tracking-wider text-muted-foreground flex justify-between">
+      <div className="border-t border-border px-3 sm:px-4 py-1 text-[10px] sm:text-xs tracking-wider text-muted-foreground flex justify-between">
         <span>MISSION BRIEF BY <span className="text-primary/60">OMNI.CO</span></span>
         <span className="text-primary text-glow">SIGNAL: ACTIVE</span>
       </div>

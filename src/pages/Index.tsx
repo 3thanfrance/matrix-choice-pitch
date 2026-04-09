@@ -19,7 +19,7 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="scanlines crt-flicker min-h-screen overflow-hidden bg-background">
+    <div className="scanlines crt-flicker h-[100dvh] overflow-hidden bg-background">
       {!booted && <BootSequence onComplete={handleBootComplete} />}
       {booted && (
         <>
