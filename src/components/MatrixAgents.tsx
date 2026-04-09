@@ -5,7 +5,7 @@ declare global {
   interface Window {
     __matrixZoomStart?: number;
     __matrixZoomOutStart?: number;
-    __brandText?: { label: string; name: string } | null;
+    __brandText?: { label: string; name: string; startTime?: number; enabledBy?: string } | null;
   }
 }
 
@@ -26,10 +26,11 @@ const ZOOM_DURATION = 4000;
 function getEyePosition(W: number, H: number) {
   const figH = Math.min(H * 0.82, W * 1.1);
   const figTop = (H - figH) / 2 - figH * 0.02;
-  // Eyes at ~head center, roughly 1/8 down from top
   const headH = figH / 7.5;
-  const eyeY = figTop + headH * 0.55;
-  const eyeSpacing = headH * 0.22;
+  const headW = headH * 0.68;
+  // Eyes at ~head center, roughly 1/8 down from top
+  const eyeY = figTop + headH * 0.52;
+  const eyeSpacing = headW * 0.22;
   return { x: W / 2 - eyeSpacing, y: eyeY };
 }
 
