@@ -2,15 +2,13 @@ import { useEffect, useRef } from "react";
 import { prepareWithSegments, layoutWithLines } from "@chenglou/pretext";
 
 /**
- * NEGATIVE SPACE agent silhouettes via @chenglou/pretext.
+ * NEGATIVE SPACE silhouettes via @chenglou/pretext.
  *
- * The entire screen is filled with dense, pretext-laid multilingual text.
- * Agent silhouettes are CARVED OUT as empty negative space — the shapes
- * are defined by the ABSENCE of text, not its presence.
- * 
- * pretext handles all line-breaking, bidi, and segmentation across
- * Japanese, Chinese, Korean, Thai, Arabic, Hindi, Hebrew, Myanmar,
- * Urdu, and English.
+ * A giant Matrix-style EYE is carved as negative space from a wall of
+ * dense, pretext-laid multilingual text. The eye blinks, the pupil
+ * dilates, and the iris pulses — all rendered as voids in typography.
+ *
+ * pretext handles all line-breaking/bidi across 10+ scripts.
  */
 
 const CORPUS = [
@@ -28,97 +26,104 @@ const CORPUS = [
 
 const FULL_CORPUS = (CORPUS + " ").repeat(12);
 
-interface AgentData {
-  x: number;
-  speed: number;
-  phase: number;
-  phaseSpeed: number;
-  scale: number;
-}
-
 /**
- * Draw agent as a WHITE silhouette on the offscreen canvas.
- * White = agent body (will become EMPTY negative space).
- * Black = background (will be FILLED with text).
+ * Draw the eye mask onto offscreen canvas.
+ * White = eye area (negative space — no text)
+ * Black = background (filled with text)
+ * 
+ * The eye: almond shape with iris ring and pupil.
+ * Pupil dilates. Eye blinks (lid closes). Iris has detail rings.
  */
-function drawAgentMask(
+function drawEyeMask(
   ctx: CanvasRenderingContext2D,
-  cx: number,
-  baseY: number,
-  s: number,
-  walkPhase: number
+  W: number,
+  H: number,
+  tick: number,
+  blinkProgress: number // 0 = open, 1 = closed
 ) {
+  const cx = W / 2;
+  const cy = H / 2;
+  
+  // Eye proportions relative to screen
+  const eyeW = Math.min(W * 0.55, H * 1.2);
+  const eyeH = eyeW * 0.35;
+  
+  // Pupil dilation — slow breathing pulse
+  const pupilBase = eyeW * 0.08;
+  const pupilPulse = Math.sin(tick * 0.015) * eyeW * 0.025;
+  const pupilR = pupilBase + pupilPulse;
+  
+  // Iris
+  const irisR = eyeW * 0.17;
+  
   ctx.save();
-  ctx.translate(cx, baseY);
+  
+  // --- OUTER EYE SHAPE (almond) ---
+  // Draw as two arcs meeting at points
   ctx.fillStyle = "#ffffff";
-
-  const armSwing = Math.sin(walkPhase) * s * 10;
-  const legSwing = Math.sin(walkPhase) * s * 18;
-
-  // Fedora brim
   ctx.beginPath();
-  ctx.ellipse(0, -s * 175, s * 46, s * 9, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // Fedora crown
-  ctx.beginPath();
-  ctx.ellipse(0, -s * 197, s * 28, s * 20, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // Head
-  ctx.beginPath();
-  ctx.ellipse(0, -s * 150, s * 22, s * 26, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // Neck
-  ctx.fillRect(-s * 8, -s * 128, s * 16, s * 10);
-  // Shoulders + Torso
-  ctx.beginPath();
-  ctx.moveTo(-s * 52, -s * 122);
-  ctx.quadraticCurveTo(-s * 54, -s * 78, -s * 38, -s * 40);
-  ctx.lineTo(s * 38, -s * 40);
-  ctx.quadraticCurveTo(s * 54, -s * 78, s * 52, -s * 122);
+  
+  // Upper lid arc
+  ctx.moveTo(cx - eyeW / 2, cy);
+  ctx.quadraticCurveTo(cx, cy - eyeH * (1 - blinkProgress * 0.95), cx + eyeW / 2, cy);
+  // Lower lid arc
+  ctx.quadraticCurveTo(cx, cy + eyeH * (1 - blinkProgress * 0.95), cx - eyeW / 2, cy);
   ctx.closePath();
   ctx.fill();
-  // Left arm
+  
+  // --- IRIS (medium gray — partial negative space) ---
+  ctx.fillStyle = "rgb(100, 100, 100)";
   ctx.beginPath();
-  ctx.moveTo(-s * 52, -s * 122);
-  ctx.quadraticCurveTo(-s * 64, -s * 88, -s * 58 + armSwing, -s * 46);
-  ctx.lineTo(-s * 46 + armSwing, -s * 42);
-  ctx.quadraticCurveTo(-s * 44, -s * 80, -s * 44, -s * 118);
-  ctx.closePath();
+  ctx.arc(cx, cy, irisR, 0, Math.PI * 2);
   ctx.fill();
-  // Right arm
+  
+  // Iris detail rings
+  ctx.strokeStyle = "rgb(140, 140, 140)";
+  ctx.lineWidth = 2;
+  for (let r = irisR * 0.4; r < irisR; r += irisR * 0.2) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  
+  // Iris radial lines (spokes)
+  ctx.strokeStyle = "rgb(120, 120, 120)";
+  ctx.lineWidth = 1.5;
+  const numSpokes = 24;
+  for (let i = 0; i < numSpokes; i++) {
+    const angle = (i / numSpokes) * Math.PI * 2 + tick * 0.003;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(angle) * pupilR * 1.3, cy + Math.sin(angle) * pupilR * 1.3);
+    ctx.lineTo(cx + Math.cos(angle) * irisR * 0.95, cy + Math.sin(angle) * irisR * 0.95);
+    ctx.stroke();
+  }
+  
+  // --- PUPIL (brightest white — total void) ---
+  ctx.fillStyle = "#ffffff";
   ctx.beginPath();
-  ctx.moveTo(s * 52, -s * 122);
-  ctx.quadraticCurveTo(s * 64, -s * 88, s * 58 - armSwing, -s * 46);
-  ctx.lineTo(s * 46 - armSwing, -s * 42);
-  ctx.quadraticCurveTo(s * 44, -s * 80, s * 44, -s * 118);
-  ctx.closePath();
+  ctx.arc(cx, cy, pupilR, 0, Math.PI * 2);
   ctx.fill();
-  // Left hand
+  
+  // Pupil light reflection (small bright spot offset)
+  ctx.fillStyle = "#ffffff";
   ctx.beginPath();
-  ctx.ellipse(-s * 56 + armSwing, -s * 43, s * 8, s * 7, 0, 0, Math.PI * 2);
+  ctx.arc(cx - pupilR * 0.6, cy - pupilR * 0.5, pupilR * 0.25, 0, Math.PI * 2);
   ctx.fill();
-  // Right hand
+  
+  // --- LID EDGES (thin bright lines for definition) ---
+  ctx.strokeStyle = "rgb(200, 200, 200)";
+  ctx.lineWidth = 3;
+  // Upper lid line
   ctx.beginPath();
-  ctx.ellipse(s * 56 - armSwing, -s * 43, s * 8, s * 7, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // Left leg
+  ctx.moveTo(cx - eyeW / 2, cy);
+  ctx.quadraticCurveTo(cx, cy - eyeH * (1 - blinkProgress * 0.95), cx + eyeW / 2, cy);
+  ctx.stroke();
+  // Lower lid line
   ctx.beginPath();
-  ctx.moveTo(-s * 26, -s * 40); ctx.lineTo(-s * 4, -s * 40);
-  ctx.lineTo(-s * 2 - legSwing, s * 12); ctx.lineTo(-s * 26 - legSwing, s * 14);
-  ctx.closePath(); ctx.fill();
-  // Right leg
-  ctx.beginPath();
-  ctx.moveTo(s * 4, -s * 40); ctx.lineTo(s * 26, -s * 40);
-  ctx.lineTo(s * 26 + legSwing, s * 12); ctx.lineTo(s * 2 + legSwing, s * 14);
-  ctx.closePath(); ctx.fill();
-  // Shoes
-  ctx.beginPath();
-  ctx.ellipse(-s * 16 - legSwing, s * 16, s * 18, s * 7, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(s * 16 + legSwing, s * 16, s * 18, s * 7, 0, 0, Math.PI * 2);
-  ctx.fill();
-
+  ctx.moveTo(cx - eyeW / 2, cy);
+  ctx.quadraticCurveTo(cx, cy + eyeH * (1 - blinkProgress * 0.95), cx + eyeW / 2, cy);
+  ctx.stroke();
+  
   ctx.restore();
 }
 
@@ -137,11 +142,10 @@ const MatrixAgents = () => {
     const offscreen = document.createElement("canvas");
     const offCtx = offscreen.getContext("2d", { alpha: false })!;
 
-    const fontSize = Math.max(10, Math.min(14, Math.floor(W / 90)));
+    const fontSize = Math.max(9, Math.min(13, Math.floor(W / 100)));
     const lineHeight = Math.ceil(fontSize * 1.2);
     const font = `${fontSize}px 'Fira Code', monospace`;
 
-    // Pretext layout
     type CharCell = { ch: string; x: number; y: number };
     let charCells: CharCell[] = [];
     const corpusChars = Array.from(FULL_CORPUS).filter(c => c.trim().length > 0);
@@ -157,7 +161,6 @@ const MatrixAgents = () => {
       offscreen.width = W;
       offscreen.height = H;
 
-      // Lay out text with pretext
       const prepared = prepareWithSegments(FULL_CORPUS, font);
       const result = layoutWithLines(prepared, W, lineHeight);
       const lines = result.lines;
@@ -184,48 +187,53 @@ const MatrixAgents = () => {
     rebuildLayout();
     window.addEventListener("resize", rebuildLayout);
 
-    // Agents
-    const numAgents = Math.max(2, Math.min(5, Math.floor(W / 250)));
-    const agents: AgentData[] = [];
-    for (let i = 0; i < numAgents; i++) {
-      const depth = 0.3 + (i / Math.max(1, numAgents - 1)) * 0.7;
-      agents.push({
-        x: -250 - i * W * 0.3,
-        speed: 0.9 + depth * 1.6,
-        phase: Math.random() * Math.PI * 2,
-        phaseSpeed: 0.03 + depth * 0.015,
-        scale: 0.6 + depth * 0.8,
-      });
-    }
-
-    // Per-char animation offsets
+    // Per-char pulse
     const pulsePhase = new Float32Array(charCells.length);
     for (let i = 0; i < pulsePhase.length; i++) {
       pulsePhase[i] = Math.random() * Math.PI * 2;
     }
 
     let tick = 0;
+    let blinkTimer = 0;
+    let blinkProgress = 0;
+    let isBlinking = false;
+    let nextBlinkAt = 180 + Math.random() * 200;
 
     const draw = () => {
       tick++;
 
+      // Blink logic
+      blinkTimer++;
+      if (!isBlinking && blinkTimer > nextBlinkAt) {
+        isBlinking = true;
+        blinkTimer = 0;
+      }
+      if (isBlinking) {
+        if (blinkTimer < 8) {
+          blinkProgress = blinkTimer / 8; // closing
+        } else if (blinkTimer < 12) {
+          blinkProgress = 1; // closed
+        } else if (blinkTimer < 20) {
+          blinkProgress = 1 - (blinkTimer - 12) / 8; // opening
+        } else {
+          blinkProgress = 0;
+          isBlinking = false;
+          blinkTimer = 0;
+          nextBlinkAt = 180 + Math.random() * 300;
+        }
+      }
+
       ctx.fillStyle = "#000";
       ctx.fillRect(0, 0, W, H);
 
-      // Draw agent mask (white silhouettes on black)
+      // Draw eye mask
       offCtx.fillStyle = "#000";
       offCtx.fillRect(0, 0, W, H);
-      for (const agent of agents) {
-        agent.phase += agent.phaseSpeed;
-        agent.x += agent.speed;
-        if (agent.x > W + 450) agent.x = -400 - Math.random() * 300;
-        drawAgentMask(offCtx, agent.x, H * 0.8, agent.scale, agent.phase);
-      }
+      drawEyeMask(offCtx, W, H, tick, blinkProgress);
 
       const imgData = offCtx.getImageData(0, 0, W, H);
       const px = imgData.data;
 
-      // Render: text everywhere EXCEPT where agents are (negative space)
       ctx.font = font;
       ctx.textBaseline = "top";
 
@@ -233,40 +241,46 @@ const MatrixAgents = () => {
         const cell = charCells[i];
         if (!cell.ch || cell.ch === " ") continue;
 
-        // Sample mask at char center
         const sx = Math.min(W - 1, Math.max(0, Math.floor(cell.x + fontSize * 0.3)));
         const sy = Math.min(H - 1, Math.max(0, Math.floor(cell.y + lineHeight * 0.5)));
         const pi = (sy * W + sx) * 4;
-        const mask = px[pi] || 0; // white = agent, black = text area
+        const mask = px[pi] || 0;
 
-        // INVERSION: high mask = agent = DON'T draw (negative space)
-        // Low mask = background = DRAW text
-        if (mask > 80) {
-          // Inside agent silhouette — skip (negative space)
-          // But draw a very faint outline glow at the edge
-          if (mask < 160) {
-            // Edge zone — subtle bright outline
-            const edgeAlpha = 0.15 + ((160 - mask) / 80) * 0.35;
-            ctx.shadowColor = "#00FF41";
-            ctx.shadowBlur = 6;
-            ctx.fillStyle = `rgba(0, 255, 65, ${edgeAlpha})`;
-            // Use a random corpus char for the glowing edge
-            const ch = corpusChars[Math.floor(Math.random() * corpusChars.length)];
-            ctx.fillText(ch, cell.x, cell.y);
-            ctx.shadowBlur = 0;
-          }
+        if (mask > 160) {
+          // Deep inside eye — total void (negative space)
           continue;
         }
 
-        // Background text — the dense pretext-laid wall
-        pulsePhase[i] += 0.015;
+        if (mask > 60) {
+          // Iris/edge zone — glowing edge characters
+          const edgeFactor = (mask - 60) / 100;
+          const edgeAlpha = 0.1 + edgeFactor * 0.5;
+
+          // Iris chars cycle rapidly for a "scanning" effect
+          const ch = tick % 2 === 0
+            ? corpusChars[Math.floor(Math.random() * corpusChars.length)]
+            : cell.ch;
+
+          ctx.shadowColor = "#00FF41";
+          ctx.shadowBlur = 4 + edgeFactor * 8;
+          ctx.fillStyle = `rgba(0, 255, 65, ${edgeAlpha})`;
+          ctx.fillText(ch, cell.x, cell.y);
+          ctx.shadowBlur = 0;
+          continue;
+        }
+
+        // Background text wall
+        pulsePhase[i] += 0.012;
         const pulse = 0.5 + Math.sin(pulsePhase[i]) * 0.15;
+        const wave = Math.sin(tick * 0.008 + cell.x * 0.003 + cell.y * 0.005) * 0.04;
+        const alpha = 0.1 + pulse * 0.12 + wave;
 
-        // Vary brightness: some chars glow brighter, creating depth
-        const rowPulse = Math.sin(tick * 0.02 + cell.y * 0.01) * 0.05;
-        const alpha = 0.12 + pulse * 0.15 + rowPulse;
-        const glow = alpha > 0.25 ? 2 : 0;
+        let ch = cell.ch;
+        if (tick % 10 === 0 && Math.random() > 0.97) {
+          ch = corpusChars[Math.floor(Math.random() * corpusChars.length)];
+        }
 
+        const glow = alpha > 0.22 ? 1.5 : 0;
         if (glow > 0) {
           ctx.shadowColor = "#00FF41";
           ctx.shadowBlur = glow;
@@ -275,13 +289,7 @@ const MatrixAgents = () => {
           ctx.shadowBlur = 0;
         }
 
-        // Occasionally cycle characters for a "living text" feel
-        let ch = cell.ch;
-        if (tick % 8 === 0 && Math.random() > 0.95) {
-          ch = corpusChars[Math.floor(Math.random() * corpusChars.length)];
-        }
-
-        ctx.fillStyle = `rgba(0, 255, 65, ${Math.min(0.45, alpha)})`;
+        ctx.fillStyle = `rgba(0, 255, 65, ${Math.min(0.4, alpha)})`;
         ctx.fillText(ch, cell.x, cell.y);
       }
 
