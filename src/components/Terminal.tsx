@@ -1,6 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { playKeyClick, playEnterKey, playStatic, playGlitch, playTVOff, playConfirm } from "@/lib/sounds";
 
+declare global {
+  interface Window {
+    __terminalTextRect?: { x: number; y: number; w: number; h: number };
+    __terminalTextLines?: string[];
+    __terminalPromptText?: string;
+  }
+}
+
 interface StoryNode {
   lines: string[];
   prompt?: string;
