@@ -105,7 +105,7 @@ const AUTO_LINGER = 1500;
 
 type Phase = "typing" | "lingering" | "deleting" | "idle";
 
-/** Fire pretext scatter/coalesce events for visual transitions */
+/** Fire smooth pretext transition events */
 const fireScatter = () => window.dispatchEvent(new CustomEvent("pretext-scatter"));
 const fireCoalesce = () => window.dispatchEvent(new CustomEvent("pretext-coalesce"));
 
@@ -120,10 +120,25 @@ const Terminal = () => {
   const [nextNodeKey, setNextNodeKey] = useState<string | null>(null);
   const [outroStage, setOutroStage] = useState<"none" | "omni" | "omni-glitch" | "lovable" | "lovable-glitch" | "tvoff" | "dead">("none");
   const [requestReboot, setRequestReboot] = useState(false);
+  // Floating text offset for ambient pretext feel
+  const [floatOffset, setFloatOffset] = useState(0);
   const autoSeqIndexRef = useRef(0);
   const clickCountRef = useRef(0);
+  const floatRef = useRef<number>(0);
 
   const node = storyTree[currentNode];
+
+  // Subtle floating animation for terminal text
+  useEffect(() => {
+    let t = 0;
+    const animate = () => {
+      t += 0.008;
+      setFloatOffset(Math.sin(t) * 2);
+      floatRef.current = requestAnimationFrame(animate);
+    };
+    floatRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(floatRef.current);
+  }, []);
 
   // Key click sounds
   useEffect(() => {
@@ -138,7 +153,6 @@ const Terminal = () => {
     if (currentNode === "verified") playConfirm();
     if (currentNode === "demo") {
       playConfirm();
-      // Coalesce effect for ACCESS GRANTED
       setTimeout(fireCoalesce, 300);
     }
   }, [currentNode]);
@@ -154,7 +168,7 @@ const Terminal = () => {
       const timer = setTimeout(() => {
         setNextNodeKey(nextAutoNode);
         autoSeqIndexRef.current = autoIdx + 1;
-        fireScatter(); // scatter text as it transitions
+        fireScatter();
         setPhase("deleting");
       }, AUTO_LINGER);
       return () => clearTimeout(timer);
@@ -191,14 +205,14 @@ const Terminal = () => {
     if (outroStage === "none") return;
     let timers: ReturnType<typeof setTimeout>[] = [];
     if (outroStage === "omni") {
-      fireCoalesce(); // swirl chars inward as OMNI appears
+      fireCoalesce();
       timers.push(setTimeout(() => setOutroStage("omni-glitch"), 2000));
     } else if (outroStage === "omni-glitch") {
       playGlitch();
-      fireScatter(); // scatter as it glitches
+      fireScatter();
       timers.push(setTimeout(() => setOutroStage("lovable"), 600));
     } else if (outroStage === "lovable") {
-      fireCoalesce(); // coalesce for LOVABLE
+      fireCoalesce();
       timers.push(setTimeout(() => setOutroStage("lovable-glitch"), 2000));
     } else if (outroStage === "lovable-glitch") {
       playGlitch();
@@ -273,7 +287,6 @@ const Terminal = () => {
     if (phase !== "deleting") return;
     if (displayedLines.length === 0) {
       if (nextNodeKey) {
-        // Coalesce chars inward as new text appears
         fireCoalesce();
         setCurrentNode(nextNodeKey);
         setNextNodeKey(null);
@@ -310,7 +323,6 @@ const Terminal = () => {
       const nextKey = answer === "y" ? node.yes : node.no;
       if (nextKey) {
         setNextNodeKey(nextKey);
-        // Scatter burst on answer
         fireScatter();
         setTimeout(() => {
           playStatic(0.1, 0.04);
@@ -375,7 +387,10 @@ const Terminal = () => {
       </div>
 
       <div className="flex flex-1 items-center justify-center overflow-hidden px-4 sm:px-8 md:px-12">
-        <div className="w-full max-w-2xl text-center text-xs sm:text-sm leading-relaxed text-glow">
+        <div
+          className="w-full max-w-2xl text-center text-xs sm:text-sm leading-relaxed text-glow transition-transform duration-1000 ease-in-out"
+          style={{ transform: `translateY(${floatOffset}px)` }}
+        >
           {displayedLines.map((line, i) => (
             <div key={`${currentNode}-${i}`} className="line-fade min-h-[1.2em] whitespace-pre-wrap font-mono">
               {line}

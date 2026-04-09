@@ -11,8 +11,9 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
   const [postLines, setPostLines] = useState<string[]>([]);
   const [loadingPct, setLoadingPct] = useState(0);
   const [audioStarted, setAudioStarted] = useState(false);
-  const [brandText, setBrandText] = useState<"none" | "omni" | "glitch1" | "lovable" | "glitch2" | "fade">("none");
+  const [brandText, setBrandText] = useState<"none" | "omni" | "blink1" | "lovable" | "blink2" | "fade">("none");
   const [showAgentOverlay, setShowAgentOverlay] = useState(false);
+  const [eyeBlinkCommand, setEyeBlinkCommand] = useState(0); // increment to trigger a forced blink
   const humStopRef = useRef<(() => void) | null>(null);
 
   // Audio init
@@ -35,13 +36,7 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
 
   useEffect(() => () => { humStopRef.current?.(); }, []);
 
-  // Phase timeline — extended so agents walk fully across screen
-  // 0: black cursor (0-2s) — suspense
-  // 1: power surge flicker (2-4s) — CRT warming up
-  // 2: Matrix agents walk + credits (4-16s) — 12s showcase
-  // 3: POST diagnostics (16-20s) — system boot
-  // 4: Loading bar (20-22.5s) — initializing
-  // 5: Connected flash (22.5-24s) — transition
+  // Phase timeline
   useEffect(() => {
     const timers = [
       setTimeout(() => setPhase(1), 2000),
@@ -54,16 +49,27 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
     return () => timers.forEach(clearTimeout);
   }, [onComplete]);
 
-  // Brand sequence during phase 2 — slower, more dramatic
+  // Brand sequence during phase 2 — eye blinks to transition between credits
   useEffect(() => {
     if (phase !== 2) return;
     const timers = [
       setTimeout(() => setShowAgentOverlay(true), 0),
       setTimeout(() => setBrandText("omni"), 1200),
-      setTimeout(() => { setBrandText("glitch1"); playGlitch(); }, 6000),
-      setTimeout(() => setBrandText("lovable"), 7000),
-      setTimeout(() => { setBrandText("glitch2"); playGlitch(); }, 10000),
-      setTimeout(() => setBrandText("fade"), 10800),
+      // At 5.5s: trigger eye blink, switch text while eye is closed
+      setTimeout(() => {
+        setBrandText("blink1");
+        setEyeBlinkCommand(c => c + 1);
+        window.dispatchEvent(new CustomEvent("eye-blink"));
+      }, 5500),
+      // Eye closed ~400ms in, swap text
+      setTimeout(() => setBrandText("lovable"), 6100),
+      // At 9.5s: blink again to transition out
+      setTimeout(() => {
+        setBrandText("blink2");
+        setEyeBlinkCommand(c => c + 1);
+        window.dispatchEvent(new CustomEvent("eye-blink"));
+      }, 9500),
+      setTimeout(() => setBrandText("fade"), 10100),
     ];
     return () => timers.forEach(clearTimeout);
   }, [phase]);
@@ -75,7 +81,7 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
     if (phase === 5) playStatic(0.1, 0.04);
   }, [phase]);
 
-  // POST lines — system diagnostics
+  // POST lines
   useEffect(() => {
     if (phase !== 3) return;
     setShowAgentOverlay(false);
@@ -154,7 +160,6 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
         <div className="absolute inset-0 bg-primary/5 pointer-events-none animate-pulse z-10" />
       )}
 
-      {/* Dense Matrix agents during credits phase */}
       {showAgentOverlay && <MatrixAgents />}
 
       <div className={`w-full max-w-2xl px-6 transition-opacity duration-75 relative z-30 ${flickerClass}`}>
@@ -177,8 +182,8 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
 
         {phase === 2 && (
           <div className="text-center space-y-3">
-            {brandText === "omni" && (
-              <div className="text-glow space-y-3 animate-in fade-in duration-700">
+            {(brandText === "omni" || brandText === "blink1") && (
+              <div className={`text-glow space-y-3 transition-opacity duration-300 ${brandText === "blink1" ? "opacity-0" : "opacity-100 animate-in fade-in duration-700"}`}>
                 <div className="text-muted-foreground/50 text-[10px] tracking-[0.4em]">
                   PRESENTED BY
                 </div>
@@ -190,18 +195,8 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
                 </div>
               </div>
             )}
-            {brandText === "glitch1" && (
-              <div className="text-glow space-y-3 glitch-text">
-                <div className="text-muted-foreground/50 text-[10px] tracking-[0.4em]">
-                  PRESENTED BY
-                </div>
-                <div className="text-primary text-3xl sm:text-4xl tracking-[0.5em] sm:tracking-[0.7em] font-bold">
-                  O M N I
-                </div>
-              </div>
-            )}
-            {brandText === "lovable" && (
-              <div className="text-glow space-y-3 animate-in fade-in duration-500">
+            {(brandText === "lovable" || brandText === "blink2") && (
+              <div className={`text-glow space-y-3 transition-opacity duration-300 ${brandText === "blink2" ? "opacity-0" : "opacity-100 animate-in fade-in duration-500"}`}>
                 <div className="text-muted-foreground/50 text-[10px] tracking-[0.4em]">
                   ENABLED BY
                 </div>
@@ -210,21 +205,11 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
                 </div>
                 <div className="text-muted-foreground/30 text-[10px] tracking-widest mt-2">
                   ━━━━━━━━━━━━━━━━━━━━━━━━━━
-                </div>
-              </div>
-            )}
-            {brandText === "glitch2" && (
-              <div className="text-glow space-y-3 glitch-text">
-                <div className="text-muted-foreground/50 text-[10px] tracking-[0.4em]">
-                  ENABLED BY
-                </div>
-                <div className="text-primary text-xl sm:text-2xl tracking-[0.3em] sm:tracking-[0.5em]">
-                  L O V A B L E
                 </div>
               </div>
             )}
             {brandText === "fade" && (
-              <div className="text-glow opacity-0 animate-out fade-out duration-500">
+              <div className="text-glow opacity-0 transition-opacity duration-500">
                 <div className="text-primary text-xl">...</div>
               </div>
             )}
