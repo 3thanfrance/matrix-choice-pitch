@@ -21,125 +21,250 @@ const CORPUS = [
 ].join(" ");
 
 const FULL_CORPUS = (CORPUS + " ").repeat(12);
-const ZOOM_DURATION = 3000;
+const ZOOM_DURATION = 3500;
 
 function getEyePosition(W: number, H: number) {
-  const figH = Math.min(H * 0.7, W * 0.9);
+  const figH = Math.min(H * 0.75, W * 0.95);
   const figTop = (H - figH) / 2 - figH * 0.05;
-  const eyeY = figTop + figH * 0.25;
-  const eyeSpacing = figH * 0.065;
+  const eyeY = figTop + figH * 0.24;
+  const eyeSpacing = figH * 0.07;
   return { x: W / 2 - eyeSpacing, y: eyeY };
+}
+
+/**
+ * Cinematic easing — fast start, slow through middle, fast end
+ * Inspired by Apple fluid transitions: continuous, responsive feel
+ */
+function cinematicEase(t: number): number {
+  // Custom bezier-like: ease-in-out with a lingering mid-section
+  if (t <= 0) return 0;
+  if (t >= 1) return 1;
+  // Attempt a steep S-curve with a plateau in the middle
+  // Using smootherstep (Ken Perlin) for extra smoothness
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return 6 * t3 * t2 - 15 * t2 * t2 + 10 * t3;
 }
 
 function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number) {
   const cx = W / 2;
-  const figH = Math.min(H * 0.7, W * 0.9);
+  const figH = Math.min(H * 0.75, W * 0.95);
   const figTop = (H - figH) / 2 - figH * 0.05;
 
   ctx.fillStyle = "#fff";
 
-  // Hat crown
+  // --- FEDORA HAT (dramatic, wide brim like noir detective) ---
+  // Crown (tall, slightly tapered)
   ctx.beginPath();
-  ctx.moveTo(cx - figH * 0.18, figTop + figH * 0.15);
-  ctx.quadraticCurveTo(cx - figH * 0.16, figTop + figH * 0.02, cx, figTop);
-  ctx.quadraticCurveTo(cx + figH * 0.16, figTop + figH * 0.02, cx + figH * 0.18, figTop + figH * 0.15);
+  ctx.moveTo(cx - figH * 0.14, figTop + figH * 0.14);
+  ctx.lineTo(cx - figH * 0.12, figTop + figH * 0.03);
+  ctx.quadraticCurveTo(cx - figH * 0.06, figTop - figH * 0.01, cx, figTop - figH * 0.005);
+  ctx.quadraticCurveTo(cx + figH * 0.06, figTop - figH * 0.01, cx + figH * 0.12, figTop + figH * 0.03);
+  ctx.lineTo(cx + figH * 0.14, figTop + figH * 0.14);
   ctx.closePath();
   ctx.fill();
 
-  // Hat brim
+  // Crown dent (pinch at top)
+  ctx.fillStyle = "rgb(30,30,30)";
   ctx.beginPath();
-  ctx.ellipse(cx, figTop + figH * 0.15, figH * 0.28, figH * 0.025, 0, 0, Math.PI * 2);
+  ctx.moveTo(cx - figH * 0.06, figTop + figH * 0.035);
+  ctx.quadraticCurveTo(cx, figTop + figH * 0.055, cx + figH * 0.06, figTop + figH * 0.035);
+  ctx.quadraticCurveTo(cx, figTop + figH * 0.015, cx - figH * 0.06, figTop + figH * 0.035);
+  ctx.fill();
+  ctx.fillStyle = "#fff";
+
+  // Brim (wide, dramatic, slightly tilted)
+  ctx.beginPath();
+  ctx.ellipse(cx - figH * 0.01, figTop + figH * 0.145, figH * 0.32, figH * 0.022, -0.03, 0, Math.PI * 2);
   ctx.fill();
 
   // Hat band
-  ctx.fillStyle = "rgb(40,40,40)";
-  ctx.fillRect(cx - figH * 0.17, figTop + figH * 0.125, figH * 0.34, figH * 0.018);
+  ctx.fillStyle = "rgb(50,50,50)";
+  ctx.fillRect(cx - figH * 0.135, figTop + figH * 0.115, figH * 0.27, figH * 0.022);
   ctx.fillStyle = "#fff";
 
-  // Face
+  // --- FACE (slightly narrower, more angular) ---
   ctx.beginPath();
-  ctx.ellipse(cx, figTop + figH * 0.28, figH * 0.13, figH * 0.14, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, figTop + figH * 0.27, figH * 0.11, figH * 0.13, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Sunglasses
-  const glassW = figH * 0.1;
-  const glassH = figH * 0.05;
-  const eyeY = figTop + figH * 0.25;
-  const eyeSpacing = figH * 0.065;
+  // Jaw line (sharper)
+  ctx.beginPath();
+  ctx.moveTo(cx - figH * 0.09, figTop + figH * 0.3);
+  ctx.quadraticCurveTo(cx - figH * 0.06, figTop + figH * 0.42, cx, figTop + figH * 0.43);
+  ctx.quadraticCurveTo(cx + figH * 0.06, figTop + figH * 0.42, cx + figH * 0.09, figTop + figH * 0.3);
+  ctx.fill();
 
-  ctx.fillStyle = "rgb(50,50,50)";
+  // --- SUNGLASSES (sharper, more angular - aviator style) ---
+  const glassW = figH * 0.105;
+  const glassH = figH * 0.048;
+  const eyeY = figTop + figH * 0.24;
+  const eyeSpacing = figH * 0.07;
+
+  ctx.fillStyle = "rgb(40,40,40)";
+
+  // Left lens
   const lx = cx - eyeSpacing - glassW / 2;
   ctx.beginPath();
-  ctx.roundRect(lx, eyeY - glassH / 2, glassW, glassH, glassH * 0.25);
+  ctx.moveTo(lx + glassH * 0.15, eyeY - glassH / 2);
+  ctx.lineTo(lx + glassW - glassH * 0.1, eyeY - glassH / 2);
+  ctx.lineTo(lx + glassW, eyeY + glassH * 0.1);
+  ctx.lineTo(lx + glassW - glassH * 0.2, eyeY + glassH / 2);
+  ctx.lineTo(lx + glassH * 0.1, eyeY + glassH / 2);
+  ctx.lineTo(lx, eyeY - glassH * 0.1);
+  ctx.closePath();
   ctx.fill();
 
+  // Right lens
   const rx = cx + eyeSpacing - glassW / 2;
   ctx.beginPath();
-  ctx.roundRect(rx, eyeY - glassH / 2, glassW, glassH, glassH * 0.25);
+  ctx.moveTo(rx + glassH * 0.1, eyeY - glassH / 2);
+  ctx.lineTo(rx + glassW - glassH * 0.15, eyeY - glassH / 2);
+  ctx.lineTo(rx + glassW, eyeY - glassH * 0.1);
+  ctx.lineTo(rx + glassW - glassH * 0.1, eyeY + glassH / 2);
+  ctx.lineTo(rx + glassH * 0.2, eyeY + glassH / 2);
+  ctx.lineTo(rx, eyeY + glassH * 0.1);
+  ctx.closePath();
   ctx.fill();
 
-  // Bridge & arms
+  // Bridge
   ctx.strokeStyle = "#fff";
-  ctx.lineWidth = figH * 0.007;
+  ctx.lineWidth = figH * 0.006;
   ctx.beginPath();
-  ctx.moveTo(cx - eyeSpacing + glassW / 2, eyeY);
-  ctx.lineTo(cx + eyeSpacing - glassW / 2, eyeY);
+  ctx.moveTo(cx - eyeSpacing + glassW / 2, eyeY - glassH * 0.1);
+  ctx.quadraticCurveTo(cx, eyeY - glassH * 0.3, cx + eyeSpacing - glassW / 2, eyeY - glassH * 0.1);
   ctx.stroke();
+
+  // Temple arms
   ctx.beginPath();
   ctx.moveTo(lx, eyeY);
-  ctx.lineTo(lx - figH * 0.05, eyeY - figH * 0.01);
+  ctx.lineTo(lx - figH * 0.06, eyeY - figH * 0.015);
   ctx.stroke();
   ctx.beginPath();
   ctx.moveTo(rx + glassW, eyeY);
-  ctx.lineTo(rx + glassW + figH * 0.05, eyeY - figH * 0.01);
+  ctx.lineTo(rx + glassW + figH * 0.06, eyeY - figH * 0.015);
   ctx.stroke();
+
+  // Subtle nose shadow
+  ctx.fillStyle = "rgb(60,60,60)";
+  ctx.beginPath();
+  ctx.moveTo(cx - figH * 0.012, figTop + figH * 0.29);
+  ctx.lineTo(cx + figH * 0.012, figTop + figH * 0.29);
+  ctx.lineTo(cx + figH * 0.018, figTop + figH * 0.35);
+  ctx.lineTo(cx - figH * 0.018, figTop + figH * 0.35);
+  ctx.closePath();
+  ctx.fill();
 
   ctx.fillStyle = "#fff";
 
-  // Neck
-  ctx.fillRect(cx - figH * 0.04, figTop + figH * 0.4, figH * 0.08, figH * 0.06);
+  // --- NECK ---
+  ctx.fillRect(cx - figH * 0.035, figTop + figH * 0.41, figH * 0.07, figH * 0.06);
 
-  // Shoulders
+  // --- SHIRT COLLAR (V-shape, visible above suit) ---
+  ctx.fillStyle = "rgb(200,200,200)";
+  ctx.beginPath();
+  ctx.moveTo(cx - figH * 0.04, figTop + figH * 0.44);
+  ctx.lineTo(cx - figH * 0.07, figTop + figH * 0.5);
+  ctx.lineTo(cx, figTop + figH * 0.54);
+  ctx.lineTo(cx + figH * 0.07, figTop + figH * 0.5);
+  ctx.lineTo(cx + figH * 0.04, figTop + figH * 0.44);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#fff";
+
+  // --- SHOULDERS & SUIT (broader, more powerful stance) ---
   ctx.beginPath();
   ctx.moveTo(cx - figH * 0.04, figTop + figH * 0.46);
-  ctx.lineTo(cx - figH * 0.35, figTop + figH * 0.6);
-  ctx.lineTo(cx - figH * 0.35, H + 50);
-  ctx.lineTo(cx + figH * 0.35, H + 50);
-  ctx.lineTo(cx + figH * 0.35, figTop + figH * 0.6);
+  // Left shoulder — wider, squared
+  ctx.lineTo(cx - figH * 0.22, figTop + figH * 0.5);
+  ctx.lineTo(cx - figH * 0.38, figTop + figH * 0.58);
+  // Left arm
+  ctx.lineTo(cx - figH * 0.36, H + 50);
+  // Right arm
+  ctx.lineTo(cx + figH * 0.36, H + 50);
+  // Right shoulder
+  ctx.lineTo(cx + figH * 0.38, figTop + figH * 0.58);
+  ctx.lineTo(cx + figH * 0.22, figTop + figH * 0.5);
   ctx.lineTo(cx + figH * 0.04, figTop + figH * 0.46);
   ctx.closePath();
   ctx.fill();
 
-  // Lapels
-  ctx.strokeStyle = "rgb(50,50,50)";
-  ctx.lineWidth = figH * 0.005;
+  // --- LAPELS (sharp V, wider) ---
+  ctx.strokeStyle = "rgb(40,40,40)";
+  ctx.lineWidth = figH * 0.006;
+  // Left lapel
   ctx.beginPath();
-  ctx.moveTo(cx - figH * 0.02, figTop + figH * 0.46);
-  ctx.lineTo(cx - figH * 0.15, figTop + figH * 0.65);
+  ctx.moveTo(cx - figH * 0.035, figTop + figH * 0.46);
+  ctx.lineTo(cx - figH * 0.12, figTop + figH * 0.58);
+  ctx.lineTo(cx - figH * 0.18, figTop + figH * 0.64);
   ctx.stroke();
+  // Right lapel
   ctx.beginPath();
-  ctx.moveTo(cx + figH * 0.02, figTop + figH * 0.46);
-  ctx.lineTo(cx + figH * 0.15, figTop + figH * 0.65);
+  ctx.moveTo(cx + figH * 0.035, figTop + figH * 0.46);
+  ctx.lineTo(cx + figH * 0.12, figTop + figH * 0.58);
+  ctx.lineTo(cx + figH * 0.18, figTop + figH * 0.64);
   ctx.stroke();
 
-  // Tie knot
-  ctx.fillStyle = "rgb(70,70,70)";
+  // Lapel notch detail
   ctx.beginPath();
-  ctx.moveTo(cx - figH * 0.025, figTop + figH * 0.46);
-  ctx.lineTo(cx + figH * 0.025, figTop + figH * 0.46);
-  ctx.lineTo(cx + figH * 0.03, figTop + figH * 0.5);
-  ctx.lineTo(cx - figH * 0.03, figTop + figH * 0.5);
+  ctx.moveTo(cx - figH * 0.12, figTop + figH * 0.58);
+  ctx.lineTo(cx - figH * 0.15, figTop + figH * 0.56);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx + figH * 0.12, figTop + figH * 0.58);
+  ctx.lineTo(cx + figH * 0.15, figTop + figH * 0.56);
+  ctx.stroke();
+
+  // --- POCKET SQUARE (left breast) ---
+  ctx.fillStyle = "rgb(180,180,180)";
+  ctx.beginPath();
+  ctx.moveTo(cx - figH * 0.13, figTop + figH * 0.6);
+  ctx.lineTo(cx - figH * 0.1, figTop + figH * 0.59);
+  ctx.lineTo(cx - figH * 0.09, figTop + figH * 0.63);
+  ctx.lineTo(cx - figH * 0.12, figTop + figH * 0.64);
   ctx.closePath();
   ctx.fill();
 
-  // Tie body
+  // --- TIE ---
+  // Knot
+  ctx.fillStyle = "rgb(60,60,60)";
   ctx.beginPath();
-  ctx.moveTo(cx - figH * 0.03, figTop + figH * 0.5);
-  ctx.lineTo(cx + figH * 0.03, figTop + figH * 0.5);
-  ctx.lineTo(cx + figH * 0.015, figTop + figH * 0.75);
-  ctx.lineTo(cx, figTop + figH * 0.78);
-  ctx.lineTo(cx - figH * 0.015, figTop + figH * 0.75);
+  ctx.moveTo(cx - figH * 0.022, figTop + figH * 0.46);
+  ctx.lineTo(cx + figH * 0.022, figTop + figH * 0.46);
+  ctx.lineTo(cx + figH * 0.028, figTop + figH * 0.5);
+  ctx.lineTo(cx - figH * 0.028, figTop + figH * 0.5);
   ctx.closePath();
+  ctx.fill();
+
+  // Tie body (long, tapered)
+  ctx.beginPath();
+  ctx.moveTo(cx - figH * 0.028, figTop + figH * 0.5);
+  ctx.lineTo(cx + figH * 0.028, figTop + figH * 0.5);
+  ctx.lineTo(cx + figH * 0.012, figTop + figH * 0.78);
+  ctx.lineTo(cx, figTop + figH * 0.82);
+  ctx.lineTo(cx - figH * 0.012, figTop + figH * 0.78);
+  ctx.closePath();
+  ctx.fill();
+
+  // Tie stripe detail
+  ctx.strokeStyle = "rgb(80,80,80)";
+  ctx.lineWidth = figH * 0.003;
+  for (let s = 0.55; s < 0.75; s += 0.05) {
+    const tieW = figH * 0.025 * (1 - (s - 0.5) / 0.35);
+    ctx.beginPath();
+    ctx.moveTo(cx - tieW, figTop + figH * s);
+    ctx.lineTo(cx + tieW, figTop + figH * (s + 0.02));
+    ctx.stroke();
+  }
+
+  // --- SUIT BUTTONS ---
+  ctx.fillStyle = "rgb(50,50,50)";
+  ctx.beginPath();
+  ctx.arc(cx, figTop + figH * 0.62, figH * 0.008, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, figTop + figH * 0.68, figH * 0.008, 0, Math.PI * 2);
   ctx.fill();
 }
 
@@ -319,27 +444,32 @@ const MatrixAgents = () => {
     const draw = () => {
       tick++;
 
-      // --- ZOOM (supports both zoom-in and zoom-out) ---
+      // --- ZOOM (cinematic easing for fluid transitions) ---
       const zoomInStart = (window as any).__matrixZoomStart as number | undefined;
       const zoomOutStart = (window as any).__matrixZoomOutStart as number | undefined;
-      let zoom = 0;
+      let rawZoom = 0;
       if (zoomOutStart) {
-        zoom = Math.max(0, 1 - (Date.now() - zoomOutStart) / ZOOM_DURATION);
+        rawZoom = Math.max(0, 1 - (Date.now() - zoomOutStart) / ZOOM_DURATION);
       } else if (zoomInStart) {
-        zoom = Math.min(1, (Date.now() - zoomInStart) / ZOOM_DURATION);
+        rawZoom = Math.min(1, (Date.now() - zoomInStart) / ZOOM_DURATION);
       }
+      // Apply cinematic easing for fluid feel
+      const zoom = cinematicEase(rawZoom);
 
-      // --- BRIGHTNESS DEPTH ---
-      // Gentle dip centered at the silhouette→eye crossover for depth
-      // Keeps detail visible throughout — just enough dimming to add depth
+      // --- BRIGHTNESS DEPTH (cinematic, multi-phase) ---
+      // Creates a "passing through darkness" effect during the transition
       let brightness = 1;
-      if (zoom > 0.38 && zoom < 0.62) {
-        const t = (zoom - 0.38) / 0.24;
-        brightness = 1 - Math.pow(Math.sin(t * Math.PI), 2) * 0.45;
+      if (rawZoom > 0.15 && rawZoom < 0.85) {
+        // Bell curve centered at 0.5 — darkest in the middle of the zoom
+        const t = (rawZoom - 0.15) / 0.7;
+        const dip = Math.pow(Math.sin(t * Math.PI), 2);
+        // Deeper dip (down to 0.35) for dramatic depth, with subtle flicker
+        const flicker = 1 + Math.sin(tick * 0.3) * 0.02;
+        brightness = Math.max(0.35, 1 - dip * 0.65) * flicker;
       }
 
-      // Slight vignette boost when fully zoomed for crisp eye detail
-      const edgeBoost = zoom >= 0.9 ? 1.2 : 1;
+      // Boost when fully zoomed for crisp eye detail
+      const edgeBoost = zoom >= 0.95 ? 1.15 : 1;
 
       // --- BLINK ---
       blinkTimer++;
@@ -384,15 +514,17 @@ const MatrixAgents = () => {
       offCtx.fillStyle = "#000";
       offCtx.fillRect(0, 0, W, H);
 
-      const useEye = zoom >= 0.5;
+      // Crossover point — blend between silhouette and eye
+      // Use a wider blend zone for smoother transition
+      const crossoverLow = 0.4;
+      const crossoverHigh = 0.6;
 
-      if (!useEye) {
+      if (zoom <= crossoverLow) {
+        // Pure silhouette
         const eyePos = getEyePosition(W, H);
-        const maxScale = 10;
-        const normalizedZoom = zoom / 0.5;
-        // Ease the scale for smoother visual acceleration
-        const easedZoom = normalizedZoom * normalizedZoom * (3 - 2 * normalizedZoom);
-        const scale = 1 + easedZoom * (maxScale - 1);
+        const maxScale = 12;
+        const normalizedZoom = zoom / crossoverLow;
+        const scale = 1 + cinematicEase(normalizedZoom) * (maxScale - 1);
 
         offCtx.save();
         offCtx.translate(W / 2, H / 2);
@@ -400,8 +532,31 @@ const MatrixAgents = () => {
         offCtx.translate(-eyePos.x, -eyePos.y);
         drawSilhouetteMask(offCtx, W, H);
         offCtx.restore();
-      } else {
+      } else if (zoom >= crossoverHigh) {
+        // Pure eye
         drawEyeMask(offCtx, W, H, tick, blinkProgress);
+      } else {
+        // Blend zone: cross-dissolve between silhouette zoom and eye
+        const blendT = (zoom - crossoverLow) / (crossoverHigh - crossoverLow);
+        const easedBlend = cinematicEase(blendT);
+
+        // Draw silhouette at max zoom
+        const eyePos = getEyePosition(W, H);
+        const maxScale = 12;
+        offCtx.save();
+        offCtx.globalAlpha = 1 - easedBlend;
+        offCtx.translate(W / 2, H / 2);
+        offCtx.scale(maxScale, maxScale);
+        offCtx.translate(-eyePos.x, -eyePos.y);
+        drawSilhouetteMask(offCtx, W, H);
+        offCtx.restore();
+
+        // Draw eye fading in
+        offCtx.save();
+        offCtx.globalAlpha = easedBlend;
+        drawEyeMask(offCtx, W, H, tick, blinkProgress);
+        offCtx.restore();
+        offCtx.globalAlpha = 1;
       }
 
       const imgData = offCtx.getImageData(0, 0, W, H);
