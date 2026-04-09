@@ -59,11 +59,11 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
     if (phase !== 2) return;
     const timers = [
       setTimeout(() => setShowAgentOverlay(true), 0),
-      setTimeout(() => setBrandText("omni"), 800),
-      setTimeout(() => { setBrandText("glitch1"); playGlitch(); }, 4000),
-      setTimeout(() => setBrandText("lovable"), 4800),
-      setTimeout(() => { setBrandText("glitch2"); playGlitch(); }, 6200),
-      setTimeout(() => setBrandText("fade"), 6800),
+      setTimeout(() => setBrandText("omni"), 1200),
+      setTimeout(() => { setBrandText("glitch1"); playGlitch(); }, 6000),
+      setTimeout(() => setBrandText("lovable"), 7000),
+      setTimeout(() => { setBrandText("glitch2"); playGlitch(); }, 10000),
+      setTimeout(() => setBrandText("fade"), 10800),
     ];
     return () => timers.forEach(clearTimeout);
   }, [phase]);
