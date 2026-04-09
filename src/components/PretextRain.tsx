@@ -2,16 +2,11 @@ import { useEffect, useRef } from "react";
 import { prepareWithSegments, layoutWithLines } from "@chenglou/pretext";
 
 /**
- * Pretext-powered ambient rain that interacts with the terminal text block.
+ * Pretext-powered ambient rain with pixel-level collision against terminal text.
  *
- * - Falling multilingual text columns
- * - Rain drops collide with the terminal text block (treated as a physical object)
- *   — splashing off it, pooling on top of it, flowing around it
- * - Splashes at the bottom of the screen
- * - Bottom pool of accumulated wobbling characters
- *
- * The terminal text block rect is communicated via a global:
- *   window.__terminalTextRect = { x, y, w, h }
+ * Instead of treating the text block as a rectangle, we render the terminal's
+ * actual text content onto an offscreen canvas and sample pixels to detect
+ * where characters are. Rain only splashes when it hits actual letterforms.
  */
 
 declare global {
@@ -100,10 +95,115 @@ const PretextRain = () => {
       x: number; ch: string; alpha: number;
       wobble: number; wobbleSpeed: number;
       splashY: number;
-      poolY: number; // the Y level this char pools at (text block top or screen bottom)
+      poolY: number;
     };
     const pool: PoolChar[] = [];
     const MAX_POOL = Math.floor(W / (fontSize * 0.35));
+
+    // Offscreen canvas for rendering terminal text (pixel collision mask)
+    const textMask = document.createElement("canvas");
+    const textMaskCtx = textMask.getContext("2d", { alpha: false })!;
+
+    // Cache for the text mask pixel data
+    let maskData: ImageData | null = null;
+    let maskW = 0;
+    let maskH = 0;
+    let lastTextKey = "";
+
+    /**
+     * Re-render the terminal text onto the offscreen mask canvas.
+     * White pixels = text present, black = empty.
+     */
+    function updateTextMask() {
+      const tr = window.__terminalTextRect;
+      const lines = window.__terminalTextLines || [];
+      const prompt = window.__terminalPromptText || "";
+      if (!tr || tr.w === 0 || (lines.length === 0 && !prompt)) {
+        maskData = null;
+        lastTextKey = "";
+        return;
+      }
+
+      // Build a key to avoid re-rendering if nothing changed
+      const key = `${tr.x}|${tr.y}|${tr.w}|${tr.h}|${lines.join("\n")}|${prompt}`;
+      if (key === lastTextKey) return;
+      lastTextKey = key;
+
+      // Size the mask canvas to the text block area
+      maskW = Math.ceil(tr.w);
+      maskH = Math.ceil(tr.h);
+      if (maskW < 1 || maskH < 1) { maskData = null; return; }
+
+      textMask.width = maskW;
+      textMask.height = maskH;
+
+      textMaskCtx.fillStyle = "#000";
+      textMaskCtx.fillRect(0, 0, maskW, maskH);
+
+      // Render the text lines centered, matching the terminal's layout
+      // Terminal uses text-center, text-xs/sm, font-mono
+      const termFontSize = W >= 640 ? 14 : 12; // sm:text-sm = 14px, text-xs = 12px
+      const termLineHeight = termFontSize * 1.5; // leading-relaxed ≈ 1.625
+      const termFont = `${termFontSize}px 'Fira Code', monospace`;
+
+      textMaskCtx.font = termFont;
+      textMaskCtx.fillStyle = "#fff";
+      textMaskCtx.textAlign = "center";
+      textMaskCtx.textBaseline = "top";
+
+      const cx = maskW / 2;
+      let y = 0;
+
+      // Render displayed lines
+      for (const line of lines) {
+        if (line.length > 0) {
+          textMaskCtx.fillText(line, cx, y);
+        }
+        y += termLineHeight;
+      }
+
+      // Render prompt text if visible
+      if (prompt) {
+        y += termFontSize * 0.75; // mt-3 gap
+        textMaskCtx.font = `bold ${termFontSize}px 'Fira Code', monospace`;
+        textMaskCtx.fillText(prompt, cx, y);
+      }
+
+      maskData = textMaskCtx.getImageData(0, 0, maskW, maskH);
+    }
+
+    /** Check if a screen-space point hits actual text pixels */
+    function hitsText(screenX: number, screenY: number): boolean {
+      if (!maskData) return false;
+      const tr = window.__terminalTextRect;
+      if (!tr) return false;
+
+      const lx = Math.floor(screenX - tr.x);
+      const ly = Math.floor(screenY - tr.y);
+
+      if (lx < 0 || lx >= maskW || ly < 0 || ly >= maskH) return false;
+
+      const pi = (ly * maskW + lx) * 4;
+      return maskData.data[pi] > 80; // red channel > 80 means text pixel
+    }
+
+    /** Find the top edge of text at a given X (for splash Y position) */
+    function findTextTopAt(screenX: number, screenY: number): number {
+      if (!maskData) return screenY;
+      const tr = window.__terminalTextRect;
+      if (!tr) return screenY;
+
+      const lx = Math.floor(screenX - tr.x);
+      if (lx < 0 || lx >= maskW) return screenY;
+
+      // Scan upward from the hit point to find the top of this character
+      const lyStart = Math.floor(screenY - tr.y);
+      for (let ly = lyStart; ly >= 0; ly--) {
+        const pi = (ly * maskW + lx) * 4;
+        if (maskData.data[pi] <= 80) return tr.y + ly + 1;
+      }
+      return tr.y;
+    }
 
     const resize = () => {
       W = window.innerWidth;
@@ -117,46 +217,38 @@ const PretextRain = () => {
     resize();
     window.addEventListener("resize", resize);
 
-    /** Spawn splash particles at a collision point */
-    function spawnSplash(sx: number, sy: number, count: number, direction: "up" | "sides") {
+    function spawnSplash(sx: number, sy: number, count: number) {
       for (let s = 0; s < count && particles.length < MAX_PARTICLES; s++) {
-        let angle: number, speed: number;
-        if (direction === "up") {
-          angle = -Math.PI * 0.15 - Math.random() * Math.PI * 0.7;
-          speed = 1.5 + Math.random() * 3;
-        } else {
-          // Sides — splash left or right off the text block
-          angle = (Math.random() > 0.5 ? 0 : Math.PI) + (Math.random() - 0.5) * 0.8;
-          speed = 1 + Math.random() * 2.5;
-        }
+        const angle = -Math.PI * 0.1 - Math.random() * Math.PI * 0.8;
+        const speed = 1 + Math.random() * 3;
         particles.push({
-          x: sx + (Math.random() - 0.5) * 6,
-          y: sy - Math.random() * 4,
+          x: sx + (Math.random() - 0.5) * 4,
+          y: sy - Math.random() * 2,
           ch: allChars[Math.floor(Math.random() * allChars.length)],
-          vx: Math.cos(angle) * speed,
+          vx: Math.cos(angle) * speed * (Math.random() > 0.5 ? 1 : -1),
           vy: Math.sin(angle) * speed,
-          alpha: 0.4 + Math.random() * 0.4,
-          life: 20 + Math.floor(Math.random() * 30),
-          glow: 2 + Math.random() * 4,
+          alpha: 0.35 + Math.random() * 0.35,
+          life: 18 + Math.floor(Math.random() * 25),
+          glow: 2 + Math.random() * 3,
         });
       }
     }
 
-    /** Add a character to the pool at a given Y level */
     function addToPool(x: number, poolY: number) {
       if (pool.length >= MAX_POOL) return;
       pool.push({
-        x: x + (Math.random() - 0.5) * 20,
+        x: x + (Math.random() - 0.5) * 12,
         ch: allChars[Math.floor(Math.random() * allChars.length)],
-        alpha: 0.25 + Math.random() * 0.2,
+        alpha: 0.2 + Math.random() * 0.15,
         wobble: Math.random() * Math.PI * 2,
         wobbleSpeed: 0.015 + Math.random() * 0.025,
-        splashY: -2 - Math.random() * 4,
+        splashY: -1 - Math.random() * 3,
         poolY,
       });
     }
 
     let tick = 0;
+    let maskUpdateCounter = 0;
 
     const draw = () => {
       tick++;
@@ -164,9 +256,12 @@ const PretextRain = () => {
       ctx.font = font;
       ctx.textBaseline = "top";
 
-      // Get the terminal text block rect (if available)
-      const tr = window.__terminalTextRect;
-      const hasTextBlock = tr && tr.w > 0 && tr.h > 0;
+      // Update text mask every ~6 frames (10fps mask refresh)
+      maskUpdateCounter++;
+      if (maskUpdateCounter >= 6) {
+        maskUpdateCounter = 0;
+        updateTextMask();
+      }
 
       // --- RAIN DROPS ---
       for (const drop of drops) {
@@ -181,41 +276,32 @@ const PretextRain = () => {
         drop.y += drop.speed;
         const x = drop.col * colWidth;
 
-        // Check collision with text block
-        let hitTextBlock = false;
-        if (hasTextBlock) {
-          const padding = 8;
-          const tbLeft = tr.x - padding;
-          const tbRight = tr.x + tr.w + padding;
-          const tbTop = tr.y - padding;
+        // Check pixel-level collision with terminal text
+        let hitText = false;
+        if (maskData) {
+          // Check the head of the rain drop
+          if (hitsText(x, drop.y)) {
+            hitText = true;
+            const topY = findTextTopAt(x, drop.y);
+            spawnSplash(x, topY, 2 + Math.floor(Math.random() * 2));
+            addToPool(x, topY - lineHeight * 0.5);
 
-          if (x >= tbLeft && x <= tbRight && drop.y >= tbTop && drop.y < tbTop + drop.speed + 4) {
-            hitTextBlock = true;
-            // Splash upward off the text block
-            spawnSplash(x, tbTop, 2 + Math.floor(Math.random() * 3), "up");
-            addToPool(x, tbTop - lineHeight);
-
-            // Reset drop
             drop.y = -Math.random() * H * 0.3;
             drop.speed = 1.5 + Math.random() * 3;
             drop.active = Math.random() > 0.08;
           }
         }
 
-        if (hitTextBlock) continue;
+        if (hitText) continue;
 
         // Draw the rain tail
         for (let t = 0; t < drop.tailLen; t++) {
           const ty = drop.y - t * lineHeight;
           if (ty < -lineHeight || ty > H) continue;
 
-          // Skip drawing tail chars that overlap text block
-          if (hasTextBlock) {
-            const padding = 8;
-            if (x >= tr.x - padding && x <= tr.x + tr.w + padding &&
-                ty >= tr.y - padding && ty <= tr.y + tr.h + padding) {
-              continue;
-            }
+          // Skip drawing through text pixels (rain flows around text)
+          if (maskData && hitsText(x, ty + lineHeight * 0.5)) {
+            continue;
           }
 
           const charIdx = (Math.floor(drop.y / lineHeight) + t) % drop.chars.length;
@@ -238,10 +324,10 @@ const PretextRain = () => {
           ctx.fillText(ch, x, ty);
         }
 
-        // --- SPLASH at bottom ---
+        // --- SPLASH at screen bottom ---
         if (drop.y > H - 25 && drop.y < H + lineHeight) {
           const splashX = drop.col * colWidth;
-          spawnSplash(splashX, H - 8, 3 + Math.floor(Math.random() * 3), "up");
+          spawnSplash(splashX, H - 8, 3 + Math.floor(Math.random() * 3));
           addToPool(splashX, H - lineHeight - 6);
 
           drop.y = -Math.random() * H * 0.4;
@@ -255,7 +341,7 @@ const PretextRain = () => {
         const p = particles[i];
         p.x += p.vx;
         p.y += p.vy;
-        p.vy += 0.12; // gravity
+        p.vy += 0.12;
         p.vx *= 0.98;
         p.life--;
         p.alpha *= 0.96;
@@ -276,7 +362,7 @@ const PretextRain = () => {
         ctx.fillText(p.ch, p.x, p.y);
       }
 
-      // --- POOL (on text block top + screen bottom) ---
+      // --- POOL ---
       ctx.shadowBlur = 0;
       for (let i = pool.length - 1; i >= 0; i--) {
         const p = pool[i];
