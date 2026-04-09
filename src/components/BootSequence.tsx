@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { playPowerOn, startCRTHum, playStatic, playKeyClick, playGlitch } from "@/lib/sounds";
+import { playPowerOn, startCRTHum, playStatic, playKeyClick } from "@/lib/sounds";
 import MatrixAgents from "./MatrixAgents";
 
 const BOOT_DURATION = 24000;
@@ -11,9 +11,7 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
   const [postLines, setPostLines] = useState<string[]>([]);
   const [loadingPct, setLoadingPct] = useState(0);
   const [audioStarted, setAudioStarted] = useState(false);
-  const [brandText, setBrandText] = useState<"none" | "omni" | "blink1" | "lovable" | "blink2" | "fade">("none");
   const [showAgentOverlay, setShowAgentOverlay] = useState(false);
-  const [eyeBlinkCommand, setEyeBlinkCommand] = useState(0); // increment to trigger a forced blink
   const humStopRef = useRef<(() => void) | null>(null);
 
   // Audio init
@@ -49,29 +47,33 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
     return () => timers.forEach(clearTimeout);
   }, [onComplete]);
 
-  // Brand sequence during phase 2 — eye blinks to transition between credits
+  // Phase 2: Silhouette → zoom → eye → brand text → blink
   useEffect(() => {
     if (phase !== 2) return;
     const timers = [
       setTimeout(() => setShowAgentOverlay(true), 0),
-      setTimeout(() => setBrandText("omni"), 1200),
-      // At 5.5s: trigger eye blink, switch text while eye is closed
+      // Hold silhouette for 2s, then start zoom
       setTimeout(() => {
-        setBrandText("blink1");
-        setEyeBlinkCommand(c => c + 1);
-        window.dispatchEvent(new CustomEvent("eye-blink"));
+        (window as any).__matrixZoomStart = Date.now();
+      }, 2000),
+      // Brand text after zoom completes
+      setTimeout(() => {
+        (window as any).__brandText = { label: "PRESENTED BY", name: "O M N I" };
       }, 5500),
-      // Eye closed ~400ms in, swap text
-      setTimeout(() => setBrandText("lovable"), 6100),
-      // At 9.5s: blink again to transition out
+      // Blink to dismiss
       setTimeout(() => {
-        setBrandText("blink2");
-        setEyeBlinkCommand(c => c + 1);
         window.dispatchEvent(new CustomEvent("eye-blink"));
+      }, 9000),
+      // Clear text while eye is closed
+      setTimeout(() => {
+        (window as any).__brandText = null;
       }, 9500),
-      setTimeout(() => setBrandText("fade"), 10100),
     ];
-    return () => timers.forEach(clearTimeout);
+    return () => {
+      timers.forEach(clearTimeout);
+      (window as any).__brandText = null;
+      (window as any).__matrixZoomStart = undefined;
+    };
   }, [phase]);
 
   // Sound per phase
@@ -100,7 +102,7 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
     ];
     const timers = lines.map((line, i) =>
       setTimeout(() => {
-        setPostLines((prev) => [...prev, line]);
+        setPostLines(prev => [...prev, line]);
         playKeyClick();
       }, i * 280)
     );
@@ -111,7 +113,7 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
   useEffect(() => {
     if (phase !== 4) return;
     const interval = setInterval(() => {
-      setLoadingPct((p) => {
+      setLoadingPct(p => {
         if (p >= 100) { clearInterval(interval); return 100; }
         return p + Math.floor(Math.random() * 8 + 2);
       });
@@ -133,9 +135,9 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
     return () => clearInterval(interval);
   }, [phase]);
 
-  // Scanline sweep
+  // Scanline
   useEffect(() => {
-    const interval = setInterval(() => setScanlinePos((p) => (p + 2) % 100), 30);
+    const interval = setInterval(() => setScanlinePos(p => (p + 2) % 100), 30);
     return () => clearInterval(interval);
   }, []);
 
@@ -156,7 +158,7 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
         <div className="absolute inset-0 pointer-events-none boot-static z-10" />
       )}
 
-      {(phase === 1) && (
+      {phase === 1 && (
         <div className="absolute inset-0 bg-primary/5 pointer-events-none animate-pulse z-10" />
       )}
 
@@ -180,41 +182,8 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
           </div>
         )}
 
-        {phase === 2 && (
-          <div className="text-center space-y-3">
-            {(brandText === "omni" || brandText === "blink1") && (
-              <div className={`text-glow space-y-3 transition-opacity duration-300 ${brandText === "blink1" ? "opacity-0" : "opacity-100 animate-in fade-in duration-700"}`}>
-                <div className="text-muted-foreground/50 text-[10px] tracking-[0.4em]">
-                  PRESENTED BY
-                </div>
-                <div className="text-primary text-3xl sm:text-4xl tracking-[0.5em] sm:tracking-[0.7em] font-bold">
-                  O M N I
-                </div>
-                <div className="text-muted-foreground/30 text-[10px] tracking-widest mt-2">
-                  ━━━━━━━━━━━━━━━━━━━━━━━━━━
-                </div>
-              </div>
-            )}
-            {(brandText === "lovable" || brandText === "blink2") && (
-              <div className={`text-glow space-y-3 transition-opacity duration-300 ${brandText === "blink2" ? "opacity-0" : "opacity-100 animate-in fade-in duration-500"}`}>
-                <div className="text-muted-foreground/50 text-[10px] tracking-[0.4em]">
-                  ENABLED BY
-                </div>
-                <div className="text-primary text-xl sm:text-2xl tracking-[0.3em] sm:tracking-[0.5em]">
-                  L O V A B L E
-                </div>
-                <div className="text-muted-foreground/30 text-[10px] tracking-widest mt-2">
-                  ━━━━━━━━━━━━━━━━━━━━━━━━━━
-                </div>
-              </div>
-            )}
-            {brandText === "fade" && (
-              <div className="text-glow opacity-0 transition-opacity duration-500">
-                <div className="text-primary text-xl">...</div>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Phase 2: MatrixAgents handles all visuals (silhouette → eye → brand) */}
+        {phase === 2 && <div />}
 
         {phase === 3 && (
           <div className="text-left text-xs text-primary/80 space-y-0.5 text-glow max-h-[60vh] overflow-hidden">
