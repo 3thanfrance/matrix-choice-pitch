@@ -1,6 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { playKeyClick, playEnterKey, playStatic, playGlitch, playTVOff, playConfirm } from "@/lib/sounds";
 
+declare global {
+  interface Window {
+    __terminalTextRect?: { x: number; y: number; w: number; h: number };
+    __terminalTextLines?: string[];
+    __terminalPromptText?: string;
+  }
+}
+
 interface StoryNode {
   lines: string[];
   prompt?: string;
@@ -136,7 +144,7 @@ const Terminal = () => {
     return () => cancelAnimationFrame(floatRef.current);
   }, []);
 
-  // Publish the text block rect to the global so PretextRain can read it
+  // Publish text block rect + content so PretextRain can do pixel-level collision
   useEffect(() => {
     const updateRect = () => {
       const el = textBlockRef.current;
@@ -148,8 +156,12 @@ const Terminal = () => {
           w: rect.width,
           h: rect.height,
         };
+        window.__terminalTextLines = displayedLines;
+        window.__terminalPromptText = showPrompt && node?.prompt ? node.prompt : "";
       } else {
         window.__terminalTextRect = { x: 0, y: 0, w: 0, h: 0 };
+        window.__terminalTextLines = [];
+        window.__terminalPromptText = "";
       }
     };
     updateRect();
@@ -157,8 +169,10 @@ const Terminal = () => {
     return () => {
       clearInterval(interval);
       window.__terminalTextRect = { x: 0, y: 0, w: 0, h: 0 };
+      window.__terminalTextLines = [];
+      window.__terminalPromptText = "";
     };
-  }, [outroStage, displayedLines, showPrompt, floatOffset]);
+  }, [outroStage, displayedLines, showPrompt, floatOffset, node]);
 
   // Key click sounds
   useEffect(() => {
