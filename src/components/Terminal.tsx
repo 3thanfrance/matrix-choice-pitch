@@ -29,22 +29,6 @@ const storyTree: Record<string, StoryNode> = {
     yes: "redpill",
     no: "bluepill",
   },
-  verify: {
-    lines: [
-      "SCANNING ████████████████ ...",
-      "LOCATION: LOVABLE HQ, STOCKHOLM",
-      "ROLE: FOUNDER / CEO",
-      "BIOMETRIC HASH: 7F:3A:9C:██:██:██",
-      "",
-      "  I D E N T I T Y   C O N F I R M E D",
-      "",
-      "ANTON — YOU'RE TRAPPED.",
-      "AND YOU DON'T EVEN KNOW IT.",
-    ],
-    prompt: "READY TO BREAK FREE? [Y/N]",
-    yes: "redpill",
-    no: "bluepill",
-  },
   redpill: {
     lines: [
       ">> RED PILL PROTOCOL: ACTIVATED.",
