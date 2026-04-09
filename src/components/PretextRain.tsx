@@ -1,14 +1,6 @@
 import { useEffect, useRef } from "react";
 import { prepareWithSegments, layoutWithLines } from "@chenglou/pretext";
 
-/**
- * Pretext-powered ambient rain with pixel-level collision against terminal text.
- *
- * Instead of treating the text block as a rectangle, we render the terminal's
- * actual text content onto an offscreen canvas and sample pixels to detect
- * where characters are. Rain only splashes when it hits actual letterforms.
- */
-
 declare global {
   interface Window {
     __terminalTextRect?: { x: number; y: number; w: number; h: number };
@@ -104,32 +96,34 @@ const PretextRain = () => {
     const textMask = document.createElement("canvas");
     const textMaskCtx = textMask.getContext("2d", { alpha: false })!;
 
-    // Cache for the text mask pixel data
     let maskData: ImageData | null = null;
     let maskW = 0;
     let maskH = 0;
     let lastTextKey = "";
+    let prevHadMask = false;
 
-    /**
-     * Re-render the terminal text onto the offscreen mask canvas.
-     * White pixels = text present, black = empty.
-     */
     function updateTextMask() {
       const tr = window.__terminalTextRect;
       const lines = window.__terminalTextLines || [];
       const prompt = window.__terminalPromptText || "";
       if (!tr || tr.w === 0 || (lines.length === 0 && !prompt)) {
+        // Text disappeared — clear residual splash/pool
+        if (prevHadMask) {
+          pool.length = 0;
+          particles.length = 0;
+          prevHadMask = false;
+        }
         maskData = null;
         lastTextKey = "";
         return;
       }
 
-      // Build a key to avoid re-rendering if nothing changed
+      prevHadMask = true;
+
       const key = `${tr.x}|${tr.y}|${tr.w}|${tr.h}|${lines.join("\n")}|${prompt}`;
       if (key === lastTextKey) return;
       lastTextKey = key;
 
-      // Size the mask canvas to the text block area
       maskW = Math.ceil(tr.w);
       maskH = Math.ceil(tr.h);
       if (maskW < 1 || maskH < 1) { maskData = null; return; }
@@ -140,10 +134,8 @@ const PretextRain = () => {
       textMaskCtx.fillStyle = "#000";
       textMaskCtx.fillRect(0, 0, maskW, maskH);
 
-      // Render the text lines centered, matching the terminal's layout
-      // Terminal uses text-center, text-xs/sm, font-mono
-      const termFontSize = W >= 640 ? 14 : 12; // sm:text-sm = 14px, text-xs = 12px
-      const termLineHeight = termFontSize * 1.5; // leading-relaxed ≈ 1.625
+      const termFontSize = W >= 640 ? 14 : 12;
+      const termLineHeight = termFontSize * 1.5;
       const termFont = `${termFontSize}px 'Fira Code', monospace`;
 
       textMaskCtx.font = termFont;
@@ -154,7 +146,6 @@ const PretextRain = () => {
       const cx = maskW / 2;
       let y = 0;
 
-      // Render displayed lines
       for (const line of lines) {
         if (line.length > 0) {
           textMaskCtx.fillText(line, cx, y);
@@ -162,9 +153,8 @@ const PretextRain = () => {
         y += termLineHeight;
       }
 
-      // Render prompt text if visible
       if (prompt) {
-        y += termFontSize * 0.75; // mt-3 gap
+        y += termFontSize * 0.75;
         textMaskCtx.font = `bold ${termFontSize}px 'Fira Code', monospace`;
         textMaskCtx.fillText(prompt, cx, y);
       }
@@ -172,7 +162,6 @@ const PretextRain = () => {
       maskData = textMaskCtx.getImageData(0, 0, maskW, maskH);
     }
 
-    /** Check if a screen-space point hits actual text pixels */
     function hitsText(screenX: number, screenY: number): boolean {
       if (!maskData) return false;
       const tr = window.__terminalTextRect;
@@ -184,10 +173,9 @@ const PretextRain = () => {
       if (lx < 0 || lx >= maskW || ly < 0 || ly >= maskH) return false;
 
       const pi = (ly * maskW + lx) * 4;
-      return maskData.data[pi] > 80; // red channel > 80 means text pixel
+      return maskData.data[pi] > 80;
     }
 
-    /** Find the top edge of text at a given X (for splash Y position) */
     function findTextTopAt(screenX: number, screenY: number): number {
       if (!maskData) return screenY;
       const tr = window.__terminalTextRect;
@@ -196,7 +184,6 @@ const PretextRain = () => {
       const lx = Math.floor(screenX - tr.x);
       if (lx < 0 || lx >= maskW) return screenY;
 
-      // Scan upward from the hit point to find the top of this character
       const lyStart = Math.floor(screenY - tr.y);
       for (let ly = lyStart; ly >= 0; ly--) {
         const pi = (ly * maskW + lx) * 4;
@@ -256,7 +243,6 @@ const PretextRain = () => {
       ctx.font = font;
       ctx.textBaseline = "top";
 
-      // Update text mask every ~6 frames (10fps mask refresh)
       maskUpdateCounter++;
       if (maskUpdateCounter >= 6) {
         maskUpdateCounter = 0;
@@ -276,10 +262,8 @@ const PretextRain = () => {
         drop.y += drop.speed;
         const x = drop.col * colWidth;
 
-        // Check pixel-level collision with terminal text
         let hitText = false;
         if (maskData) {
-          // Check the head of the rain drop
           if (hitsText(x, drop.y)) {
             hitText = true;
             const topY = findTextTopAt(x, drop.y);
@@ -294,12 +278,10 @@ const PretextRain = () => {
 
         if (hitText) continue;
 
-        // Draw the rain tail
         for (let t = 0; t < drop.tailLen; t++) {
           const ty = drop.y - t * lineHeight;
           if (ty < -lineHeight || ty > H) continue;
 
-          // Skip drawing through text pixels (rain flows around text)
           if (maskData && hitsText(x, ty + lineHeight * 0.5)) {
             continue;
           }
@@ -324,7 +306,6 @@ const PretextRain = () => {
           ctx.fillText(ch, x, ty);
         }
 
-        // --- SPLASH at screen bottom ---
         if (drop.y > H - 25 && drop.y < H + lineHeight) {
           const splashX = drop.col * colWidth;
           spawnSplash(splashX, H - 8, 3 + Math.floor(Math.random() * 3));
@@ -362,15 +343,15 @@ const PretextRain = () => {
         ctx.fillText(p.ch, p.x, p.y);
       }
 
-      // --- POOL ---
+      // --- POOL (fade faster to avoid residue) ---
       ctx.shadowBlur = 0;
       for (let i = pool.length - 1; i >= 0; i--) {
         const p = pool[i];
         p.wobble += p.wobbleSpeed;
-        p.alpha *= 0.9988;
+        p.alpha *= 0.996;
         p.splashY *= 0.92;
 
-        if (p.alpha < 0.012) {
+        if (p.alpha < 0.015) {
           pool.splice(i, 1);
           continue;
         }

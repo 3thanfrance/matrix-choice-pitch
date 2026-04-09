@@ -60,7 +60,7 @@ const storyTree: Record<string, StoryNode> = {
       "MOST STAY COMFORTABLE.",
       "BUT COMFORT ISN'T CLARITY.",
     ],
-    prompt: "SURE ABOUT THAT? [Y/N]",
+    prompt: "CURIOUS WHAT CLARITY LOOKS LIKE? [Y/N]",
     yes: "redpill",
     no: "final_no",
   },
