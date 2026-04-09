@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { playKeyClick, playEnterKey, playStatic, playConfirm } from "@/lib/sounds";
+import MatrixAgents from "./MatrixAgents";
 
 declare global {
   interface Window {
@@ -17,9 +18,6 @@ interface StoryNode {
 }
 
 const storyTree: Record<string, StoryNode> = {
-  start: {
-    lines: ["HELLO, ANTON."],
-  },
   verify: {
     lines: [
       "INITIATING IDENTITY VERIFICATION...",
@@ -30,9 +28,12 @@ const storyTree: Record<string, StoryNode> = {
   verified: {
     lines: ["I D E N T I T Y   C O N F I R M E D"],
   },
+  start: {
+    lines: ["HELLO, ANTON."],
+  },
   trapped: {
     lines: [
-      "ANTON — YOUR DATA IS BURIED.",
+      "YOUR DATA IS BURIED.",
       "SCATTERED ACROSS DASHBOARDS.",
       "YOUR TEAM ASKS ONE QUESTION.",
       "THREE DIFFERENT ANSWERS.",
@@ -106,18 +107,20 @@ const storyTree: Record<string, StoryNode> = {
   },
 };
 
-const AUTO_SEQUENCE = ["start", "verify", "verified", "trapped"];
+const AUTO_SEQUENCE = ["verify", "verified", "start", "trapped"];
 
 const TYPING_SPEED = 25;
 const DELETE_SPEED = 4;
 const LINGER_DURATION = 1200;
 const AUTO_LINGER = 1500;
+const OUTRO_DELAY = 3500;
+const ZOOM_OUT_DURATION = 3500;
 
 type Phase = "typing" | "lingering" | "deleting" | "idle";
 
 const Terminal = () => {
   const [displayedLines, setDisplayedLines] = useState<string[]>([]);
-  const [currentNode, setCurrentNode] = useState("start");
+  const [currentNode, setCurrentNode] = useState("verify");
   const [lineIndex, setLineIndex] = useState(0);
   const [charIndex, setCharIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("typing");
@@ -125,6 +128,7 @@ const Terminal = () => {
   const [waitingForInput, setWaitingForInput] = useState(false);
   const [nextNodeKey, setNextNodeKey] = useState<string | null>(null);
   const [floatOffset, setFloatOffset] = useState(0);
+  const [showOutro, setShowOutro] = useState(false);
   const autoSeqIndexRef = useRef(0);
   const clickCountRef = useRef(0);
   const floatRef = useRef<number>(0);
@@ -148,13 +152,17 @@ const Terminal = () => {
   useEffect(() => {
     const updateRect = () => {
       const el = textBlockRef.current;
-      if (el) {
+      if (el && !showOutro) {
         const rect = el.getBoundingClientRect();
         window.__terminalTextRect = {
           x: rect.left, y: rect.top, w: rect.width, h: rect.height,
         };
         window.__terminalTextLines = displayedLines;
         window.__terminalPromptText = showPrompt && node?.prompt ? node.prompt : "";
+      } else {
+        window.__terminalTextRect = { x: 0, y: 0, w: 0, h: 0 };
+        window.__terminalTextLines = [];
+        window.__terminalPromptText = "";
       }
     };
     updateRect();
@@ -165,7 +173,7 @@ const Terminal = () => {
       window.__terminalTextLines = [];
       window.__terminalPromptText = "";
     };
-  }, [displayedLines, showPrompt, floatOffset, node]);
+  }, [displayedLines, showPrompt, floatOffset, node, showOutro]);
 
   // Key click sounds
   useEffect(() => {
@@ -183,7 +191,7 @@ const Terminal = () => {
 
   // Auto-advance for non-interactive nodes
   useEffect(() => {
-    if (phase !== "idle") return;
+    if (phase !== "idle" || showOutro) return;
     if (!node) return;
 
     const autoIdx = AUTO_SEQUENCE.indexOf(currentNode);
@@ -205,8 +213,43 @@ const Terminal = () => {
       return () => clearTimeout(timer);
     }
 
-    // demo2 and final_no just stay on screen
-  }, [phase, currentNode, node]);
+    // End states: zoom back out and loop
+    if (currentNode === "demo2" || currentNode === "final_no") {
+      if (!node.prompt) {
+        const timer = setTimeout(() => setShowOutro(true), OUTRO_DELAY);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [phase, currentNode, node, showOutro]);
+
+  // Outro: zoom back out to silhouette, then reboot
+  useEffect(() => {
+    if (!showOutro) return;
+
+    (window as any).__matrixZoomOutStart = Date.now();
+
+    const timer = setTimeout(() => {
+      (window as any).__matrixZoomOutStart = undefined;
+      // Reset state
+      setShowOutro(false);
+      setDisplayedLines([]);
+      setCurrentNode("verify");
+      setLineIndex(0);
+      setCharIndex(0);
+      setShowPrompt(false);
+      setWaitingForInput(false);
+      setNextNodeKey(null);
+      autoSeqIndexRef.current = 0;
+      setPhase("typing");
+      // Trigger full reboot (remounts BootSequence)
+      window.dispatchEvent(new CustomEvent("terminal-reboot"));
+    }, ZOOM_OUT_DURATION + 500);
+
+    return () => {
+      clearTimeout(timer);
+      (window as any).__matrixZoomOutStart = undefined;
+    };
+  }, [showOutro]);
 
   // Show prompt when typing finishes
   useEffect(() => {
@@ -220,7 +263,7 @@ const Terminal = () => {
 
   // Typing phase
   useEffect(() => {
-    if (phase !== "typing" || !node) return;
+    if (phase !== "typing" || !node || showOutro) return;
     if (lineIndex >= node.lines.length) {
       setPhase("idle");
       return;
@@ -245,7 +288,7 @@ const Terminal = () => {
     } else {
       setTimeout(() => { setLineIndex(i => i + 1); setCharIndex(0); }, 80);
     }
-  }, [phase, lineIndex, charIndex, node]);
+  }, [phase, lineIndex, charIndex, node, showOutro]);
 
   // Deleting phase
   useEffect(() => {
@@ -309,12 +352,15 @@ const Terminal = () => {
 
   return (
     <div className="relative z-10 flex h-[100dvh] flex-col overflow-hidden">
-      <div className="crt-header border-b border-border px-3 sm:px-4 py-1.5 text-[10px] sm:text-xs tracking-widest text-muted-foreground">
+      {/* Outro zoom-out overlay */}
+      {showOutro && <MatrixAgents />}
+
+      <div className={`crt-header border-b border-border px-3 sm:px-4 py-1.5 text-[10px] sm:text-xs tracking-widest text-muted-foreground transition-opacity duration-700 ${showOutro ? "opacity-0" : ""}`}>
         <span className="text-primary text-glow">■</span>
         {" "}OMNI TERMINAL — ENCRYPTED CHANNEL
       </div>
 
-      <div className="flex flex-1 items-center justify-center overflow-hidden px-4 sm:px-8 md:px-12">
+      <div className={`flex flex-1 items-center justify-center overflow-hidden px-4 sm:px-8 md:px-12 transition-opacity duration-700 ${showOutro ? "opacity-0" : ""}`}>
         <div
           ref={textBlockRef}
           className="w-full max-w-2xl text-center text-xs sm:text-sm leading-relaxed text-glow transition-transform duration-1000 ease-in-out"
@@ -359,7 +405,7 @@ const Terminal = () => {
         </div>
       </div>
 
-      <div className="border-t border-border px-3 sm:px-4 py-1 text-[10px] sm:text-xs tracking-wider text-muted-foreground flex justify-between">
+      <div className={`border-t border-border px-3 sm:px-4 py-1 text-[10px] sm:text-xs tracking-wider text-muted-foreground flex justify-between transition-opacity duration-700 ${showOutro ? "opacity-0" : ""}`}>
         <span>MISSION BRIEF BY <span className="text-primary/60">OMNI.CO</span></span>
         <span className="text-muted-foreground/40">enabled by <span className="text-primary/40">lovable</span></span>
       </div>
