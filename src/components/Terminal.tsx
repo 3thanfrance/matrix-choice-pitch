@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { playKeyClick, playEnterKey, playStatic, playGlitch, playTVOff, playConfirm } from "@/lib/sounds";
+import { playKeyClick, playEnterKey, playStatic, playConfirm } from "@/lib/sounds";
 
 declare global {
   interface Window {
@@ -18,9 +18,7 @@ interface StoryNode {
 
 const storyTree: Record<string, StoryNode> = {
   start: {
-    lines: [
-      "HELLO, ANTON.",
-    ],
+    lines: ["HELLO, ANTON."],
   },
   verify: {
     lines: [
@@ -30,43 +28,47 @@ const storyTree: Record<string, StoryNode> = {
     ],
   },
   verified: {
-    lines: [
-      "I D E N T I T Y   C O N F I R M E D",
-    ],
+    lines: ["I D E N T I T Y   C O N F I R M E D"],
   },
   trapped: {
     lines: [
-      "ANTON — YOU'RE TRAPPED.",
-      "AND YOU DON'T EVEN KNOW IT.",
+      "ANTON — YOUR DATA IS BURIED.",
+      "SCATTERED ACROSS DASHBOARDS.",
+      "YOUR TEAM ASKS ONE QUESTION.",
+      "THREE DIFFERENT ANSWERS.",
     ],
-    prompt: "READY TO BREAK FREE? [Y/N]",
+    prompt: "TIRED OF GUESSING? [Y/N]",
     yes: "redpill",
     no: "bluepill",
   },
   redpill: {
     lines: [
-      ">> RED PILL PROTOCOL: ACTIVATED.",
-      "YOUR TEAM ASKS A QUESTION.",
-      "THREE DIFFERENT ANSWERS.",
+      ">> THOUGHT SO.",
+      "THE PROBLEM ISN'T YOUR DATA.",
+      "IT'S THE LAYERS BETWEEN YOU AND IT.",
+      "CHARTS. DASHBOARDS. TRANSLATIONS.",
+      "EVERY LAYER ADDS NOISE.",
     ],
-    prompt: "SOUND FAMILIAR? [Y/N]",
+    prompt: "WANT TO CUT THROUGH? [Y/N]",
     yes: "solution",
     no: "hesitate",
   },
   bluepill: {
     lines: [
-      ">> BLUE PILL PROTOCOL: ACTIVATED.",
-      "SAME DASHBOARDS. SAME CONFUSION.",
+      ">> UNDERSTOOD.",
+      "MOST STAY COMFORTABLE.",
+      "BUT COMFORT ISN'T CLARITY.",
     ],
-    prompt: "CHANGE YOUR MIND? [Y/N]",
+    prompt: "SURE ABOUT THAT? [Y/N]",
     yes: "redpill",
     no: "final_no",
   },
   hesitate: {
     lines: [
-      ">> HESITATION NOTED.",
-      "EVERY WRONG ANSWER =",
-      "A DECISION MADE IN THE DARK.",
+      ">> FAIR ENOUGH.",
+      "BUT EVERY HOUR SPENT",
+      "TRANSLATING CHARTS INTO DECISIONS",
+      "IS AN HOUR LOST.",
     ],
     prompt: "RECONSIDER? [Y/N]",
     yes: "solution",
@@ -74,11 +76,11 @@ const storyTree: Record<string, StoryNode> = {
   },
   solution: {
     lines: [
-      "OMNI. ONE LAYER OF TRUTH.",
+      "OMNI. NO DASHBOARDS. NO NOISE.",
       "ASK IN PLAIN ENGLISH.",
-      "GET REAL ANSWERS.",
+      "GET ONE ANSWER. THE RIGHT ONE.",
     ],
-    prompt: "SEE THE OTHER SIDE? [Y/N]",
+    prompt: "READY TO SEE IT? [Y/N]",
     yes: "demo",
     no: "final_no",
   },
@@ -98,7 +100,7 @@ const storyTree: Record<string, StoryNode> = {
   },
   final_no: {
     lines: [
-      "THE MATRIX HAS YOU, ANTON.",
+      "THE OFFER STANDS.",
       "OMNI.CO — WHEN YOU'RE READY.",
     ],
   },
@@ -122,8 +124,6 @@ const Terminal = () => {
   const [showPrompt, setShowPrompt] = useState(false);
   const [waitingForInput, setWaitingForInput] = useState(false);
   const [nextNodeKey, setNextNodeKey] = useState<string | null>(null);
-  const [outroStage, setOutroStage] = useState<"none" | "omni" | "omni-glitch" | "lovable" | "lovable-glitch" | "tvoff" | "dead">("none");
-  const [requestReboot, setRequestReboot] = useState(false);
   const [floatOffset, setFloatOffset] = useState(0);
   const autoSeqIndexRef = useRef(0);
   const clickCountRef = useRef(0);
@@ -144,24 +144,17 @@ const Terminal = () => {
     return () => cancelAnimationFrame(floatRef.current);
   }, []);
 
-  // Publish text block rect + content so PretextRain can do pixel-level collision
+  // Publish text block rect + content for PretextRain pixel collision
   useEffect(() => {
     const updateRect = () => {
       const el = textBlockRef.current;
-      if (el && outroStage === "none") {
+      if (el) {
         const rect = el.getBoundingClientRect();
         window.__terminalTextRect = {
-          x: rect.left,
-          y: rect.top,
-          w: rect.width,
-          h: rect.height,
+          x: rect.left, y: rect.top, w: rect.width, h: rect.height,
         };
         window.__terminalTextLines = displayedLines;
         window.__terminalPromptText = showPrompt && node?.prompt ? node.prompt : "";
-      } else {
-        window.__terminalTextRect = { x: 0, y: 0, w: 0, h: 0 };
-        window.__terminalTextLines = [];
-        window.__terminalPromptText = "";
       }
     };
     updateRect();
@@ -172,7 +165,7 @@ const Terminal = () => {
       window.__terminalTextLines = [];
       window.__terminalPromptText = "";
     };
-  }, [outroStage, displayedLines, showPrompt, floatOffset, node]);
+  }, [displayedLines, showPrompt, floatOffset, node]);
 
   // Key click sounds
   useEffect(() => {
@@ -190,7 +183,7 @@ const Terminal = () => {
 
   // Auto-advance for non-interactive nodes
   useEffect(() => {
-    if (phase !== "idle" || outroStage !== "none") return;
+    if (phase !== "idle") return;
     if (!node) return;
 
     const autoIdx = AUTO_SEQUENCE.indexOf(currentNode);
@@ -212,13 +205,8 @@ const Terminal = () => {
       return () => clearTimeout(timer);
     }
 
-    if (currentNode === "demo2" || currentNode === "final_no") {
-      if (!node.prompt) {
-        const timer = setTimeout(() => setOutroStage("omni"), 2500);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [phase, currentNode, node, outroStage]);
+    // demo2 and final_no just stay on screen
+  }, [phase, currentNode, node]);
 
   // Show prompt when typing finishes
   useEffect(() => {
@@ -230,83 +218,34 @@ const Terminal = () => {
     return () => clearTimeout(timer);
   }, [phase, node]);
 
-  // Outro sequence
-  useEffect(() => {
-    if (outroStage === "none") return;
-    let timers: ReturnType<typeof setTimeout>[] = [];
-    if (outroStage === "omni") {
-      timers.push(setTimeout(() => setOutroStage("omni-glitch"), 2000));
-    } else if (outroStage === "omni-glitch") {
-      playGlitch();
-      timers.push(setTimeout(() => setOutroStage("lovable"), 600));
-    } else if (outroStage === "lovable") {
-      timers.push(setTimeout(() => setOutroStage("lovable-glitch"), 2000));
-    } else if (outroStage === "lovable-glitch") {
-      playGlitch();
-      timers.push(setTimeout(() => setOutroStage("tvoff"), 600));
-    } else if (outroStage === "tvoff") {
-      playTVOff();
-      timers.push(setTimeout(() => {
-        setOutroStage("dead");
-        setRequestReboot(true);
-      }, 800));
-    }
-    return () => timers.forEach(clearTimeout);
-  }, [outroStage]);
-
-  // Reboot listener
-  useEffect(() => {
-    if (!requestReboot) return;
-    const handler = () => {
-      setRequestReboot(false);
-      setOutroStage("none");
-      setDisplayedLines([]);
-      setCurrentNode("start");
-      setLineIndex(0);
-      setCharIndex(0);
-      setShowPrompt(false);
-      setWaitingForInput(false);
-      setNextNodeKey(null);
-      autoSeqIndexRef.current = 0;
-      setPhase("typing");
-      window.dispatchEvent(new CustomEvent("terminal-reboot"));
-    };
-    window.addEventListener("keydown", handler);
-    window.addEventListener("click", handler);
-    return () => {
-      window.removeEventListener("keydown", handler);
-      window.removeEventListener("click", handler);
-    };
-  }, [requestReboot]);
-
   // Typing phase
   useEffect(() => {
-    if (phase !== "typing" || !node || outroStage !== "none") return;
+    if (phase !== "typing" || !node) return;
     if (lineIndex >= node.lines.length) {
       setPhase("idle");
       return;
     }
     const currentLine = node.lines[lineIndex];
     if (currentLine === "") {
-      setDisplayedLines((prev) => [...prev, ""]);
-      setTimeout(() => { setLineIndex((i) => i + 1); setCharIndex(0); }, 80);
+      setDisplayedLines(prev => [...prev, ""]);
+      setTimeout(() => { setLineIndex(i => i + 1); setCharIndex(0); }, 80);
       return;
     }
     if (charIndex < currentLine.length) {
       const timer = setTimeout(() => {
-        setDisplayedLines((prev) => {
+        setDisplayedLines(prev => {
           const copy = [...prev];
           if (charIndex === 0) copy.push(currentLine.slice(0, 1));
           else copy[copy.length - 1] = currentLine.slice(0, charIndex + 1);
           return copy;
         });
-        setCharIndex((c) => c + 1);
+        setCharIndex(c => c + 1);
       }, TYPING_SPEED);
       return () => clearTimeout(timer);
     } else {
-      setTimeout(() => { setLineIndex((i) => i + 1); setCharIndex(0); }, 80);
+      setTimeout(() => { setLineIndex(i => i + 1); setCharIndex(0); }, 80);
     }
-  }, [phase, lineIndex, charIndex, node, outroStage]);
+  }, [phase, lineIndex, charIndex, node]);
 
   // Deleting phase
   useEffect(() => {
@@ -324,11 +263,11 @@ const Terminal = () => {
     }
     const lastLine = displayedLines[displayedLines.length - 1];
     if (lastLine === "" || lastLine.length === 0) {
-      const timer = setTimeout(() => setDisplayedLines((prev) => prev.slice(0, -1)), DELETE_SPEED);
+      const timer = setTimeout(() => setDisplayedLines(prev => prev.slice(0, -1)), DELETE_SPEED);
       return () => clearTimeout(timer);
     }
     const timer = setTimeout(() => {
-      setDisplayedLines((prev) => {
+      setDisplayedLines(prev => {
         const copy = [...prev];
         const line = copy[copy.length - 1];
         if (line.length <= 1) copy.pop();
@@ -367,41 +306,6 @@ const Terminal = () => {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [waitingForInput, handleInput]);
-
-  // Outro screen
-  if (outroStage !== "none") {
-    return (
-      <div className="relative z-10 flex h-[100dvh] items-center justify-center overflow-hidden">
-        <div className="text-center font-mono">
-          {(outroStage === "tvoff" || outroStage === "dead") && (
-            <div className="fixed inset-0 bg-background z-50 flex items-center justify-center">
-              {outroStage === "tvoff" && (
-                <div className="w-full h-[2px] bg-primary/60 animate-pulse" />
-              )}
-            </div>
-          )}
-          {(outroStage === "omni" || outroStage === "omni-glitch") && (
-            <div className={`text-glow space-y-2 ${outroStage === "omni-glitch" ? "glitch-text" : ""}`}>
-              <div className="text-primary text-xl sm:text-2xl tracking-[0.5em] font-bold">O M N I</div>
-              <div className="text-muted-foreground/40 text-xs">OMNI.CO</div>
-            </div>
-          )}
-          {(outroStage === "lovable" || outroStage === "lovable-glitch") && (
-            <div className={`text-glow space-y-2 ${outroStage === "lovable-glitch" ? "glitch-text" : ""}`}>
-              <div className="text-muted-foreground/50 text-xs tracking-widest">ENABLED BY</div>
-              <div className="text-primary text-base sm:text-lg tracking-[0.4em]">L O V A B L E</div>
-            </div>
-          )}
-        </div>
-
-        {outroStage !== "tvoff" && outroStage !== "dead" && (
-          <div className="fixed bottom-0 left-0 right-0 border-t border-border px-4 py-1 text-[10px] sm:text-xs tracking-wider text-muted-foreground/40 flex justify-center z-40">
-            <span>MISSION BRIEF BY <span className="text-primary/50">OMNI.CO</span></span>
-          </div>
-        )}
-      </div>
-    );
-  }
 
   return (
     <div className="relative z-10 flex h-[100dvh] flex-col overflow-hidden">
@@ -457,7 +361,7 @@ const Terminal = () => {
 
       <div className="border-t border-border px-3 sm:px-4 py-1 text-[10px] sm:text-xs tracking-wider text-muted-foreground flex justify-between">
         <span>MISSION BRIEF BY <span className="text-primary/60">OMNI.CO</span></span>
-        <span className="text-primary text-glow">SIGNAL: ACTIVE</span>
+        <span className="text-muted-foreground/40">enabled by <span className="text-primary/40">lovable</span></span>
       </div>
     </div>
   );
