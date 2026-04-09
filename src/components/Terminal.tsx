@@ -13,27 +13,50 @@ const storyTree: Record<string, StoryNode> = {
     lines: [
       "HELLO, ANTON.",
       "",
-      "YOU'RE TRAPPED — AND YOU DON'T EVEN KNOW IT.",
-      "DIFFERENT TEAMS. DIFFERENT NUMBERS.",
-      "NOBODY AGREES ON WHAT'S TRUE.",
+      "INITIATING IDENTITY VERIFICATION...",
     ],
-    prompt: "READY TO BREAK FREE? [Y/N]",
+    prompt: "CONFIRM IDENTITY? [Y/N]",
     yes: "verify",
-    no: "bluepill",
+    no: "reject_id",
+  },
+  reject_id: {
+    lines: [
+      ">> IDENTITY UNVERIFIED.",
+      "ACCESS RESTRICTED.",
+      "THIS CHANNEL WILL SELF-DESTRUCT.",
+    ],
+    prompt: "TRY AGAIN? [Y/N]",
+    yes: "start",
+    no: "final_no",
   },
   verify: {
     lines: [
-      "SCANNING ████████████ ...",
+      "SCANNING ████████████████ ...",
       "LOCATION: LOVABLE HQ, STOCKHOLM",
+      "ROLE: FOUNDER / CEO",
       "BIOMETRIC HASH: 7F:3A:9C:██:██:██",
       "",
       "  I D E N T I T Y   C O N F I R M E D",
       "",
-      ">> RED PILL PROTOCOL: ACTIVATED",
+      "ANTON — YOU'RE TRAPPED.",
+      "AND YOU DON'T EVEN KNOW IT.",
     ],
-    prompt: "SEE WHAT'S REALLY GOING ON? [Y/N]",
-    yes: "pitch",
+    prompt: "READY TO BREAK FREE? [Y/N]",
+    yes: "redpill",
     no: "bluepill",
+  },
+  redpill: {
+    lines: [
+      ">> RED PILL PROTOCOL: ACTIVATED.",
+      "",
+      "YOUR TEAM ASKS A QUESTION.",
+      "THREE PEOPLE PULL THE SAME METRIC.",
+      "THREE DIFFERENT ANSWERS.",
+      "NOBODY KNOWS WHO'S RIGHT.",
+    ],
+    prompt: "SOUND FAMILIAR? [Y/N]",
+    yes: "solution",
+    no: "hesitate",
   },
   bluepill: {
     lines: [
@@ -42,25 +65,13 @@ const storyTree: Record<string, StoryNode> = {
       "NOTHING CHANGES.",
     ],
     prompt: "CHANGE YOUR MIND? [Y/N]",
-    yes: "verify",
+    yes: "redpill",
     no: "final_no",
-  },
-  pitch: {
-    lines: [
-      "YOUR TEAM ASKS A QUESTION.",
-      "YOUR AI GIVES A FAST ANSWER.",
-      "WRONG ANSWER. NO ONE NOTICES.",
-      "",
-      "THAT'S THE MATRIX.",
-    ],
-    prompt: "WANT TO SEE THE WAY OUT? [Y/N]",
-    yes: "solution",
-    no: "hesitate",
   },
   hesitate: {
     lines: [
       ">> HESITATION NOTED.",
-      "EVERY QUESTION LEFT UNASKED —",
+      "EVERY QUESTION YOUR AI ANSWERS WRONG —",
       "A DECISION MADE IN THE DARK.",
     ],
     prompt: "RECONSIDER? [Y/N]",
@@ -71,7 +82,7 @@ const storyTree: Record<string, StoryNode> = {
     lines: [
       "OMNI. ONE LAYER OF TRUTH.",
       "ASK IN PLAIN ENGLISH. GET REAL ANSWERS.",
-      "NO BOTTLENECKS. NO ROGUE AI.",
+      "NO BOTTLENECK. NO ROGUE AI.",
       "PLUGS INTO WHAT YOU ALREADY HAVE.",
     ],
     prompt: "READY TO SEE THE OTHER SIDE? [Y/N]",
@@ -337,11 +348,11 @@ const Terminal = () => {
           {showPrompt && (
             <div className="mt-2">
               <div className="font-bold text-primary text-xs sm:text-sm">{node.prompt}</div>
-              <div className="mt-1 flex items-center justify-center gap-1 hidden sm:flex">
+              <div className="mt-1 items-center justify-center gap-1 hidden sm:flex">
                 <span className="text-muted-foreground">&gt;&gt;</span>
                 <span className="cursor-blink text-primary">█</span>
               </div>
-              {/* Mobile tap buttons — always visible on small screens */}
+              {/* Mobile tap buttons */}
               <div className="mt-3 flex justify-center gap-3 sm:hidden">
                 <button
                   onClick={() => handleInput("y")}

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { playPowerOn, startCRTHum, playStatic, playKeyClick, playGlitch } from "@/lib/sounds";
 import MatrixAgents from "./MatrixAgents";
 
-const BOOT_DURATION = 14000;
+const BOOT_DURATION = 18000;
 
 const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
   const [phase, setPhase] = useState(0);
@@ -11,7 +11,8 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
   const [postLines, setPostLines] = useState<string[]>([]);
   const [loadingPct, setLoadingPct] = useState(0);
   const [audioStarted, setAudioStarted] = useState(false);
-  const [brandText, setBrandText] = useState<"omni" | "glitch1" | "lovable" | "glitch2" | "none">("none");
+  const [brandText, setBrandText] = useState<"none" | "omni" | "glitch1" | "lovable" | "glitch2" | "fade">("none");
+  const [showAgentOverlay, setShowAgentOverlay] = useState(false);
   const humStopRef = useRef<(() => void) | null>(null);
 
   // Audio init
@@ -34,34 +35,35 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
 
   useEffect(() => () => { humStopRef.current?.(); }, []);
 
-  // Phase timeline — slower, more cinematic
-  // 0: black cursor (0-1.5s)
-  // 1: power surge flicker (1.5-3s)
-  // 2: Matrix agents + "PRESENTED BY OMNI" → glitch → "ENABLED BY LOVABLE" (3-8s)
-  // 3: POST diagnostics (8-11s)
-  // 4: Loading bar (11-13s)
-  // 5: Connected (13-14s)
+  // Phase timeline — extended for more theatrical impact
+  // 0: black cursor (0-2s) — suspense
+  // 1: power surge flicker (2-4s) — CRT warming up
+  // 2: Matrix agents walk + credits (4-11s) — the showcase
+  // 3: POST diagnostics (11-14.5s) — system boot
+  // 4: Loading bar (14.5-16.5s) — initializing
+  // 5: Connected flash (16.5-18s) — transition
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 1500),
-      setTimeout(() => setPhase(2), 3000),
-      setTimeout(() => setPhase(3), 8000),
-      setTimeout(() => setPhase(4), 11000),
-      setTimeout(() => setPhase(5), 13000),
+      setTimeout(() => setPhase(1), 2000),
+      setTimeout(() => setPhase(2), 4000),
+      setTimeout(() => setPhase(3), 11000),
+      setTimeout(() => setPhase(4), 14500),
+      setTimeout(() => setPhase(5), 16500),
       setTimeout(() => onComplete(), BOOT_DURATION),
     ];
     return () => timers.forEach(clearTimeout);
   }, [onComplete]);
 
-  // Brand sequence during phase 2
+  // Brand sequence during phase 2 — slower, more dramatic
   useEffect(() => {
     if (phase !== 2) return;
     const timers = [
-      setTimeout(() => setBrandText("omni"), 500),
-      setTimeout(() => { setBrandText("glitch1"); playGlitch(); }, 2800),
-      setTimeout(() => setBrandText("lovable"), 3400),
-      setTimeout(() => { setBrandText("glitch2"); playGlitch(); }, 4600),
-      setTimeout(() => setBrandText("none"), 4900),
+      setTimeout(() => setShowAgentOverlay(true), 0),
+      setTimeout(() => setBrandText("omni"), 800),
+      setTimeout(() => { setBrandText("glitch1"); playGlitch(); }, 4000),
+      setTimeout(() => setBrandText("lovable"), 4800),
+      setTimeout(() => { setBrandText("glitch2"); playGlitch(); }, 6200),
+      setTimeout(() => setBrandText("fade"), 6800),
     ];
     return () => timers.forEach(clearTimeout);
   }, [phase]);
@@ -73,9 +75,10 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
     if (phase === 5) playStatic(0.1, 0.04);
   }, [phase]);
 
-  // POST lines
+  // POST lines — system diagnostics
   useEffect(() => {
     if (phase !== 3) return;
+    setShowAgentOverlay(false);
     const lines = [
       "BIOS v3.7.1 — OMNI SYSTEMS",
       "MEMORY TEST: 65536K OK",
@@ -87,12 +90,13 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
       "FIREWALL: BYPASSED",
       "LOADING KERNEL... ████████ OK",
       "MOUNTING /SYS/OMNI... OK",
+      "SECURE CHANNEL: ESTABLISHED",
     ];
     const timers = lines.map((line, i) =>
       setTimeout(() => {
         setPostLines((prev) => [...prev, line]);
         playKeyClick();
-      }, i * 260)
+      }, i * 280)
     );
     return () => timers.forEach(clearTimeout);
   }, [phase]);
@@ -150,8 +154,8 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
         <div className="absolute inset-0 bg-primary/5 pointer-events-none animate-pulse z-10" />
       )}
 
-      {/* Matrix agents during phase 2 */}
-      {phase === 2 && <MatrixAgents />}
+      {/* Dense Matrix agents during credits phase */}
+      {showAgentOverlay && <MatrixAgents />}
 
       <div className={`w-full max-w-2xl px-6 transition-opacity duration-75 relative z-30 ${flickerClass}`}>
         {phase === 0 && (
@@ -174,50 +178,61 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
         {phase === 2 && (
           <div className="text-center space-y-3">
             {brandText === "omni" && (
-              <div className="text-glow space-y-2">
-                <div className="text-muted-foreground/40 text-xs tracking-widest">
+              <div className="text-glow space-y-3 animate-in fade-in duration-700">
+                <div className="text-muted-foreground/50 text-[10px] tracking-[0.4em]">
                   PRESENTED BY
                 </div>
-                <div className="text-primary text-2xl sm:text-3xl tracking-[0.4em] sm:tracking-[0.6em] font-bold">
+                <div className="text-primary text-3xl sm:text-4xl tracking-[0.5em] sm:tracking-[0.7em] font-bold">
                   O M N I
+                </div>
+                <div className="text-muted-foreground/30 text-[10px] tracking-widest mt-2">
+                  ━━━━━━━━━━━━━━━━━━━━━━━━━━
                 </div>
               </div>
             )}
             {brandText === "glitch1" && (
-              <div className="text-glow space-y-2 glitch-text">
-                <div className="text-muted-foreground/40 text-xs tracking-widest">
+              <div className="text-glow space-y-3 glitch-text">
+                <div className="text-muted-foreground/50 text-[10px] tracking-[0.4em]">
                   PRESENTED BY
                 </div>
-                <div className="text-primary text-2xl sm:text-3xl tracking-[0.4em] sm:tracking-[0.6em] font-bold">
+                <div className="text-primary text-3xl sm:text-4xl tracking-[0.5em] sm:tracking-[0.7em] font-bold">
                   O M N I
                 </div>
               </div>
             )}
             {brandText === "lovable" && (
-              <div className="text-glow space-y-2">
-                <div className="text-muted-foreground/40 text-xs tracking-widest">
+              <div className="text-glow space-y-3 animate-in fade-in duration-500">
+                <div className="text-muted-foreground/50 text-[10px] tracking-[0.4em]">
                   ENABLED BY
                 </div>
-                <div className="text-primary text-base sm:text-lg tracking-[0.3em] sm:tracking-[0.4em]">
+                <div className="text-primary text-xl sm:text-2xl tracking-[0.3em] sm:tracking-[0.5em]">
                   L O V A B L E
+                </div>
+                <div className="text-muted-foreground/30 text-[10px] tracking-widest mt-2">
+                  ━━━━━━━━━━━━━━━━━━━━━━━━━━
                 </div>
               </div>
             )}
             {brandText === "glitch2" && (
-              <div className="text-glow space-y-2 glitch-text">
-                <div className="text-muted-foreground/40 text-xs tracking-widest">
+              <div className="text-glow space-y-3 glitch-text">
+                <div className="text-muted-foreground/50 text-[10px] tracking-[0.4em]">
                   ENABLED BY
                 </div>
-                <div className="text-primary text-base sm:text-lg tracking-[0.3em] sm:tracking-[0.4em]">
+                <div className="text-primary text-xl sm:text-2xl tracking-[0.3em] sm:tracking-[0.5em]">
                   L O V A B L E
                 </div>
+              </div>
+            )}
+            {brandText === "fade" && (
+              <div className="text-glow opacity-0 animate-out fade-out duration-500">
+                <div className="text-primary text-xl">...</div>
               </div>
             )}
           </div>
         )}
 
         {phase === 3 && (
-          <div className="text-left text-xs text-primary/80 space-y-0.5 text-glow">
+          <div className="text-left text-xs text-primary/80 space-y-0.5 text-glow max-h-[60vh] overflow-hidden">
             {postLines.map((line, i) => (
               <div key={i} className="line-fade">
                 <span className="text-muted-foreground mr-2">&gt;</span>
