@@ -17,6 +17,8 @@ import { prepareWithSegments, layoutWithLines } from "@chenglou/pretext";
 declare global {
   interface Window {
     __terminalTextRect?: { x: number; y: number; w: number; h: number };
+    __terminalTextLines?: string[];
+    __terminalPromptText?: string;
   }
 }
 
