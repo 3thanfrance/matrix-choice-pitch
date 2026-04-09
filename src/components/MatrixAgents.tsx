@@ -1,104 +1,131 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Matrix-style falling code with walking men-in-suits silhouettes.
- * The suits are "negative space" (dark/empty), while the shirt, face,
- * and fedora are formed by bright falling characters — creating the
- * typographic ASCII art effect inspired by Pretext demos.
+ * Pretext-inspired dense character grid with walking agent silhouettes.
+ * Every cell on screen has a character. Agents are formed through
+ * brightness modulation — suits are negative space (near invisible),
+ * faces/shirts are bright glowing characters, creating typographic silhouettes.
  */
 
-// High-detail agent bitmap (24 wide x 40 tall)
-// '#' = bright chars (face, shirt, hands)
-// '@' = suit (very dim / negative space)
-// '^' = fedora (medium bright, structured)
-// '.' = empty
-const AGENT_BITMAP = [
-  // Fedora
-  "........^^^^^^^^........",
-  ".......^^^^^^^^^^.......","......^^^^^^^^^^^^......",
-  ".....^^^^^^^^^^^^^^.....","....^^^^^^^^^^^^^^^^....",
-  "....==================..",
-  // Head (face = bright)
-  ".......########.........",
-  "......##########........",
-  "......##########........",
-  ".......########.........",
-  "........######..........",
-  // Neck
-  "........####............",
-  // Shoulders + suit jacket + shirt
-  "....@@@@####@@@@........",
-  "...@@@@@####@@@@@.......",
-  "..@@@@@@####@@@@@@......",
-  ".@@@@@@@####@@@@@@@.....",
-  ".@@@@@@@####@@@@@@@.....",
-  "@@@@@@@@####@@@@@@@@....",
-  "@@@@@@@@.##.@@@@@@@@....",
-  "@@@@@@@..##..@@@@@@@....",
-  "@@@@@@@..##..@@@@@@@....",
-  "@@@@@@...##...@@@@@@....",
-  // Waist
-  "..@@@@@..##..@@@@@......",
-  "..@@@@@..##..@@@@@......",
-  "...@@@@..##..@@@@.......",
-  // Legs (suit pants = dark)
-  "...@@@@......@@@@.......",
-  "...@@@@......@@@@.......",
-  "...@@@@......@@@@.......",
-  "...@@@@......@@@@.......",
-  "..@@@@@......@@@@@......",
-  "..@@@@@......@@@@@......",
-  "..@@@@@......@@@@@......",
-  // Shoes
-  "..@@@@@......@@@@@......",
-  ".@@@@@@......@@@@@@.....",
-];
+// Characters for the grid
+const CHARS = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-// Second walking frame — legs shifted
-const AGENT_BITMAP_2 = [
-  // Fedora (same)
-  "........^^^^^^^^........",
-  ".......^^^^^^^^^^.......","......^^^^^^^^^^^^......",
-  ".....^^^^^^^^^^^^^^.....","....^^^^^^^^^^^^^^^^....",
-  "....==================..",
+// High-detail agent bitmap (32 wide × 56 tall)
+// '#' = bright (face, shirt, hands, tie)
+// '@' = suit (negative space / very dark)
+// '^' = fedora (medium-bright, structured)
+// '~' = fedora brim shadow
+// '.' = transparent (no agent influence)
+const AGENT_FRAME_1 = [
+  // Fedora top
+  "..........^^^^^^^^..........",  // 0
+  ".........^^^^^^^^^^.........",  // 1
+  "........^^^^^^^^^^^^........",  // 2
+  ".......^^^^^^^^^^^^^^.......",  // 3
+  "......^^^^^^^^^^^^^^^^......",  // 4
+  ".....^^^^^^^^^^^^^^^^^^.....",  // 5
+  "....~~~~~~~~~~~~~~~~~~~~....",  // 6
   // Head
-  ".......########.........",
-  "......##########........",
-  "......##########........",
-  ".......########.........",
-  "........######..........",
-  // Neck
-  "........####............",
-  // Shoulders + suit jacket + shirt
-  "....@@@@####@@@@........",
-  "...@@@@@####@@@@@.......",
-  "..@@@@@@####@@@@@@......",
-  ".@@@@@@@####@@@@@@@.....",
-  ".@@@@@@@####@@@@@@@.....",
-  "@@@@@@@@####@@@@@@@@....",
-  "@@@@@@@@.##.@@@@@@@@....",
-  "@@@@@@@..##..@@@@@@@....",
-  "@@@@@@@..##..@@@@@@@....",
-  "@@@@@@...##...@@@@@@....",
-  // Waist
-  "..@@@@@..##..@@@@@......",
-  "..@@@@@..##..@@@@@......",
-  "...@@@@..##..@@@@.......",
-  // Legs shifted
-  "....@@@......@@@@@......",
-  "....@@@......@@@@@......",
-  ".....@@......@@@@@@.....",
-  ".....@@......@@@@@@.....",
-  "....@@@......@@@@@......",
-  "...@@@@......@@@@.......",
-  "...@@@@......@@@@.......",
-  // Shoes
-  "..@@@@@......@@@@@......",
-  "@@@@@@........@@@@@@....",
+  "..........########..........",  // 7
+  ".........##########.........",  // 8
+  "........############........",  // 9
+  "........############........",  // 10
+  "........############........",  // 11
+  ".........##########.........",  // 12
+  "..........########..........",  // 13
+  "...........######...........",  // 14
+  // Neck + collar
+  "...........####.............",  // 15
+  "..........######............",  // 16
+  // Shoulders + lapels + shirt + tie
+  ".....@@@@@##@@##@@@@@.......",  // 17
+  "....@@@@@@##@@##@@@@@@......",  // 18
+  "...@@@@@@@##@@##@@@@@@@.....",  // 19
+  "..@@@@@@@@##@@##@@@@@@@@....",  // 20
+  ".@@@@@@@@@#.@@.#@@@@@@@@@...",  // 21
+  "@@@@@@@@@@@.@@.@@@@@@@@@@...",  // 22
+  "@@@@@@@@@@@.@@.@@@@@@@@@@...",  // 23
+  "@@@@@@@@@@..@@..@@@@@@@@@...",  // 24
+  "@@@@@@@@@@..@@..@@@@@@@@@...",  // 25
+  "@@@@@@@@@...@@...@@@@@@@@...",  // 26
+  "@@@@@@@@@...@@...@@@@@@@@...",  // 27
+  // Torso / belt
+  ".@@@@@@@@...@@...@@@@@@@@...",  // 28
+  "..@@@@@@@...@@...@@@@@@@....",  // 29
+  "..@@@@@@@...@@...@@@@@@@....",  // 30
+  "...@@@@@@...@@...@@@@@@.....",  // 31
+  "...@@@@@@........@@@@@@.....",  // 32
+  // Upper legs
+  "...@@@@@@........@@@@@@.....",  // 33
+  "...@@@@@@........@@@@@@.....",  // 34
+  "...@@@@@@........@@@@@@.....",  // 35
+  "....@@@@@........@@@@@......",  // 36
+  "....@@@@@........@@@@@......",  // 37
+  // Lower legs
+  "....@@@@@........@@@@@......",  // 38
+  "....@@@@@........@@@@@......",  // 39
+  "....@@@@@........@@@@@......",  // 40
+  "...@@@@@@........@@@@@@.....",  // 41
+  "...@@@@@@........@@@@@@.....",  // 42
+  // Ankles + shoes
+  "...@@@@@@........@@@@@@.....",  // 43
+  "..@@@@@@@........@@@@@@@....",  // 44
+  "..@@@@@@@@......@@@@@@@@....",  // 45
+  ".@@@@@@@@@......@@@@@@@@@...",  // 46
 ];
 
-const CHARS = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF";
-const BRIGHT_CHARS = "01アカサタナハマヤラワ#%&@MATRIX";
+// Walking frame 2 — legs in stride
+const AGENT_FRAME_2 = [
+  // Same upper body
+  "..........^^^^^^^^..........",
+  ".........^^^^^^^^^^.........",
+  "........^^^^^^^^^^^^........",
+  ".......^^^^^^^^^^^^^^.......",
+  "......^^^^^^^^^^^^^^^^......",
+  ".....^^^^^^^^^^^^^^^^^^.....",
+  "....~~~~~~~~~~~~~~~~~~~~....",
+  "..........########..........",
+  ".........##########.........",
+  "........############........",
+  "........############........",
+  "........############........",
+  ".........##########.........",
+  "..........########..........",
+  "...........######...........",
+  "...........####.............",
+  "..........######............",
+  ".....@@@@@##@@##@@@@@.......",
+  "....@@@@@@##@@##@@@@@@......",
+  "...@@@@@@@##@@##@@@@@@@.....",
+  "..@@@@@@@@##@@##@@@@@@@@....",
+  ".@@@@@@@@@#.@@.#@@@@@@@@@...",
+  "@@@@@@@@@@@.@@.@@@@@@@@@@...",
+  "@@@@@@@@@@@.@@.@@@@@@@@@@...",
+  "@@@@@@@@@@..@@..@@@@@@@@@...",
+  "@@@@@@@@@@..@@..@@@@@@@@@...",
+  "@@@@@@@@@...@@...@@@@@@@@...",
+  "@@@@@@@@@...@@...@@@@@@@@...",
+  ".@@@@@@@@...@@...@@@@@@@@...",
+  "..@@@@@@@...@@...@@@@@@@....",
+  "..@@@@@@@...@@...@@@@@@@....",
+  "...@@@@@@...@@...@@@@@@.....",
+  "...@@@@@@........@@@@@@.....",
+  // Legs in stride
+  "....@@@@@........@@@@@@.....",
+  ".....@@@@........@@@@@@@....",
+  ".....@@@@........@@@@@@@@...",
+  "......@@@........@@@@@@@....",
+  "......@@@........@@@@@@.....",
+  ".....@@@@........@@@@@......",
+  "....@@@@@........@@@@.......",
+  "...@@@@@@........@@@@.......",
+  "...@@@@@@........@@@@@......",
+  "..@@@@@@@........@@@@@@.....",
+  "..@@@@@@@........@@@@@@.....",
+  "@@@@@@@@@.........@@@@@@@...",
+  "@@@@@@@@...........@@@@@@...",
+  ".@@@@@@..............@@@@@..",
+];
 
 interface Agent {
   x: number;
@@ -106,11 +133,20 @@ interface Agent {
   frame: number;
   frameTimer: number;
   scale: number;
-  depth: number; // 0=far, 1=close — affects brightness
+  depth: number; // 0=far, 1=close
+}
+
+interface Cell {
+  char: string;
+  brightness: number; // 0-1
+  glow: number;
+  cycleSpeed: number;
+  cycleOffset: number;
 }
 
 const MatrixAgents = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animRef = useRef<number>(0);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -123,155 +159,187 @@ const MatrixAgents = () => {
     resize();
     window.addEventListener("resize", resize);
 
-    const fontSize = Math.max(10, Math.min(14, Math.floor(window.innerWidth / 100)));
-    const columns = Math.floor(canvas.width / fontSize);
-    const rows = Math.floor(canvas.height / fontSize);
-    const drops: number[] = Array(columns).fill(0).map(() => Math.random() * -rows);
+    const fontSize = Math.max(8, Math.min(12, Math.floor(window.innerWidth / 120)));
+    const cols = Math.floor(canvas.width / (fontSize * 0.65));
+    const rowH = fontSize * 1.1;
+    const rows = Math.floor(canvas.height / rowH);
 
-    // Spawn agents at staggered positions walking left-to-right
+    // Initialize cell grid — every cell has a character
+    const grid: Cell[][] = [];
+    for (let r = 0; r < rows; r++) {
+      grid[r] = [];
+      for (let c = 0; c < cols; c++) {
+        grid[r][c] = {
+          char: CHARS[Math.floor(Math.random() * CHARS.length)],
+          brightness: 0.06 + Math.random() * 0.04, // very dim base
+          glow: 0,
+          cycleSpeed: 0.5 + Math.random() * 2,
+          cycleOffset: Math.random() * 1000,
+        };
+      }
+    }
+
+    // Rain drops for ambient character cycling
+    const rainDrops: number[] = Array(cols).fill(0).map(() => Math.random() * rows);
+    const rainSpeeds: number[] = Array(cols).fill(0).map(() => 0.1 + Math.random() * 0.3);
+
+    // Agents
+    const numAgents = Math.max(2, Math.min(5, Math.floor(window.innerWidth / 280)));
     const agents: Agent[] = [];
-    const numAgents = Math.max(2, Math.min(5, Math.floor(window.innerWidth / 300)));
     for (let i = 0; i < numAgents; i++) {
-      const depth = 0.3 + Math.random() * 0.7;
+      const depth = 0.25 + Math.random() * 0.75;
       agents.push({
-        x: -200 - Math.random() * canvas.width * 0.8,
-        speed: 0.8 + depth * 1.5,
-        frame: 0,
+        x: -300 - Math.random() * canvas.width,
+        speed: 0.5 + depth * 1.2,
+        frame: Math.floor(Math.random() * 2),
         frameTimer: 0,
-        scale: 0.5 + depth * 0.8,
+        scale: 0.4 + depth * 0.9,
         depth,
       });
     }
-    // Sort by depth so far agents render first
     agents.sort((a, b) => a.depth - b.depth);
 
-    // Build pixel map: returns map of "col,row" -> type ('#'=bright, '@'=suit, '^'=fedora)
-    const getAgentPixels = (agent: Agent): Map<string, string> => {
-      const pixels = new Map<string, string>();
-      const bitmap = agent.frame % 2 === 0 ? AGENT_BITMAP : AGENT_BITMAP_2;
-      const bitmapH = bitmap.length;
-      const bitmapW = bitmap[0].length;
+    const bitmaps = [AGENT_FRAME_1, AGENT_FRAME_2];
 
-      const baseY = Math.floor((rows - bitmapH * agent.scale) / 2);
-      const baseX = Math.floor(agent.x / fontSize);
-
-      for (let r = 0; r < bitmapH; r++) {
-        for (let c = 0; c < bitmapW; c++) {
-          const ch = bitmap[r][c];
-          if (ch === ".") continue;
-          const col = baseX + Math.floor(c * agent.scale);
-          const row = baseY + Math.floor(r * agent.scale);
-          if (col >= 0 && col < columns && row >= 0 && row < rows) {
-            pixels.set(`${col},${row}`, ch);
-          }
-        }
-      }
-      return pixels;
-    };
+    let tick = 0;
 
     const draw = () => {
-      // Fade trail
-      ctx.fillStyle = "rgba(0, 0, 0, 0.07)";
+      tick++;
+      ctx.fillStyle = "rgba(0, 0, 0, 0.92)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Build combined agent pixel map
-      const agentPixels = new Map<string, { type: string; depth: number }>();
+      // Update rain drops — cycle characters along columns
+      for (let c = 0; c < cols; c++) {
+        rainDrops[c] += rainSpeeds[c];
+        if (rainDrops[c] >= rows) rainDrops[c] = -Math.random() * 10;
+
+        const dropRow = Math.floor(rainDrops[c]);
+        if (dropRow >= 0 && dropRow < rows) {
+          grid[dropRow][c].char = CHARS[Math.floor(Math.random() * CHARS.length)];
+          grid[dropRow][c].brightness = Math.min(0.25, grid[dropRow][c].brightness + 0.08);
+        }
+      }
+
+      // Random character cycling for texture
+      if (tick % 2 === 0) {
+        for (let i = 0; i < cols * 2; i++) {
+          const r = Math.floor(Math.random() * rows);
+          const c = Math.floor(Math.random() * cols);
+          grid[r][c].char = CHARS[Math.floor(Math.random() * CHARS.length)];
+        }
+      }
+
+      // Build agent influence map
+      const agentMap = new Map<string, { type: string; depth: number }>();
+
       agents.forEach((agent) => {
         agent.frameTimer++;
-        if (agent.frameTimer % 15 === 0) {
+        if (agent.frameTimer % 12 === 0) {
           agent.frame = (agent.frame + 1) % 2;
         }
         agent.x += agent.speed;
-        if (agent.x > canvas.width + 300) {
-          agent.x = -300 - Math.random() * 400;
-          agent.depth = 0.3 + Math.random() * 0.7;
-          agent.scale = 0.5 + agent.depth * 0.8;
-          agent.speed = 0.8 + agent.depth * 1.5;
-        }
-        const pixels = getAgentPixels(agent);
-        pixels.forEach((type, key) => {
-          agentPixels.set(key, { type, depth: agent.depth });
-        });
-      });
-
-      ctx.font = `${fontSize}px 'Fira Code', monospace`;
-
-      // Draw rain columns
-      for (let i = 0; i < drops.length; i++) {
-        if (drops[i] < 0) {
-          drops[i] += 0.2 + Math.random() * 0.2;
-          continue;
+        if (agent.x > canvas.width + 400) {
+          agent.x = -400 - Math.random() * 600;
+          agent.depth = 0.25 + Math.random() * 0.75;
+          agent.scale = 0.4 + agent.depth * 0.9;
+          agent.speed = 0.5 + agent.depth * 1.2;
         }
 
-        const row = Math.floor(drops[i]);
-        const key = `${i},${row}`;
-        const agentInfo = agentPixels.get(key);
+        const bitmap = bitmaps[agent.frame];
+        const bitmapH = bitmap.length;
+        const bitmapW = bitmap[0].length;
+        const baseCol = Math.floor(agent.x / (fontSize * 0.65));
+        const baseRow = Math.floor((rows - bitmapH * agent.scale) * 0.65);
 
-        if (agentInfo) {
-          const { type, depth } = agentInfo;
-          if (type === "#") {
-            // Bright face/shirt — dense bright chars
-            const char = BRIGHT_CHARS[Math.floor(Math.random() * BRIGHT_CHARS.length)];
-            const alpha = 0.7 + depth * 0.3;
-            ctx.fillStyle = `rgba(0, 255, 65, ${alpha})`;
-            ctx.shadowColor = "#00FF41";
-            ctx.shadowBlur = 6 + depth * 6;
-            ctx.fillText(char, i * fontSize, row * fontSize);
-          } else if (type === "^" || type === "=") {
-            // Fedora — medium brightness, structured
-            const char = type === "=" ? "═" : CHARS[Math.floor(Math.random() * CHARS.length)];
-            const alpha = 0.4 + depth * 0.3;
-            ctx.fillStyle = `rgba(0, 255, 65, ${alpha})`;
-            ctx.shadowColor = "#00FF41";
-            ctx.shadowBlur = 3;
-            ctx.fillText(char, i * fontSize, row * fontSize);
-          } else if (type === "@") {
-            // Suit = negative space — very dim or nothing
-            if (Math.random() > 0.85) {
-              const char = CHARS[Math.floor(Math.random() * CHARS.length)];
-              ctx.fillStyle = `rgba(0, 255, 65, 0.04)`;
-              ctx.shadowColor = "transparent";
-              ctx.shadowBlur = 0;
-              ctx.fillText(char, i * fontSize, row * fontSize);
+        for (let br = 0; br < bitmapH; br++) {
+          for (let bc = 0; bc < bitmapW; bc++) {
+            const ch = bitmap[br][bc];
+            if (ch === ".") continue;
+            const col = baseCol + Math.floor(bc * agent.scale);
+            const row = baseRow + Math.floor(br * agent.scale);
+            if (col >= 0 && col < cols && row >= 0 && row < rows) {
+              const key = `${col},${row}`;
+              // Later agents (closer) overwrite earlier ones
+              agentMap.set(key, { type: ch, depth: agent.depth });
             }
           }
-        } else {
-          // Normal subtle rain
-          if (Math.random() > 0.55) {
-            const char = CHARS[Math.floor(Math.random() * CHARS.length)];
-            ctx.fillStyle = "rgba(0, 255, 65, 0.15)";
-            ctx.shadowColor = "#00FF41";
-            ctx.shadowBlur = 1;
-            ctx.fillText(char, i * fontSize, row * fontSize);
-          }
-        }
-
-        ctx.shadowBlur = 0;
-
-        if (drops[i] * fontSize > canvas.height && Math.random() > 0.96) {
-          drops[i] = Math.random() * -10;
-        }
-        drops[i] += 0.35;
-      }
-
-      // Extra fill pass for bright agent areas (denser)
-      agentPixels.forEach((info, key) => {
-        if (info.type === "#" && Math.random() > 0.3) {
-          const [c, r] = key.split(",").map(Number);
-          const char = BRIGHT_CHARS[Math.floor(Math.random() * BRIGHT_CHARS.length)];
-          const alpha = 0.5 + info.depth * 0.4;
-          ctx.fillStyle = `rgba(0, 255, 65, ${alpha})`;
-          ctx.shadowColor = "#00FF41";
-          ctx.shadowBlur = 4;
-          ctx.fillText(char, c * fontSize, r * fontSize);
-          ctx.shadowBlur = 0;
         }
       });
+
+      // Render every cell
+      ctx.textBaseline = "top";
+      const charWidth = fontSize * 0.65;
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const cell = grid[r][c];
+          const key = `${c},${r}`;
+          const agentInfo = agentMap.get(key);
+
+          let alpha: number;
+          let glowAmount = 0;
+          let charToRender = cell.char;
+
+          if (agentInfo) {
+            const { type, depth } = agentInfo;
+            if (type === "#") {
+              // Bright area — face, shirt, tie
+              alpha = 0.65 + depth * 0.35;
+              glowAmount = 4 + depth * 8;
+              // Cycle characters faster in bright areas
+              if (tick % 3 === 0 && Math.random() > 0.5) {
+                cell.char = CHARS[Math.floor(Math.random() * CHARS.length)];
+                charToRender = cell.char;
+              }
+            } else if (type === "^") {
+              // Fedora — medium bright
+              alpha = 0.35 + depth * 0.3;
+              glowAmount = 2 + depth * 4;
+            } else if (type === "~") {
+              // Fedora brim shadow — slightly brighter than suit
+              alpha = 0.15 + depth * 0.15;
+              glowAmount = 1;
+            } else {
+              // '@' — suit — negative space (nearly invisible)
+              alpha = 0.015 + depth * 0.01;
+              glowAmount = 0;
+            }
+          } else {
+            // Background — very subtle ambient
+            alpha = cell.brightness;
+            // Decay brightness back to base
+            cell.brightness = Math.max(0.04, cell.brightness * 0.97);
+          }
+
+          if (alpha < 0.01) continue;
+
+          const x = c * charWidth;
+          const y = r * rowH;
+
+          if (glowAmount > 0) {
+            ctx.shadowColor = "#00FF41";
+            ctx.shadowBlur = glowAmount;
+          } else {
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+          }
+
+          ctx.font = `${fontSize}px 'Fira Code', monospace`;
+          ctx.fillStyle = `rgba(0, 255, 65, ${alpha})`;
+          ctx.fillText(charToRender, x, y);
+        }
+      }
+
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = "transparent";
+
+      animRef.current = requestAnimationFrame(draw);
     };
 
-    const interval = setInterval(draw, 45);
+    animRef.current = requestAnimationFrame(draw);
+
     return () => {
-      clearInterval(interval);
+      cancelAnimationFrame(animRef.current);
       window.removeEventListener("resize", resize);
     };
   }, []);
