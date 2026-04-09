@@ -2,13 +2,23 @@ import { useEffect, useRef } from "react";
 import { prepareWithSegments, layoutWithLines } from "@chenglou/pretext";
 
 /**
- * Pretext-powered ambient rain + smooth phase/slide transitions.
+ * Pretext-powered ambient rain that interacts with the terminal text block.
  *
- * - Falling multilingual text columns with splashes at the bottom
- * - "pretext-scatter" → characters smoothly slide/fade outward (no explosion)
- * - "pretext-coalesce" → characters gently phase in from edges
- * - Bottom pool of accumulated, wobbling characters
+ * - Falling multilingual text columns
+ * - Rain drops collide with the terminal text block (treated as a physical object)
+ *   — splashing off it, pooling on top of it, flowing around it
+ * - Splashes at the bottom of the screen
+ * - Bottom pool of accumulated wobbling characters
+ *
+ * The terminal text block rect is communicated via a global:
+ *   window.__terminalTextRect = { x, y, w, h }
  */
+
+declare global {
+  interface Window {
+    __terminalTextRect?: { x: number; y: number; w: number; h: number };
+  }
+}
 
 const RAIN_CORPUS = [
   "羅生門の下で雨やみを待っていた。蜘蛛の糸。故鄉。祝福。",
@@ -31,23 +41,12 @@ interface Particle {
   x: number;
   y: number;
   ch: string;
-  // For slide transitions: target position and easing
-  startX: number;
-  startY: number;
-  targetX: number;
-  targetY: number;
-  progress: number; // 0→1 easing progress
-  duration: number; // total frames
+  vx: number;
+  vy: number;
   alpha: number;
-  startAlpha: number;
+  life: number;
   glow: number;
-  mode: "splash" | "slide-out" | "slide-in";
 }
-
-const easeInOutCubic = (t: number) =>
-  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-
-const easeOutQuad = (t: number) => 1 - (1 - t) * (1 - t);
 
 const PretextRain = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -93,15 +92,16 @@ const PretextRain = () => {
     }
 
     const particles: Particle[] = [];
-    const MAX_PARTICLES = 500;
+    const MAX_PARTICLES = 600;
 
     type PoolChar = {
       x: number; ch: string; alpha: number;
       wobble: number; wobbleSpeed: number;
       splashY: number;
+      poolY: number; // the Y level this char pools at (text block top or screen bottom)
     };
     const pool: PoolChar[] = [];
-    const MAX_POOL = Math.floor(W / (fontSize * 0.4));
+    const MAX_POOL = Math.floor(W / (fontSize * 0.35));
 
     const resize = () => {
       W = window.innerWidth;
@@ -115,59 +115,44 @@ const PretextRain = () => {
     resize();
     window.addEventListener("resize", resize);
 
-    // --- SCATTER: smooth slide-out + fade (not explosive) ---
-    const handleScatter = () => {
-      const cx = W / 2;
-      const cy = H / 2;
-      const num = 40 + Math.floor(Math.random() * 20);
-      for (let i = 0; i < num && particles.length < MAX_PARTICLES; i++) {
-        // Start near center, slide outward smoothly
-        const angle = Math.random() * Math.PI * 2;
-        const startDist = 20 + Math.random() * 80;
-        const endDist = 150 + Math.random() * 250;
-        const sx = cx + Math.cos(angle) * startDist;
-        const sy = cy + Math.sin(angle) * startDist * 0.3;
-        const tx = cx + Math.cos(angle) * endDist;
-        const ty = cy + Math.sin(angle) * endDist * 0.4;
-        const duration = 60 + Math.floor(Math.random() * 40); // ~1-1.7s
+    /** Spawn splash particles at a collision point */
+    function spawnSplash(sx: number, sy: number, count: number, direction: "up" | "sides") {
+      for (let s = 0; s < count && particles.length < MAX_PARTICLES; s++) {
+        let angle: number, speed: number;
+        if (direction === "up") {
+          angle = -Math.PI * 0.15 - Math.random() * Math.PI * 0.7;
+          speed = 1.5 + Math.random() * 3;
+        } else {
+          // Sides — splash left or right off the text block
+          angle = (Math.random() > 0.5 ? 0 : Math.PI) + (Math.random() - 0.5) * 0.8;
+          speed = 1 + Math.random() * 2.5;
+        }
         particles.push({
-          x: sx, y: sy, ch: allChars[Math.floor(Math.random() * allChars.length)],
-          startX: sx, startY: sy, targetX: tx, targetY: ty,
-          progress: 0, duration,
-          alpha: 0.6 + Math.random() * 0.3, startAlpha: 0.6 + Math.random() * 0.3,
-          glow: 3 + Math.random() * 4,
-          mode: "slide-out",
-        });
-      }
-    };
-
-    // --- COALESCE: smooth slide-in from edges ---
-    const handleCoalesce = () => {
-      const cx = W / 2;
-      const cy = H / 2;
-      const num = 50 + Math.floor(Math.random() * 30);
-      for (let i = 0; i < num && particles.length < MAX_PARTICLES; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 200 + Math.random() * 300;
-        const sx = cx + Math.cos(angle) * dist;
-        const sy = cy + Math.sin(angle) * dist * 0.4;
-        // Slide toward center area (not exact center — slight randomness)
-        const tx = cx + (Math.random() - 0.5) * 100;
-        const ty = cy + (Math.random() - 0.5) * 40;
-        const duration = 50 + Math.floor(Math.random() * 40);
-        particles.push({
-          x: sx, y: sy, ch: allChars[Math.floor(Math.random() * allChars.length)],
-          startX: sx, startY: sy, targetX: tx, targetY: ty,
-          progress: 0, duration,
-          alpha: 0, startAlpha: 0.5 + Math.random() * 0.3,
+          x: sx + (Math.random() - 0.5) * 6,
+          y: sy - Math.random() * 4,
+          ch: allChars[Math.floor(Math.random() * allChars.length)],
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          alpha: 0.4 + Math.random() * 0.4,
+          life: 20 + Math.floor(Math.random() * 30),
           glow: 2 + Math.random() * 4,
-          mode: "slide-in",
         });
       }
-    };
+    }
 
-    window.addEventListener("pretext-scatter", handleScatter);
-    window.addEventListener("pretext-coalesce", handleCoalesce);
+    /** Add a character to the pool at a given Y level */
+    function addToPool(x: number, poolY: number) {
+      if (pool.length >= MAX_POOL) return;
+      pool.push({
+        x: x + (Math.random() - 0.5) * 20,
+        ch: allChars[Math.floor(Math.random() * allChars.length)],
+        alpha: 0.25 + Math.random() * 0.2,
+        wobble: Math.random() * Math.PI * 2,
+        wobbleSpeed: 0.015 + Math.random() * 0.025,
+        splashY: -2 - Math.random() * 4,
+        poolY,
+      });
+    }
 
     let tick = 0;
 
@@ -176,6 +161,10 @@ const PretextRain = () => {
       ctx.clearRect(0, 0, W, H);
       ctx.font = font;
       ctx.textBaseline = "top";
+
+      // Get the terminal text block rect (if available)
+      const tr = window.__terminalTextRect;
+      const hasTextBlock = tr && tr.w > 0 && tr.h > 0;
 
       // --- RAIN DROPS ---
       for (const drop of drops) {
@@ -190,9 +179,42 @@ const PretextRain = () => {
         drop.y += drop.speed;
         const x = drop.col * colWidth;
 
+        // Check collision with text block
+        let hitTextBlock = false;
+        if (hasTextBlock) {
+          const padding = 8;
+          const tbLeft = tr.x - padding;
+          const tbRight = tr.x + tr.w + padding;
+          const tbTop = tr.y - padding;
+
+          if (x >= tbLeft && x <= tbRight && drop.y >= tbTop && drop.y < tbTop + drop.speed + 4) {
+            hitTextBlock = true;
+            // Splash upward off the text block
+            spawnSplash(x, tbTop, 2 + Math.floor(Math.random() * 3), "up");
+            addToPool(x, tbTop - lineHeight);
+
+            // Reset drop
+            drop.y = -Math.random() * H * 0.3;
+            drop.speed = 1.5 + Math.random() * 3;
+            drop.active = Math.random() > 0.08;
+          }
+        }
+
+        if (hitTextBlock) continue;
+
+        // Draw the rain tail
         for (let t = 0; t < drop.tailLen; t++) {
           const ty = drop.y - t * lineHeight;
           if (ty < -lineHeight || ty > H) continue;
+
+          // Skip drawing tail chars that overlap text block
+          if (hasTextBlock) {
+            const padding = 8;
+            if (x >= tr.x - padding && x <= tr.x + tr.w + padding &&
+                ty >= tr.y - padding && ty <= tr.y + tr.h + padding) {
+              continue;
+            }
+          }
 
           const charIdx = (Math.floor(drop.y / lineHeight) + t) % drop.chars.length;
           let ch = drop.chars[charIdx];
@@ -217,38 +239,8 @@ const PretextRain = () => {
         // --- SPLASH at bottom ---
         if (drop.y > H - 25 && drop.y < H + lineHeight) {
           const splashX = drop.col * colWidth;
-
-          const numSplash = 3 + Math.floor(Math.random() * 4);
-          for (let s = 0; s < numSplash && particles.length < MAX_PARTICLES; s++) {
-            const angle = -Math.PI * 0.15 - Math.random() * Math.PI * 0.7;
-            const speed = 1.5 + Math.random() * 3;
-            const vx = Math.cos(angle) * speed * (Math.random() > 0.5 ? 1 : -1);
-            const vy = Math.sin(angle) * speed;
-            // Splash particles: use simple arc with gravity via progress-based interpolation
-            const duration = 30 + Math.floor(Math.random() * 25);
-            particles.push({
-              x: splashX, y: H - 8,
-              ch: allChars[Math.floor(Math.random() * allChars.length)],
-              startX: splashX, startY: H - 8,
-              targetX: splashX + vx * duration * 0.5,
-              targetY: H - 8 + vy * duration * 0.3,
-              progress: 0, duration,
-              alpha: 0.5 + Math.random() * 0.3, startAlpha: 0.5 + Math.random() * 0.3,
-              glow: 3 + Math.random() * 4,
-              mode: "splash",
-            });
-          }
-
-          for (let p = 0; p < 2 && pool.length < MAX_POOL; p++) {
-            pool.push({
-              x: splashX + (Math.random() - 0.5) * 40,
-              ch: allChars[Math.floor(Math.random() * allChars.length)],
-              alpha: 0.3 + Math.random() * 0.2,
-              wobble: Math.random() * Math.PI * 2,
-              wobbleSpeed: 0.015 + Math.random() * 0.025,
-              splashY: -3 - Math.random() * 6,
-            });
-          }
+          spawnSplash(splashX, H - 8, 3 + Math.floor(Math.random() * 3), "up");
+          addToPool(splashX, H - lineHeight - 6);
 
           drop.y = -Math.random() * H * 0.4;
           drop.speed = 1.5 + Math.random() * 3;
@@ -259,43 +251,14 @@ const PretextRain = () => {
       // --- PARTICLES ---
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
-        p.progress += 1 / p.duration;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.12; // gravity
+        p.vx *= 0.98;
+        p.life--;
+        p.alpha *= 0.96;
 
-        if (p.progress >= 1) {
-          particles.splice(i, 1);
-          continue;
-        }
-
-        if (p.mode === "slide-out") {
-          const ease = easeInOutCubic(p.progress);
-          p.x = p.startX + (p.targetX - p.startX) * ease;
-          p.y = p.startY + (p.targetY - p.startY) * ease;
-          // Fade out smoothly in the second half
-          p.alpha = p.startAlpha * (1 - easeOutQuad(p.progress));
-        } else if (p.mode === "slide-in") {
-          const ease = easeInOutCubic(p.progress);
-          p.x = p.startX + (p.targetX - p.startX) * ease;
-          p.y = p.startY + (p.targetY - p.startY) * ease;
-          // Fade in first half, fade out last 20%
-          if (p.progress < 0.5) {
-            p.alpha = p.startAlpha * easeOutQuad(p.progress * 2);
-          } else if (p.progress > 0.8) {
-            p.alpha = p.startAlpha * (1 - easeOutQuad((p.progress - 0.8) / 0.2));
-          } else {
-            p.alpha = p.startAlpha;
-          }
-        } else {
-          // splash — parabolic arc
-          const t = p.progress;
-          const ease = easeOutQuad(t);
-          p.x = p.startX + (p.targetX - p.startX) * ease;
-          // Arc upward then fall
-          const arcHeight = -40 * (1 - (2 * t - 1) * (2 * t - 1));
-          p.y = p.startY + arcHeight + t * 20;
-          p.alpha = p.startAlpha * (1 - t * t);
-        }
-
-        if (p.alpha < 0.01) {
+        if (p.life <= 0 || p.alpha < 0.01 || p.y > H + 50 || p.x < -50 || p.x > W + 50) {
           particles.splice(i, 1);
           continue;
         }
@@ -311,24 +274,23 @@ const PretextRain = () => {
         ctx.fillText(p.ch, p.x, p.y);
       }
 
-      // --- BOTTOM POOL ---
+      // --- POOL (on text block top + screen bottom) ---
       ctx.shadowBlur = 0;
-      const basePoolY = H - lineHeight - 6;
       for (let i = pool.length - 1; i >= 0; i--) {
         const p = pool[i];
         p.wobble += p.wobbleSpeed;
-        p.alpha *= 0.9992;
+        p.alpha *= 0.9988;
         p.splashY *= 0.92;
 
-        if (p.alpha < 0.015) {
+        if (p.alpha < 0.012) {
           pool.splice(i, 1);
           continue;
         }
 
         const wobbleX = Math.sin(p.wobble) * 2;
-        const py = basePoolY + p.splashY;
+        const py = p.poolY + p.splashY;
 
-        if (p.alpha > 0.15) {
+        if (p.alpha > 0.12) {
           ctx.shadowColor = "#00FF41";
           ctx.shadowBlur = 1.5;
         }
@@ -348,8 +310,6 @@ const PretextRain = () => {
     return () => {
       cancelAnimationFrame(animRef.current);
       window.removeEventListener("resize", resize);
-      window.removeEventListener("pretext-scatter", handleScatter);
-      window.removeEventListener("pretext-coalesce", handleCoalesce);
     };
   }, []);
 

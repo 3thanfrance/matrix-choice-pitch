@@ -105,10 +105,6 @@ const AUTO_LINGER = 1500;
 
 type Phase = "typing" | "lingering" | "deleting" | "idle";
 
-/** Fire smooth pretext transition events */
-const fireScatter = () => window.dispatchEvent(new CustomEvent("pretext-scatter"));
-const fireCoalesce = () => window.dispatchEvent(new CustomEvent("pretext-coalesce"));
-
 const Terminal = () => {
   const [displayedLines, setDisplayedLines] = useState<string[]>([]);
   const [currentNode, setCurrentNode] = useState("start");
@@ -120,15 +116,15 @@ const Terminal = () => {
   const [nextNodeKey, setNextNodeKey] = useState<string | null>(null);
   const [outroStage, setOutroStage] = useState<"none" | "omni" | "omni-glitch" | "lovable" | "lovable-glitch" | "tvoff" | "dead">("none");
   const [requestReboot, setRequestReboot] = useState(false);
-  // Floating text offset for ambient pretext feel
   const [floatOffset, setFloatOffset] = useState(0);
   const autoSeqIndexRef = useRef(0);
   const clickCountRef = useRef(0);
   const floatRef = useRef<number>(0);
+  const textBlockRef = useRef<HTMLDivElement>(null);
 
   const node = storyTree[currentNode];
 
-  // Subtle floating animation for terminal text
+  // Subtle floating animation
   useEffect(() => {
     let t = 0;
     const animate = () => {
@@ -139,6 +135,30 @@ const Terminal = () => {
     floatRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(floatRef.current);
   }, []);
+
+  // Publish the text block rect to the global so PretextRain can read it
+  useEffect(() => {
+    const updateRect = () => {
+      const el = textBlockRef.current;
+      if (el && outroStage === "none") {
+        const rect = el.getBoundingClientRect();
+        window.__terminalTextRect = {
+          x: rect.left,
+          y: rect.top,
+          w: rect.width,
+          h: rect.height,
+        };
+      } else {
+        window.__terminalTextRect = { x: 0, y: 0, w: 0, h: 0 };
+      }
+    };
+    updateRect();
+    const interval = setInterval(updateRect, 100);
+    return () => {
+      clearInterval(interval);
+      window.__terminalTextRect = { x: 0, y: 0, w: 0, h: 0 };
+    };
+  }, [outroStage, displayedLines, showPrompt, floatOffset]);
 
   // Key click sounds
   useEffect(() => {
@@ -151,10 +171,7 @@ const Terminal = () => {
   useEffect(() => {
     if (currentNode === "verify") playStatic(0.2, 0.06);
     if (currentNode === "verified") playConfirm();
-    if (currentNode === "demo") {
-      playConfirm();
-      setTimeout(fireCoalesce, 300);
-    }
+    if (currentNode === "demo") playConfirm();
   }, [currentNode]);
 
   // Auto-advance for non-interactive nodes
@@ -168,7 +185,6 @@ const Terminal = () => {
       const timer = setTimeout(() => {
         setNextNodeKey(nextAutoNode);
         autoSeqIndexRef.current = autoIdx + 1;
-        fireScatter();
         setPhase("deleting");
       }, AUTO_LINGER);
       return () => clearTimeout(timer);
@@ -205,18 +221,14 @@ const Terminal = () => {
     if (outroStage === "none") return;
     let timers: ReturnType<typeof setTimeout>[] = [];
     if (outroStage === "omni") {
-      fireCoalesce();
       timers.push(setTimeout(() => setOutroStage("omni-glitch"), 2000));
     } else if (outroStage === "omni-glitch") {
       playGlitch();
-      fireScatter();
       timers.push(setTimeout(() => setOutroStage("lovable"), 600));
     } else if (outroStage === "lovable") {
-      fireCoalesce();
       timers.push(setTimeout(() => setOutroStage("lovable-glitch"), 2000));
     } else if (outroStage === "lovable-glitch") {
       playGlitch();
-      fireScatter();
       timers.push(setTimeout(() => setOutroStage("tvoff"), 600));
     } else if (outroStage === "tvoff") {
       playTVOff();
@@ -287,7 +299,6 @@ const Terminal = () => {
     if (phase !== "deleting") return;
     if (displayedLines.length === 0) {
       if (nextNodeKey) {
-        fireCoalesce();
         setCurrentNode(nextNodeKey);
         setNextNodeKey(null);
         setLineIndex(0);
@@ -323,7 +334,6 @@ const Terminal = () => {
       const nextKey = answer === "y" ? node.yes : node.no;
       if (nextKey) {
         setNextNodeKey(nextKey);
-        fireScatter();
         setTimeout(() => {
           playStatic(0.1, 0.04);
           setPhase("deleting");
@@ -388,6 +398,7 @@ const Terminal = () => {
 
       <div className="flex flex-1 items-center justify-center overflow-hidden px-4 sm:px-8 md:px-12">
         <div
+          ref={textBlockRef}
           className="w-full max-w-2xl text-center text-xs sm:text-sm leading-relaxed text-glow transition-transform duration-1000 ease-in-out"
           style={{ transform: `translateY(${floatOffset}px)` }}
         >
