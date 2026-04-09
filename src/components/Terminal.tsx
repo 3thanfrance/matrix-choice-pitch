@@ -14,23 +14,7 @@ const storyTree: Record<string, StoryNode> = {
       "HELLO, ANTON.",
       "",
       "INITIATING IDENTITY VERIFICATION...",
-    ],
-    prompt: "CONFIRM IDENTITY? [Y/N]",
-    yes: "verify",
-    no: "reject_id",
-  },
-  reject_id: {
-    lines: [
-      ">> IDENTITY UNVERIFIED.",
-      "ACCESS RESTRICTED.",
-      "THIS CHANNEL WILL SELF-DESTRUCT.",
-    ],
-    prompt: "TRY AGAIN? [Y/N]",
-    yes: "start",
-    no: "final_no",
-  },
-  verify: {
-    lines: [
+      "",
       "SCANNING ████████████████ ...",
       "LOCATION: LOVABLE HQ, STOCKHOLM",
       "ROLE: FOUNDER / CEO",
