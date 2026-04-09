@@ -136,7 +136,7 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
     : "";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background overflow-hidden font-mono">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background overflow-hidden font-mono px-4">
       <div
         className="absolute left-0 right-0 h-1 bg-primary/20 blur-sm pointer-events-none z-20"
         style={{ top: `${scanlinePos}%`, transition: "none" }}
@@ -178,7 +178,7 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
                 <div className="text-muted-foreground/40 text-xs tracking-widest">
                   PRESENTED BY
                 </div>
-                <div className="text-primary text-3xl tracking-[0.6em] font-bold">
+                <div className="text-primary text-2xl sm:text-3xl tracking-[0.4em] sm:tracking-[0.6em] font-bold">
                   O M N I
                 </div>
               </div>
@@ -188,7 +188,7 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
                 <div className="text-muted-foreground/40 text-xs tracking-widest">
                   PRESENTED BY
                 </div>
-                <div className="text-primary text-3xl tracking-[0.6em] font-bold">
+                <div className="text-primary text-2xl sm:text-3xl tracking-[0.4em] sm:tracking-[0.6em] font-bold">
                   O M N I
                 </div>
               </div>
@@ -198,7 +198,7 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
                 <div className="text-muted-foreground/40 text-xs tracking-widest">
                   ENABLED BY
                 </div>
-                <div className="text-primary text-lg tracking-[0.4em]">
+                <div className="text-primary text-base sm:text-lg tracking-[0.3em] sm:tracking-[0.4em]">
                   L O V A B L E
                 </div>
               </div>
@@ -208,7 +208,7 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
                 <div className="text-muted-foreground/40 text-xs tracking-widest">
                   ENABLED BY
                 </div>
-                <div className="text-primary text-lg tracking-[0.4em]">
+                <div className="text-primary text-base sm:text-lg tracking-[0.3em] sm:tracking-[0.4em]">
                   L O V A B L E
                 </div>
               </div>
