@@ -2,15 +2,12 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { playKeyClick, playEnterKey, playStatic, playGlitch, playTVOff, playConfirm } from "@/lib/sounds";
 
 interface StoryNode {
-  lines: string[];      // Each entry = one "screen" (shown then cleared)
+  lines: string[];
   prompt?: string;
   yes?: string;
   no?: string;
 }
 
-// Each node's lines array: lines are typed one at a time.
-// Between nodes, ALL text is deleted before the next node types.
-// Within a node, we show max ~3 lines at once by grouping.
 const storyTree: Record<string, StoryNode> = {
   start: {
     lines: [
@@ -99,7 +96,6 @@ const storyTree: Record<string, StoryNode> = {
   },
 };
 
-// Auto-advance sequence (no user input needed)
 const AUTO_SEQUENCE = ["start", "verify", "verified", "trapped"];
 
 const TYPING_SPEED = 25;
@@ -108,6 +104,10 @@ const LINGER_DURATION = 1200;
 const AUTO_LINGER = 1500;
 
 type Phase = "typing" | "lingering" | "deleting" | "idle";
+
+/** Fire pretext scatter/coalesce events for visual transitions */
+const fireScatter = () => window.dispatchEvent(new CustomEvent("pretext-scatter"));
+const fireCoalesce = () => window.dispatchEvent(new CustomEvent("pretext-coalesce"));
 
 const Terminal = () => {
   const [displayedLines, setDisplayedLines] = useState<string[]>([]);
@@ -136,7 +136,11 @@ const Terminal = () => {
   useEffect(() => {
     if (currentNode === "verify") playStatic(0.2, 0.06);
     if (currentNode === "verified") playConfirm();
-    if (currentNode === "demo") playConfirm();
+    if (currentNode === "demo") {
+      playConfirm();
+      // Coalesce effect for ACCESS GRANTED
+      setTimeout(fireCoalesce, 300);
+    }
   }, [currentNode]);
 
   // Auto-advance for non-interactive nodes
@@ -144,19 +148,18 @@ const Terminal = () => {
     if (phase !== "idle" || outroStage !== "none") return;
     if (!node) return;
 
-    // Check if this is an auto-advance node
     const autoIdx = AUTO_SEQUENCE.indexOf(currentNode);
     if (autoIdx >= 0 && autoIdx < AUTO_SEQUENCE.length - 1) {
       const nextAutoNode = AUTO_SEQUENCE[autoIdx + 1];
       const timer = setTimeout(() => {
         setNextNodeKey(nextAutoNode);
         autoSeqIndexRef.current = autoIdx + 1;
+        fireScatter(); // scatter text as it transitions
         setPhase("deleting");
       }, AUTO_LINGER);
       return () => clearTimeout(timer);
     }
 
-    // Terminal nodes (demo, final_no) → trigger outro after showing demo2
     if (currentNode === "demo") {
       const timer = setTimeout(() => {
         setNextNodeKey("demo2");
@@ -173,7 +176,7 @@ const Terminal = () => {
     }
   }, [phase, currentNode, node, outroStage]);
 
-  // Show prompt when typing finishes on interactive nodes
+  // Show prompt when typing finishes
   useEffect(() => {
     if (phase !== "idle" || !node?.prompt) return;
     const timer = setTimeout(() => {
@@ -188,14 +191,18 @@ const Terminal = () => {
     if (outroStage === "none") return;
     let timers: ReturnType<typeof setTimeout>[] = [];
     if (outroStage === "omni") {
+      fireCoalesce(); // swirl chars inward as OMNI appears
       timers.push(setTimeout(() => setOutroStage("omni-glitch"), 2000));
     } else if (outroStage === "omni-glitch") {
       playGlitch();
+      fireScatter(); // scatter as it glitches
       timers.push(setTimeout(() => setOutroStage("lovable"), 600));
     } else if (outroStage === "lovable") {
+      fireCoalesce(); // coalesce for LOVABLE
       timers.push(setTimeout(() => setOutroStage("lovable-glitch"), 2000));
     } else if (outroStage === "lovable-glitch") {
       playGlitch();
+      fireScatter();
       timers.push(setTimeout(() => setOutroStage("tvoff"), 600));
     } else if (outroStage === "tvoff") {
       playTVOff();
@@ -261,11 +268,13 @@ const Terminal = () => {
     }
   }, [phase, lineIndex, charIndex, node, outroStage]);
 
-  // Deleting phase — fast character-by-character delete
+  // Deleting phase
   useEffect(() => {
     if (phase !== "deleting") return;
     if (displayedLines.length === 0) {
       if (nextNodeKey) {
+        // Coalesce chars inward as new text appears
+        fireCoalesce();
         setCurrentNode(nextNodeKey);
         setNextNodeKey(null);
         setLineIndex(0);
@@ -301,6 +310,8 @@ const Terminal = () => {
       const nextKey = answer === "y" ? node.yes : node.no;
       if (nextKey) {
         setNextNodeKey(nextKey);
+        // Scatter burst on answer
+        fireScatter();
         setTimeout(() => {
           playStatic(0.1, 0.04);
           setPhase("deleting");
