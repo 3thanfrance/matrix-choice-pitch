@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { playPowerOn, startCRTHum, playStatic, playKeyClick, playGlitch } from "@/lib/sounds";
 import MatrixAgents from "./MatrixAgents";
 
-const BOOT_DURATION = 18000;
+const BOOT_DURATION = 24000;
 
 const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
   const [phase, setPhase] = useState(0);
@@ -35,20 +35,20 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
 
   useEffect(() => () => { humStopRef.current?.(); }, []);
 
-  // Phase timeline — extended for more theatrical impact
+  // Phase timeline — extended so agents walk fully across screen
   // 0: black cursor (0-2s) — suspense
   // 1: power surge flicker (2-4s) — CRT warming up
-  // 2: Matrix agents walk + credits (4-11s) — the showcase
-  // 3: POST diagnostics (11-14.5s) — system boot
-  // 4: Loading bar (14.5-16.5s) — initializing
-  // 5: Connected flash (16.5-18s) — transition
+  // 2: Matrix agents walk + credits (4-16s) — 12s showcase
+  // 3: POST diagnostics (16-20s) — system boot
+  // 4: Loading bar (20-22.5s) — initializing
+  // 5: Connected flash (22.5-24s) — transition
   useEffect(() => {
     const timers = [
       setTimeout(() => setPhase(1), 2000),
       setTimeout(() => setPhase(2), 4000),
-      setTimeout(() => setPhase(3), 11000),
-      setTimeout(() => setPhase(4), 14500),
-      setTimeout(() => setPhase(5), 16500),
+      setTimeout(() => setPhase(3), 16000),
+      setTimeout(() => setPhase(4), 20000),
+      setTimeout(() => setPhase(5), 22500),
       setTimeout(() => onComplete(), BOOT_DURATION),
     ];
     return () => timers.forEach(clearTimeout);
@@ -59,11 +59,11 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
     if (phase !== 2) return;
     const timers = [
       setTimeout(() => setShowAgentOverlay(true), 0),
-      setTimeout(() => setBrandText("omni"), 800),
-      setTimeout(() => { setBrandText("glitch1"); playGlitch(); }, 4000),
-      setTimeout(() => setBrandText("lovable"), 4800),
-      setTimeout(() => { setBrandText("glitch2"); playGlitch(); }, 6200),
-      setTimeout(() => setBrandText("fade"), 6800),
+      setTimeout(() => setBrandText("omni"), 1200),
+      setTimeout(() => { setBrandText("glitch1"); playGlitch(); }, 6000),
+      setTimeout(() => setBrandText("lovable"), 7000),
+      setTimeout(() => { setBrandText("glitch2"); playGlitch(); }, 10000),
+      setTimeout(() => setBrandText("fade"), 10800),
     ];
     return () => timers.forEach(clearTimeout);
   }, [phase]);
