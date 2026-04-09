@@ -1,4 +1,4 @@
-// Web Audio API — 90s CRT terminal aesthetic: clacky keys, warm static, analog hum
+// Web Audio API — 90s CRT terminal: warm mechanical clacks, analog static, tube hum
 
 let ctx: AudioContext | null = null;
 
@@ -8,7 +8,7 @@ const getCtx = (): AudioContext => {
   return ctx;
 };
 
-// Warm noise buffer helper
+// Warm noise buffer
 const createNoise = (c: AudioContext, duration: number): AudioBufferSourceNode => {
   const bufferSize = Math.floor(c.sampleRate * duration);
   const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
@@ -21,51 +21,78 @@ const createNoise = (c: AudioContext, duration: number): AudioBufferSourceNode =
   return source;
 };
 
-// Mechanical keyboard clack — short noise burst with resonant filter
+// Mechanical keyboard clack — two layers: low thump + mid click
 export const playKeyClick = () => {
   try {
     const c = getCtx();
-    const noise = createNoise(c, 0.025);
-    const filter = c.createBiquadFilter();
-    const gain = c.createGain();
+    const t = c.currentTime;
 
-    filter.type = "bandpass";
-    filter.frequency.value = 3000 + Math.random() * 2000;
-    filter.Q.value = 2 + Math.random() * 3;
+    // Layer 1: Low mechanical thump (the body of the keypress)
+    const thump = createNoise(c, 0.02);
+    const thumpLPF = c.createBiquadFilter();
+    const thumpGain = c.createGain();
+    thumpLPF.type = "lowpass";
+    thumpLPF.frequency.value = 800 + Math.random() * 400;
+    thumpLPF.Q.value = 0.8;
+    thump.connect(thumpLPF);
+    thumpLPF.connect(thumpGain);
+    thumpGain.connect(c.destination);
+    thumpGain.gain.setValueAtTime(0.06 + Math.random() * 0.02, t);
+    thumpGain.gain.exponentialRampToValueAtTime(0.001, t + 0.02);
+    thump.start(t);
+    thump.stop(t + 0.02);
 
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(c.destination);
-
-    gain.gain.setValueAtTime(0.06 + Math.random() * 0.03, c.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.025);
-
-    noise.start(c.currentTime);
-    noise.stop(c.currentTime + 0.025);
+    // Layer 2: High click (the contact snap)
+    const click = createNoise(c, 0.008);
+    const clickBPF = c.createBiquadFilter();
+    const clickGain = c.createGain();
+    clickBPF.type = "bandpass";
+    clickBPF.frequency.value = 2200 + Math.random() * 1200;
+    clickBPF.Q.value = 1.5;
+    click.connect(clickBPF);
+    clickBPF.connect(clickGain);
+    clickGain.connect(c.destination);
+    clickGain.gain.setValueAtTime(0.03 + Math.random() * 0.015, t + 0.003);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.012);
+    click.start(t + 0.002);
+    click.stop(t + 0.012);
   } catch {}
 };
 
-// Heavier clack for enter/return key — lower, slightly longer
+// Heavier clack for enter/return — deeper, resonant
 export const playEnterKey = () => {
   try {
     const c = getCtx();
-    const noise = createNoise(c, 0.06);
-    const filter = c.createBiquadFilter();
+    const t = c.currentTime;
+
+    const noise = createNoise(c, 0.05);
+    const lpf = c.createBiquadFilter();
     const gain = c.createGain();
-
-    filter.type = "bandpass";
-    filter.frequency.value = 1200;
-    filter.Q.value = 1.5;
-
-    noise.connect(filter);
-    filter.connect(gain);
+    lpf.type = "lowpass";
+    lpf.frequency.value = 600;
+    lpf.Q.value = 1.2;
+    noise.connect(lpf);
+    lpf.connect(gain);
     gain.connect(c.destination);
+    gain.gain.setValueAtTime(0.1, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+    noise.start(t);
+    noise.stop(t + 0.05);
 
-    gain.gain.setValueAtTime(0.1, c.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.06);
-
-    noise.start(c.currentTime);
-    noise.stop(c.currentTime + 0.06);
+    // Rattle
+    const rattle = createNoise(c, 0.03);
+    const rattleBPF = c.createBiquadFilter();
+    const rattleGain = c.createGain();
+    rattleBPF.type = "bandpass";
+    rattleBPF.frequency.value = 1800;
+    rattleBPF.Q.value = 2;
+    rattle.connect(rattleBPF);
+    rattleBPF.connect(rattleGain);
+    rattleGain.connect(c.destination);
+    rattleGain.gain.setValueAtTime(0.04, t + 0.01);
+    rattleGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+    rattle.start(t + 0.008);
+    rattle.stop(t + 0.04);
   } catch {}
 };
 
@@ -73,7 +100,7 @@ export const playEnterKey = () => {
 export const playPowerOn = () => {
   try {
     const c = getCtx();
-    // Thump
+    const t = c.currentTime;
     const noise = createNoise(c, 0.5);
     const lpf = c.createBiquadFilter();
     const gain = c.createGain();
@@ -82,28 +109,27 @@ export const playPowerOn = () => {
     noise.connect(lpf);
     lpf.connect(gain);
     gain.connect(c.destination);
-    gain.gain.setValueAtTime(0.12, c.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.5);
-    noise.start(c.currentTime);
-    noise.stop(c.currentTime + 0.5);
+    gain.gain.setValueAtTime(0.12, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    noise.start(t);
+    noise.stop(t + 0.5);
 
-    // Tube warmup whine
     const osc = c.createOscillator();
     const oscGain = c.createGain();
     osc.connect(oscGain);
     oscGain.connect(c.destination);
     osc.type = "sine";
-    osc.frequency.setValueAtTime(40, c.currentTime);
-    osc.frequency.linearRampToValueAtTime(60, c.currentTime + 0.8);
-    oscGain.gain.setValueAtTime(0, c.currentTime);
-    oscGain.gain.linearRampToValueAtTime(0.04, c.currentTime + 0.3);
-    oscGain.gain.linearRampToValueAtTime(0, c.currentTime + 0.8);
-    osc.start(c.currentTime);
-    osc.stop(c.currentTime + 0.8);
+    osc.frequency.setValueAtTime(40, t);
+    osc.frequency.linearRampToValueAtTime(60, t + 0.8);
+    oscGain.gain.setValueAtTime(0, t);
+    oscGain.gain.linearRampToValueAtTime(0.04, t + 0.3);
+    oscGain.gain.linearRampToValueAtTime(0, t + 0.8);
+    osc.start(t);
+    osc.stop(t + 0.8);
   } catch {}
 };
 
-// Low CRT hum — 60Hz mains + harmonics, very subtle
+// Low CRT hum — 60Hz mains + harmonics
 export const startCRTHum = (): (() => void) => {
   try {
     const c = getCtx();
@@ -118,7 +144,7 @@ export const startCRTHum = (): (() => void) => {
       const oscGain = c.createGain();
       osc.type = "sine";
       osc.frequency.value = f;
-      oscGain.gain.value = 1 / (i + 1); // harmonics decay
+      oscGain.gain.value = 1 / (i + 1);
       osc.connect(oscGain);
       oscGain.connect(gain);
       osc.start();
@@ -134,40 +160,35 @@ export const startCRTHum = (): (() => void) => {
   }
 };
 
-// Warm analog static — brown noise (lowpass filtered white noise)
+// Warm analog static — brown noise
 export const playStatic = (duration = 0.15, volume = 0.08) => {
   try {
     const c = getCtx();
+    const t = c.currentTime;
     const noise = createNoise(c, duration);
     const lpf = c.createBiquadFilter();
     const hpf = c.createBiquadFilter();
     const gain = c.createGain();
-
-    // Brown-ish noise: cut highs, keep it warm
     lpf.type = "lowpass";
     lpf.frequency.value = 4000;
     hpf.type = "highpass";
     hpf.frequency.value = 200;
-
     noise.connect(hpf);
     hpf.connect(lpf);
     lpf.connect(gain);
     gain.connect(c.destination);
-
-    gain.gain.setValueAtTime(volume, c.currentTime);
-    gain.gain.linearRampToValueAtTime(volume * 0.8, c.currentTime + duration * 0.7);
-    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + duration);
-
-    noise.start(c.currentTime);
-    noise.stop(c.currentTime + duration);
+    gain.gain.setValueAtTime(volume, t);
+    gain.gain.linearRampToValueAtTime(volume * 0.8, t + duration * 0.7);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+    noise.start(t);
+    noise.stop(t + duration);
   } catch {}
 };
 
-// Glitch — rapid static pops, analog feel
+// Glitch — rapid static pops
 export const playGlitch = () => {
   try {
     const c = getCtx();
-    // Several short static pops
     for (let i = 0; i < 4; i++) {
       const t = c.currentTime + i * 0.05 + Math.random() * 0.02;
       const noise = createNoise(c, 0.04);
@@ -188,29 +209,27 @@ export const playGlitch = () => {
   } catch {}
 };
 
-// CRT power-off — degauss whine descending into silence
+// CRT power-off — degauss whine descending
 export const playTVOff = () => {
   try {
     const c = getCtx();
-    // Descending flyback whine
+    const t = c.currentTime;
     const osc = c.createOscillator();
     const gain = c.createGain();
     osc.connect(gain);
     gain.connect(c.destination);
     osc.type = "sine";
-    osc.frequency.setValueAtTime(800, c.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(30, c.currentTime + 0.5);
-    gain.gain.setValueAtTime(0.06, c.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.6);
-    osc.start(c.currentTime);
-    osc.stop(c.currentTime + 0.6);
-
-    // Static pop at the end
+    osc.frequency.setValueAtTime(800, t);
+    osc.frequency.exponentialRampToValueAtTime(30, t + 0.5);
+    gain.gain.setValueAtTime(0.06, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+    osc.start(t);
+    osc.stop(t + 0.6);
     setTimeout(() => playStatic(0.08, 0.1), 400);
   } catch {}
 };
 
-// Subtle confirmation — soft double-tap, not a game beep
+// Subtle confirmation — soft double-tap
 export const playConfirm = () => {
   try {
     const c = getCtx();

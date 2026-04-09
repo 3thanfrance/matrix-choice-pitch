@@ -11,51 +11,49 @@ interface StoryNode {
 const storyTree: Record<string, StoryNode> = {
   start: {
     lines: [
-      "YOU'RE TRAPPED — AND YOU DON'T EVEN KNOW IT.",
-      "LOCKED INSIDE A SYSTEM THAT FEEDS YOU DASHBOARDS",
-      "BUT STARVES YOU OF ANSWERS.",
+      "HELLO, ANTON.",
+      "",
+      "YOUR DATA IS LYING TO YOU.",
+      "DIFFERENT TEAMS. DIFFERENT NUMBERS.",
+      "SAME QUESTION. NO ONE AGREES.",
     ],
-    prompt: "READY TO SEE THE TRUTH? [Y/N]",
+    prompt: "WANT TO BREAK FREE? [Y/N]",
     yes: "verify",
     no: "bluepill",
   },
   verify: {
     lines: [
-      "WAIT.",
-      "",
       "SCANNING ████████████ ...",
       "LOCATION: LOVABLE HQ, STOCKHOLM",
       "BIOMETRIC HASH: 7F:3A:9C:██:██:██",
       "",
       "  I D E N T I T Y   C O N F I R M E D",
       "",
-      "ANTON OSIKA. FOUNDER. LOVABLE.",
-      "WE'VE BEEN WATCHING. YOU'RE READY.",
+      ">> RED PILL PROTOCOL: ACTIVATED",
     ],
-    prompt: "TAKE THE RED PILL? [Y/N]",
+    prompt: "READY FOR THE TRUTH? [Y/N]",
     yes: "pitch",
     no: "bluepill",
   },
   bluepill: {
     lines: [
-      ">> BLUE PILL ACCEPTED.",
-      "YOU WAKE UP TOMORROW. SAME DASHBOARDS.",
-      "SAME QUESTIONS NO ONE CAN ANSWER.",
+      ">> BLUE PILL PROTOCOL: ACTIVATED.",
+      "SAME DASHBOARDS. SAME CONFUSION.",
+      "NOTHING CHANGES.",
     ],
     prompt: "CHANGE YOUR MIND? [Y/N]",
-    yes: "pitch",
+    yes: "verify",
     no: "final_no",
   },
   pitch: {
     lines: [
-      "WHAT IF ANYONE ON YOUR TEAM COULD",
-      "ASK A QUESTION IN PLAIN ENGLISH",
-      "AND ACTUALLY TRUST THE ANSWER?",
-      "",
-      "NO SQL. NO TICKETS. NO WAITING.",
+      "YOUR ANALYSTS ARE BOTTLENECKED.",
+      "EVERY QUESTION GOES THROUGH THEM.",
+      "YOUR AI RUNS ON UNGOVERNED DATA —",
+      "FAST ANSWERS, WRONG ANSWERS.",
     ],
-    prompt: "WANT TO SEE HOW? [Y/N]",
-    yes: "embedded",
+    prompt: "WHAT IF ANYONE COULD ASK AND TRUST THE ANSWER? [Y/N]",
+    yes: "solution",
     no: "hesitate",
   },
   hesitate: {
@@ -65,18 +63,18 @@ const storyTree: Record<string, StoryNode> = {
       "IS A DECISION MADE IN THE DARK.",
     ],
     prompt: "RECONSIDER? [Y/N]",
-    yes: "embedded",
+    yes: "solution",
     no: "final_no",
   },
-  embedded: {
+  solution: {
     lines: [
-      "NOW PICTURE THIS INSIDE YOUR PRODUCT.",
-      "YOUR USERS ASKING THEIR OWN QUESTIONS.",
-      "",
-      "AI ANALYTICS — EMBEDDED. CUSTOMIZABLE.",
-      "GROUNDED IN YOUR METRICS.",
+      "OMNI. ONE SEMANTIC LAYER.",
+      "METRICS DEFINED ONCE. TRUSTED EVERYWHERE.",
+      "ANYONE ASKS IN PLAIN ENGLISH.",
+      "AI THAT CAN'T GO ROGUE.",
+      "ALREADY ON DBT? PLUG IN NATIVELY.",
     ],
-    prompt: "READY TO MEET THE ARCHITECTS? [Y/N]",
+    prompt: "READY TO SEE THE OTHER SIDE? [Y/N]",
     yes: "demo",
     no: "final_no",
   },
@@ -123,14 +121,11 @@ const Terminal = () => {
 
   const node = storyTree[currentNode];
 
-  // Play key click on every typed character (throttled)
+  // Key click on typing
   useEffect(() => {
     if (phase !== "typing") return;
     clickCountRef.current++;
-    // Play every other char to avoid overwhelming audio
-    if (clickCountRef.current % 2 === 0) {
-      playKeyClick();
-    }
+    if (clickCountRef.current % 2 === 0) playKeyClick();
   }, [charIndex, phase]);
 
   // Sound on node transitions
@@ -139,21 +134,18 @@ const Terminal = () => {
     if (currentNode === "demo") playConfirm();
   }, [currentNode]);
 
-  // When typing finishes on a terminal node (no prompt), trigger outro
+  // Terminal nodes trigger outro
   useEffect(() => {
     if (phase === "idle" && node && !node.prompt && (currentNode === "demo" || currentNode === "final_no")) {
-      const timer = setTimeout(() => {
-        setOutroStage("omni");
-      }, 2000);
+      const timer = setTimeout(() => setOutroStage("omni"), 2000);
       return () => clearTimeout(timer);
     }
   }, [phase, node, currentNode]);
 
-  // Outro sequence with sounds
+  // Outro sequence
   useEffect(() => {
     if (outroStage === "none") return;
     let timers: ReturnType<typeof setTimeout>[] = [];
-
     if (outroStage === "omni") {
       timers.push(setTimeout(() => setOutroStage("omni-glitch"), 2000));
     } else if (outroStage === "omni-glitch") {
@@ -171,11 +163,10 @@ const Terminal = () => {
         setRequestReboot(true);
       }, 800));
     }
-
     return () => timers.forEach(clearTimeout);
   }, [outroStage]);
 
-  // Listen for any key to reboot
+  // Reboot listener
   useEffect(() => {
     if (!requestReboot) return;
     const handler = () => {
@@ -201,7 +192,6 @@ const Terminal = () => {
   // Typing phase
   useEffect(() => {
     if (phase !== "typing" || !node || outroStage !== "none") return;
-
     if (lineIndex >= node.lines.length) {
       if (node.prompt) {
         setTimeout(() => {
@@ -212,44 +202,31 @@ const Terminal = () => {
       setPhase("idle");
       return;
     }
-
     const currentLine = node.lines[lineIndex];
-
     if (currentLine === "") {
       setDisplayedLines((prev) => [...prev, ""]);
-      setTimeout(() => {
-        setLineIndex((i) => i + 1);
-        setCharIndex(0);
-      }, LINE_DELAY);
+      setTimeout(() => { setLineIndex((i) => i + 1); setCharIndex(0); }, LINE_DELAY);
       return;
     }
-
     if (charIndex < currentLine.length) {
       const timer = setTimeout(() => {
         setDisplayedLines((prev) => {
           const copy = [...prev];
-          if (charIndex === 0) {
-            copy.push(currentLine.slice(0, 1));
-          } else {
-            copy[copy.length - 1] = currentLine.slice(0, charIndex + 1);
-          }
+          if (charIndex === 0) copy.push(currentLine.slice(0, 1));
+          else copy[copy.length - 1] = currentLine.slice(0, charIndex + 1);
           return copy;
         });
         setCharIndex((c) => c + 1);
       }, TYPING_SPEED);
       return () => clearTimeout(timer);
     } else {
-      setTimeout(() => {
-        setLineIndex((i) => i + 1);
-        setCharIndex(0);
-      }, LINE_DELAY);
+      setTimeout(() => { setLineIndex((i) => i + 1); setCharIndex(0); }, LINE_DELAY);
     }
   }, [phase, lineIndex, charIndex, node, outroStage]);
 
   // Deleting phase
   useEffect(() => {
     if (phase !== "deleting") return;
-
     if (displayedLines.length === 0) {
       if (nextNodeKey) {
         setCurrentNode(nextNodeKey);
@@ -260,25 +237,17 @@ const Terminal = () => {
       }
       return;
     }
-
     const lastLine = displayedLines[displayedLines.length - 1];
-
     if (lastLine === "" || lastLine.length === 0) {
-      const timer = setTimeout(() => {
-        setDisplayedLines((prev) => prev.slice(0, -1));
-      }, DELETE_SPEED);
+      const timer = setTimeout(() => setDisplayedLines((prev) => prev.slice(0, -1)), DELETE_SPEED);
       return () => clearTimeout(timer);
     }
-
     const timer = setTimeout(() => {
       setDisplayedLines((prev) => {
         const copy = [...prev];
         const line = copy[copy.length - 1];
-        if (line.length <= 1) {
-          copy.pop();
-        } else {
-          copy[copy.length - 1] = line.slice(0, -1);
-        }
+        if (line.length <= 1) copy.pop();
+        else copy[copy.length - 1] = line.slice(0, -1);
         return copy;
       });
     }, DELETE_SPEED);
@@ -288,13 +257,10 @@ const Terminal = () => {
   const handleInput = useCallback(
     (answer: "y" | "n") => {
       if (!waitingForInput || !node) return;
-
       playEnterKey();
       setWaitingForInput(false);
       setShowPrompt(false);
-
       const nextKey = answer === "y" ? node.yes : node.no;
-
       if (nextKey) {
         setNextNodeKey(nextKey);
         setTimeout(() => {
@@ -329,25 +295,26 @@ const Terminal = () => {
               )}
             </div>
           )}
-
           {(outroStage === "omni" || outroStage === "omni-glitch") && (
             <div className={`text-glow space-y-2 ${outroStage === "omni-glitch" ? "glitch-text" : ""}`}>
-              <div className="text-primary text-2xl tracking-[0.5em] font-bold">
-                O M N I
-              </div>
+              <div className="text-primary text-2xl tracking-[0.5em] font-bold">O M N I</div>
               <div className="text-muted-foreground/40 text-xs">OMNI.CO</div>
             </div>
           )}
-
           {(outroStage === "lovable" || outroStage === "lovable-glitch") && (
             <div className={`text-glow space-y-2 ${outroStage === "lovable-glitch" ? "glitch-text" : ""}`}>
               <div className="text-muted-foreground/50 text-xs tracking-widest">ENABLED BY</div>
-              <div className="text-primary text-lg tracking-[0.4em]">
-                L O V A B L E
-              </div>
+              <div className="text-primary text-lg tracking-[0.4em]">L O V A B L E</div>
             </div>
           )}
         </div>
+
+        {/* Persistent footer even in outro */}
+        {outroStage !== "tvoff" && outroStage !== "dead" && (
+          <div className="fixed bottom-0 left-0 right-0 border-t border-border px-4 py-1 text-xs tracking-wider text-muted-foreground/40 flex justify-center z-40">
+            <span>MISSION BRIEF BY <span className="text-primary/50">OMNI.CO</span></span>
+          </div>
+        )}
       </div>
     );
   }
@@ -365,14 +332,10 @@ const Terminal = () => {
       >
         <div className="w-full max-w-2xl text-center text-sm leading-snug text-glow">
           {displayedLines.map((line, i) => (
-            <div
-              key={i}
-              className="line-fade min-h-[1.15em] whitespace-pre-wrap font-mono"
-            >
+            <div key={i} className="line-fade min-h-[1.15em] whitespace-pre-wrap font-mono">
               {line}
             </div>
           ))}
-
           {showPrompt && (
             <div className="mt-2">
               <div className="font-bold text-primary">{node.prompt}</div>
@@ -403,7 +366,7 @@ const Terminal = () => {
       </div>
 
       <div className="border-t border-border px-4 py-1 text-xs tracking-wider text-muted-foreground flex justify-between">
-        <span>CLASSIFIED // EYES ONLY</span>
+        <span>MISSION BRIEF BY <span className="text-primary/60">OMNI.CO</span></span>
         <span className="text-primary text-glow">SIGNAL: ACTIVE</span>
       </div>
     </div>
