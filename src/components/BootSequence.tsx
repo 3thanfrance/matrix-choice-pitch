@@ -58,7 +58,7 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
       }, 2000),
       // Brand text after zoom completes
       setTimeout(() => {
-        (window as any).__brandText = { label: "PRESENTED BY", name: "O M N I" };
+        (window as any).__brandText = { label: "PRESENTED BY", name: "O M N I", startTime: Date.now(), enabledBy: "enabled by lovable" };
       }, 5500),
       // Blink to dismiss
       setTimeout(() => {
