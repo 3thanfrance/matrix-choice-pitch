@@ -222,15 +222,20 @@ const Terminal = () => {
     }
   }, [phase, currentNode, node, showOutro]);
 
-  // Outro: zoom back out to silhouette, then reboot
+  // Outro: blink first, then zoom back out to silhouette, then reboot
   useEffect(() => {
     if (!showOutro) return;
 
-    (window as any).__matrixZoomOutStart = Date.now();
+    // Trigger a blink first — the zoom starts while the eye is closed
+    window.dispatchEvent(new CustomEvent("eye-blink"));
 
-    const timer = setTimeout(() => {
+    // Start zoom-out after a brief delay (while eye is closing)
+    const zoomDelay = setTimeout(() => {
+      (window as any).__matrixZoomOutStart = Date.now();
+    }, 400);
+
+    const rebootTimer = setTimeout(() => {
       (window as any).__matrixZoomOutStart = undefined;
-      // Reset state
       setShowOutro(false);
       setDisplayedLines([]);
       setCurrentNode("verify");
@@ -241,12 +246,12 @@ const Terminal = () => {
       setNextNodeKey(null);
       autoSeqIndexRef.current = 0;
       setPhase("typing");
-      // Trigger full reboot (remounts BootSequence)
       window.dispatchEvent(new CustomEvent("terminal-reboot"));
-    }, ZOOM_OUT_DURATION + 500);
+    }, ZOOM_OUT_DURATION + 1000);
 
     return () => {
-      clearTimeout(timer);
+      clearTimeout(zoomDelay);
+      clearTimeout(rebootTimer);
       (window as any).__matrixZoomOutStart = undefined;
     };
   }, [showOutro]);
