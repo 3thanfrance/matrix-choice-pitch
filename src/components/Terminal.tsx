@@ -2,26 +2,35 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { playKeyClick, playEnterKey, playStatic, playGlitch, playTVOff, playConfirm } from "@/lib/sounds";
 
 interface StoryNode {
-  lines: string[];
+  lines: string[];      // Each entry = one "screen" (shown then cleared)
   prompt?: string;
   yes?: string;
   no?: string;
 }
 
+// Each node's lines array: lines are typed one at a time.
+// Between nodes, ALL text is deleted before the next node types.
+// Within a node, we show max ~3 lines at once by grouping.
 const storyTree: Record<string, StoryNode> = {
   start: {
     lines: [
       "HELLO, ANTON.",
-      "",
+    ],
+  },
+  verify: {
+    lines: [
       "INITIATING IDENTITY VERIFICATION...",
-      "",
       "SCANNING ████████████████ ...",
       "LOCATION: LOVABLE HQ, STOCKHOLM",
-      "ROLE: FOUNDER / CEO",
-      "BIOMETRIC HASH: 7F:3A:9C:██:██:██",
-      "",
-      "  I D E N T I T Y   C O N F I R M E D",
-      "",
+    ],
+  },
+  verified: {
+    lines: [
+      "I D E N T I T Y   C O N F I R M E D",
+    ],
+  },
+  trapped: {
+    lines: [
       "ANTON — YOU'RE TRAPPED.",
       "AND YOU DON'T EVEN KNOW IT.",
     ],
@@ -32,11 +41,8 @@ const storyTree: Record<string, StoryNode> = {
   redpill: {
     lines: [
       ">> RED PILL PROTOCOL: ACTIVATED.",
-      "",
       "YOUR TEAM ASKS A QUESTION.",
-      "THREE PEOPLE PULL THE SAME METRIC.",
       "THREE DIFFERENT ANSWERS.",
-      "NOBODY KNOWS WHO'S RIGHT.",
     ],
     prompt: "SOUND FAMILIAR? [Y/N]",
     yes: "solution",
@@ -46,7 +52,6 @@ const storyTree: Record<string, StoryNode> = {
     lines: [
       ">> BLUE PILL PROTOCOL: ACTIVATED.",
       "SAME DASHBOARDS. SAME CONFUSION.",
-      "NOTHING CHANGES.",
     ],
     prompt: "CHANGE YOUR MIND? [Y/N]",
     yes: "redpill",
@@ -55,7 +60,7 @@ const storyTree: Record<string, StoryNode> = {
   hesitate: {
     lines: [
       ">> HESITATION NOTED.",
-      "EVERY QUESTION YOUR AI ANSWERS WRONG —",
+      "EVERY WRONG ANSWER =",
       "A DECISION MADE IN THE DARK.",
     ],
     prompt: "RECONSIDER? [Y/N]",
@@ -65,23 +70,25 @@ const storyTree: Record<string, StoryNode> = {
   solution: {
     lines: [
       "OMNI. ONE LAYER OF TRUTH.",
-      "ASK IN PLAIN ENGLISH. GET REAL ANSWERS.",
-      "NO BOTTLENECK. NO ROGUE AI.",
-      "PLUGS INTO WHAT YOU ALREADY HAVE.",
+      "ASK IN PLAIN ENGLISH.",
+      "GET REAL ANSWERS.",
     ],
-    prompt: "READY TO SEE THE OTHER SIDE? [Y/N]",
+    prompt: "SEE THE OTHER SIDE? [Y/N]",
     yes: "demo",
     no: "final_no",
   },
   demo: {
     lines: [
-      "========================================",
-      "  A C C E S S   G R A N T E D",
-      "========================================",
+      "═══════════════════════════",
+      "A C C E S S   G R A N T E D",
+      "═══════════════════════════",
+    ],
+  },
+  demo2: {
+    lines: [
+      "OMNI.CO/SCHEDULE",
       "",
-      "  OMNI.CO/SCHEDULE",
-      "",
-      "SEE YOU ON THE OTHER SIDE, ANTON.",
+      "SEE YOU ON THE OTHER SIDE.",
     ],
   },
   final_no: {
@@ -92,10 +99,13 @@ const storyTree: Record<string, StoryNode> = {
   },
 };
 
+// Auto-advance sequence (no user input needed)
+const AUTO_SEQUENCE = ["start", "verify", "verified", "trapped"];
+
 const TYPING_SPEED = 25;
-const LINE_DELAY = 80;
-const DELETE_SPEED = 5;
+const DELETE_SPEED = 4;
 const LINGER_DURATION = 1200;
+const AUTO_LINGER = 1500;
 
 type Phase = "typing" | "lingering" | "deleting" | "idle";
 
@@ -110,31 +120,68 @@ const Terminal = () => {
   const [nextNodeKey, setNextNodeKey] = useState<string | null>(null);
   const [outroStage, setOutroStage] = useState<"none" | "omni" | "omni-glitch" | "lovable" | "lovable-glitch" | "tvoff" | "dead">("none");
   const [requestReboot, setRequestReboot] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const autoSeqIndexRef = useRef(0);
   const clickCountRef = useRef(0);
 
   const node = storyTree[currentNode];
 
-  // Key click on typing
+  // Key click sounds
   useEffect(() => {
     if (phase !== "typing") return;
     clickCountRef.current++;
     if (clickCountRef.current % 2 === 0) playKeyClick();
   }, [charIndex, phase]);
 
-  // Sound on node transitions
+  // Sound on specific nodes
   useEffect(() => {
     if (currentNode === "verify") playStatic(0.2, 0.06);
+    if (currentNode === "verified") playConfirm();
     if (currentNode === "demo") playConfirm();
   }, [currentNode]);
 
-  // Terminal nodes trigger outro
+  // Auto-advance for non-interactive nodes
   useEffect(() => {
-    if (phase === "idle" && node && !node.prompt && (currentNode === "demo" || currentNode === "final_no")) {
-      const timer = setTimeout(() => setOutroStage("omni"), 2000);
+    if (phase !== "idle" || outroStage !== "none") return;
+    if (!node) return;
+
+    // Check if this is an auto-advance node
+    const autoIdx = AUTO_SEQUENCE.indexOf(currentNode);
+    if (autoIdx >= 0 && autoIdx < AUTO_SEQUENCE.length - 1) {
+      const nextAutoNode = AUTO_SEQUENCE[autoIdx + 1];
+      const timer = setTimeout(() => {
+        setNextNodeKey(nextAutoNode);
+        autoSeqIndexRef.current = autoIdx + 1;
+        setPhase("deleting");
+      }, AUTO_LINGER);
       return () => clearTimeout(timer);
     }
-  }, [phase, node, currentNode]);
+
+    // Terminal nodes (demo, final_no) → trigger outro after showing demo2
+    if (currentNode === "demo") {
+      const timer = setTimeout(() => {
+        setNextNodeKey("demo2");
+        setPhase("deleting");
+      }, AUTO_LINGER);
+      return () => clearTimeout(timer);
+    }
+
+    if (currentNode === "demo2" || currentNode === "final_no") {
+      if (!node.prompt) {
+        const timer = setTimeout(() => setOutroStage("omni"), 2500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [phase, currentNode, node, outroStage]);
+
+  // Show prompt when typing finishes on interactive nodes
+  useEffect(() => {
+    if (phase !== "idle" || !node?.prompt) return;
+    const timer = setTimeout(() => {
+      setShowPrompt(true);
+      setWaitingForInput(true);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [phase, node]);
 
   // Outro sequence
   useEffect(() => {
@@ -173,6 +220,8 @@ const Terminal = () => {
       setShowPrompt(false);
       setWaitingForInput(false);
       setNextNodeKey(null);
+      autoSeqIndexRef.current = 0;
+      setPhase("typing");
       window.dispatchEvent(new CustomEvent("terminal-reboot"));
     };
     window.addEventListener("keydown", handler);
@@ -187,19 +236,13 @@ const Terminal = () => {
   useEffect(() => {
     if (phase !== "typing" || !node || outroStage !== "none") return;
     if (lineIndex >= node.lines.length) {
-      if (node.prompt) {
-        setTimeout(() => {
-          setShowPrompt(true);
-          setWaitingForInput(true);
-        }, 200);
-      }
       setPhase("idle");
       return;
     }
     const currentLine = node.lines[lineIndex];
     if (currentLine === "") {
       setDisplayedLines((prev) => [...prev, ""]);
-      setTimeout(() => { setLineIndex((i) => i + 1); setCharIndex(0); }, LINE_DELAY);
+      setTimeout(() => { setLineIndex((i) => i + 1); setCharIndex(0); }, 80);
       return;
     }
     if (charIndex < currentLine.length) {
@@ -214,11 +257,11 @@ const Terminal = () => {
       }, TYPING_SPEED);
       return () => clearTimeout(timer);
     } else {
-      setTimeout(() => { setLineIndex((i) => i + 1); setCharIndex(0); }, LINE_DELAY);
+      setTimeout(() => { setLineIndex((i) => i + 1); setCharIndex(0); }, 80);
     }
   }, [phase, lineIndex, charIndex, node, outroStage]);
 
-  // Deleting phase
+  // Deleting phase — fast character-by-character delete
   useEffect(() => {
     if (phase !== "deleting") return;
     if (displayedLines.length === 0) {
@@ -227,6 +270,7 @@ const Terminal = () => {
         setNextNodeKey(null);
         setLineIndex(0);
         setCharIndex(0);
+        setShowPrompt(false);
         setPhase("typing");
       }
       return;
@@ -319,24 +363,25 @@ const Terminal = () => {
         {" "}OMNI TERMINAL — ENCRYPTED CHANNEL
       </div>
 
-      <div
-        ref={containerRef}
-        className="flex flex-1 items-center justify-center overflow-hidden px-4 sm:px-8 md:px-12"
-      >
-        <div className="w-full max-w-2xl text-center text-xs sm:text-sm leading-snug text-glow">
+      <div className="flex flex-1 items-center justify-center overflow-hidden px-4 sm:px-8 md:px-12">
+        <div className="w-full max-w-2xl text-center text-xs sm:text-sm leading-relaxed text-glow">
           {displayedLines.map((line, i) => (
-            <div key={i} className="line-fade min-h-[1.15em] whitespace-pre-wrap font-mono">
+            <div key={`${currentNode}-${i}`} className="line-fade min-h-[1.2em] whitespace-pre-wrap font-mono">
               {line}
             </div>
           ))}
+          {phase === "typing" && (
+            <div className="min-h-[1.2em]">
+              <span className="cursor-blink text-primary">█</span>
+            </div>
+          )}
           {showPrompt && (
-            <div className="mt-2">
+            <div className="mt-3">
               <div className="font-bold text-primary text-xs sm:text-sm">{node.prompt}</div>
               <div className="mt-1 items-center justify-center gap-1 hidden sm:flex">
                 <span className="text-muted-foreground">&gt;&gt;</span>
                 <span className="cursor-blink text-primary">█</span>
               </div>
-              {/* Mobile tap buttons */}
               <div className="mt-3 flex justify-center gap-3 sm:hidden">
                 <button
                   onClick={() => handleInput("y")}
