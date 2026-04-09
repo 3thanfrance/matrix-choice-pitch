@@ -4,6 +4,7 @@ import { prepareWithSegments, layoutWithLines } from "@chenglou/pretext";
 declare global {
   interface Window {
     __matrixZoomStart?: number;
+    __matrixZoomOutStart?: number;
     __brandText?: { label: string; name: string } | null;
   }
 }
@@ -218,7 +219,7 @@ function drawEyeMask(
   ctx.arc(cx - pupilR * 0.6, cy - pupilR * 0.5, pupilR * 0.25, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.restore(); // pop clip
+  ctx.restore();
 
   ctx.strokeStyle = "rgb(200, 200, 200)";
   ctx.lineWidth = 3;
@@ -318,19 +319,27 @@ const MatrixAgents = () => {
     const draw = () => {
       tick++;
 
-      // --- ZOOM ---
-      const zoomStart = (window as any).__matrixZoomStart as number | undefined;
+      // --- ZOOM (supports both zoom-in and zoom-out) ---
+      const zoomInStart = (window as any).__matrixZoomStart as number | undefined;
+      const zoomOutStart = (window as any).__matrixZoomOutStart as number | undefined;
       let zoom = 0;
-      if (zoomStart) {
-        zoom = Math.min(1, (Date.now() - zoomStart) / ZOOM_DURATION);
+      if (zoomOutStart) {
+        zoom = Math.max(0, 1 - (Date.now() - zoomOutStart) / ZOOM_DURATION);
+      } else if (zoomInStart) {
+        zoom = Math.min(1, (Date.now() - zoomInStart) / ZOOM_DURATION);
       }
 
-      // --- BRIGHTNESS DEPTH (dip during zoom transition) ---
+      // --- BRIGHTNESS DEPTH ---
+      // Gentle dip centered at the silhouette→eye crossover for depth
+      // Keeps detail visible throughout — just enough dimming to add depth
       let brightness = 1;
-      if (zoom > 0.3 && zoom < 0.7) {
-        const t = (zoom - 0.3) / 0.4;
-        brightness = 1 - Math.pow(Math.sin(t * Math.PI), 2) * 0.92;
+      if (zoom > 0.38 && zoom < 0.62) {
+        const t = (zoom - 0.38) / 0.24;
+        brightness = 1 - Math.pow(Math.sin(t * Math.PI), 2) * 0.45;
       }
+
+      // Slight vignette boost when fully zoomed for crisp eye detail
+      const edgeBoost = zoom >= 0.9 ? 1.2 : 1;
 
       // --- BLINK ---
       blinkTimer++;
@@ -378,11 +387,12 @@ const MatrixAgents = () => {
       const useEye = zoom >= 0.5;
 
       if (!useEye) {
-        // Silhouette with zoom toward eye
         const eyePos = getEyePosition(W, H);
         const maxScale = 10;
         const normalizedZoom = zoom / 0.5;
-        const scale = 1 + normalizedZoom * (maxScale - 1);
+        // Ease the scale for smoother visual acceleration
+        const easedZoom = normalizedZoom * normalizedZoom * (3 - 2 * normalizedZoom);
+        const scale = 1 + easedZoom * (maxScale - 1);
 
         offCtx.save();
         offCtx.translate(W / 2, H / 2);
@@ -417,7 +427,6 @@ const MatrixAgents = () => {
         ctx.fillText(brandText.name, W / 2, H / 2);
         ctx.shadowBlur = 0;
 
-        // Decorative line
         ctx.strokeStyle = `rgba(0, 255, 65, ${0.2 * brightness})`;
         ctx.lineWidth = 1;
         const lineW = nameSize * 3;
@@ -447,13 +456,13 @@ const MatrixAgents = () => {
 
         if (mask > 60) {
           const edgeFactor = (mask - 60) / 100;
-          const edgeAlpha = (0.1 + edgeFactor * 0.5) * brightness;
+          const edgeAlpha = (0.15 + edgeFactor * 0.55) * brightness * edgeBoost;
           const ch = tick % 2 === 0
             ? corpusChars[Math.floor(Math.random() * corpusChars.length)]
             : cell.ch;
           ctx.shadowColor = "#00FF41";
-          ctx.shadowBlur = (4 + edgeFactor * 8) * brightness;
-          ctx.fillStyle = `rgba(0, 255, 65, ${edgeAlpha})`;
+          ctx.shadowBlur = (5 + edgeFactor * 12) * brightness * edgeBoost;
+          ctx.fillStyle = `rgba(0, 255, 65, ${Math.min(0.7, edgeAlpha)})`;
           ctx.fillText(ch, cell.x, cell.y);
           ctx.shadowBlur = 0;
           continue;
@@ -462,17 +471,17 @@ const MatrixAgents = () => {
         pulsePhase[i] += 0.012;
         const pulse = 0.5 + Math.sin(pulsePhase[i]) * 0.15;
         const wave = Math.sin(tick * 0.008 + cell.x * 0.003 + cell.y * 0.005) * 0.04;
-        const alpha = (0.1 + pulse * 0.12 + wave) * brightness;
+        const alpha = (0.12 + pulse * 0.14 + wave) * brightness;
 
         let ch = cell.ch;
         if (tick % 10 === 0 && Math.random() > 0.97) {
           ch = corpusChars[Math.floor(Math.random() * corpusChars.length)];
         }
 
-        const glow = alpha > 0.22 * brightness ? 1.5 * brightness : 0;
+        const glow = alpha > 0.2 * brightness ? 1.8 * brightness : 0;
         ctx.shadowColor = glow > 0 ? "#00FF41" : "transparent";
         ctx.shadowBlur = glow;
-        ctx.fillStyle = `rgba(0, 255, 65, ${Math.min(0.4, alpha)})`;
+        ctx.fillStyle = `rgba(0, 255, 65, ${Math.min(0.45, alpha)})`;
         ctx.fillText(ch, cell.x, cell.y);
       }
 
