@@ -194,13 +194,7 @@ const MatrixAgents = () => {
     let prepared: ReturnType<typeof prepareWithSegments>;
     let layoutResult: ReturnType<typeof layoutWithLines>;
     
-    // Each "char" in our grid: { char, x, y }
-    interface CharCell {
-      ch: string;
-      x: number;
-      y: number;
-    }
-    let charCells: CharCell[] = [];
+    let charCells: { ch: string; x: number; y: number }[] = [];
 
     function rebuildLayout() {
       W = window.innerWidth;
