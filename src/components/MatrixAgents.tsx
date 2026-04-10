@@ -755,6 +755,8 @@ const MatrixAgents = () => {
         const now = Date.now();
         const elapsed = brandText.startTime ? (now - brandText.startTime) / 1000 : 2;
 
+        // Eye center is shifted by brandOffsetX
+        const irisCx = W / 2 + currentBrandOffsetX;
         const irisY = H / 2;
         const eyeW = Math.min(W * 0.55, H * 1.2);
         const irisR = eyeW * 0.17;
