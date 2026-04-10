@@ -131,6 +131,7 @@ const PUPIL_ZOOM_OUT_DURATION = 2000;
 const ZOOM_OUT_DURATION = 4500;
 
 type Phase = "typing" | "lingering" | "deleting" | "idle";
+type PillFlash = "red" | "blue" | null;
 
 const Terminal = () => {
   const [displayedLines, setDisplayedLines] = useState<string[]>([]);
@@ -144,6 +145,7 @@ const Terminal = () => {
   const [floatOffset, setFloatOffset] = useState(0);
   const [showOutro, setShowOutro] = useState(false);
   const [staticBurst, setStaticBurst] = useState(false);
+  const [pillFlash, setPillFlash] = useState<PillFlash>(null);
   const autoSeqIndexRef = useRef(0);
   const clickCountRef = useRef(0);
   const floatRef = useRef<number>(0);
