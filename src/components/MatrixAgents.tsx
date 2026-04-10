@@ -559,6 +559,11 @@ const MatrixAgents = () => {
       } else if (zoomInStart) {
         rawZoom = Math.min(1, (Date.now() - zoomInStart) / ZOOM_DURATION);
       }
+      // Cap zoom while brand text is showing — less zoomed for Omni reveal
+      // The blink on dismiss hides the transition to full zoom
+      if (window.__brandText && rawZoom > 0.65) {
+        rawZoom = 0.65;
+      }
 
       // --- PUPIL ZOOM (eye ↔ inside pupil/terminal) ---
       const pupilZoomInStart = window.__matrixPupilZoomStart;
@@ -727,7 +732,7 @@ const MatrixAgents = () => {
 
       // --- BRAND TEXT (OMNI on eye — iris IS the "O") ---
       const brandText = window.__brandText;
-      if (brandText && zoom >= 0.95 && pupilZoom < 0.3 && blinkProgress < 0.3) {
+      if (brandText && zoom >= 0.7 && pupilZoom < 0.3 && blinkProgress < 0.3) {
         const now = Date.now();
         const elapsed = brandText.startTime ? (now - brandText.startTime) / 1000 : 2;
 
