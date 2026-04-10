@@ -40,38 +40,33 @@ const storyTree: Record<string, StoryNode> = {
       "BECAUSE NOBODY READS IT.",
     ],
     prompt: "SOUND FAMILIAR? [Y/N]",
-    yes: "redpill",
-    no: "bluepill",
+    yes: "deeper",
+    no: "comfortable",
   },
-  redpill: {
+  deeper: {
     lines: [
-      ">> RED PILL PROTOCOL ACTIVATED <<",
-      "",
       "NOTEBOOKS. SQL. PYTHON. DRAG. DROP. PRAY.",
       "YOU DIDN'T SIGN UP TO BE A DASHBOARD ENGINEER.",
       "THE INSIGHT WAS ALWAYS THERE.",
       "BURIED UNDER PROCESS.",
     ],
-    prompt: "READY TO STOP BUILDING AND START KNOWING? [Y/N]",
-    yes: "solution",
+    prompt: "READY TO ESCAPE? [Y/N]",
+    yes: "redpill",
     no: "hesitate",
   },
-  bluepill: {
+  comfortable: {
     lines: [
-      ">> BLUE PILL PROTOCOL ACTIVATED <<",
-      "",
       "YOU WANT TO STAY.",
       "STITCHING QUERIES. FORMATTING CHARTS.",
       "PRESENTING DASHBOARDS NOBODY READS.",
       "COMFORTABLE.",
     ],
     prompt: "OR... DO YOU WANT THE TRUTH? [Y/N]",
-    yes: "redpill",
-    no: "final_no",
+    yes: "deeper",
+    no: "bluepill",
   },
   hesitate: {
     lines: [
-      ">> INTERESTING.",
       "EVERY HOUR SPENT:",
       "WRITE SQL. BUILD CHART. EXPLAIN CHART.",
       "REPEAT. EVERY. WEEK.",
@@ -79,11 +74,13 @@ const storyTree: Record<string, StoryNode> = {
       "YOU JUST COULDN'T GET TO IT.",
     ],
     prompt: "WHAT IF THE PROCESS DISAPPEARED? [Y/N]",
-    yes: "solution",
-    no: "final_no",
+    yes: "redpill",
+    no: "bluepill",
   },
-  solution: {
+  redpill: {
     lines: [
+      ">> RED PILL PROTOCOL ACTIVATED <<",
+      "",
       "THIS IS OMNI.",
       "NO NOTEBOOKS. NO SQL. NO DASHBOARDS.",
       "ASK A QUESTION. IN PLAIN ENGLISH.",
@@ -92,8 +89,22 @@ const storyTree: Record<string, StoryNode> = {
       "",
       "YOUR DATA FINALLY TALKS BACK.",
     ],
-    prompt: "READY TO HEAR IT? [Y/N]",
+    prompt: "SCHEDULE A MEETING? [Y/N]",
     yes: "demo",
+    no: "final_no",
+  },
+  bluepill: {
+    lines: [
+      ">> BLUE PILL PROTOCOL ACTIVATED <<",
+      "",
+      "THE NOTEBOOK AWAITS.",
+      "THE QUERIES PILE UP.",
+      "THE DASHBOARDS GATHER DUST.",
+      "",
+      "BUT THE OFFER STILL STANDS.",
+    ],
+    prompt: "OMNI.CO — WHEN YOU'RE READY. [Y/N]",
+    yes: "redpill",
     no: "final_no",
   },
   demo: {
