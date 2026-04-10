@@ -2,20 +2,27 @@ import { useState, useEffect, useRef } from "react";
 import { playPowerOn, startCRTHum, playStatic, playKeyClick } from "@/lib/sounds";
 import MatrixAgents from "./MatrixAgents";
 
-const BOOT_DURATION = 28000;
+const FIRST_BOOT_DURATION = 32000;
 
-const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
-  const [phase, setPhase] = useState(0);
-  const [flickerClass, setFlickerClass] = useState("opacity-0");
+interface BootSequenceProps {
+  onComplete: () => void;
+  isReboot?: boolean;
+}
+
+const BootSequence = ({ onComplete, isReboot = false }: BootSequenceProps) => {
+  const [phase, setPhase] = useState(isReboot ? 2 : 0);
+  const [flickerClass, setFlickerClass] = useState(isReboot ? "opacity-100" : "opacity-0");
   const [scanlinePos, setScanlinePos] = useState(0);
   const [postLines, setPostLines] = useState<string[]>([]);
   const [loadingPct, setLoadingPct] = useState(0);
   const [audioStarted, setAudioStarted] = useState(false);
-  const [showAgentOverlay, setShowAgentOverlay] = useState(false);
+  const [showAgentOverlay, setShowAgentOverlay] = useState(isReboot);
+  const [waitingForInput, setWaitingForInput] = useState(isReboot);
   const humStopRef = useRef<(() => void) | null>(null);
 
-  // Audio init
+  // Audio init (skip power-on sound on reboot)
   useEffect(() => {
+    if (isReboot) return;
     const startAudio = () => {
       if (!audioStarted) {
         setAudioStarted(true);
@@ -30,74 +37,125 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
       window.removeEventListener("click", startAudio);
       window.removeEventListener("keydown", startAudio);
     };
-  }, [audioStarted]);
+  }, [audioStarted, isReboot]);
 
   useEffect(() => () => { humStopRef.current?.(); }, []);
 
-  // Phase timeline — extended for brand text + pupil zoom
+  // === REBOOT PATH: silhouette visible, wait for any input to start zoom ===
   useEffect(() => {
+    if (!isReboot || !waitingForInput) return;
+    
+    // Clear any leftover zoom state
+    window.__matrixZoomStart = undefined;
+    window.__matrixZoomOutStart = undefined;
+    window.__matrixPupilZoomStart = undefined;
+    window.__matrixPupilZoomOutStart = undefined;
+    window.__brandText = null;
+    window.__silhouetteText = null;
+    
+    const handleInput = () => {
+      setWaitingForInput(false);
+      // Start zoom immediately on input
+      window.__matrixZoomStart = Date.now();
+      
+      // Pupil zoom after eye zoom completes
+      setTimeout(() => {
+        window.__matrixPupilZoomStart = Date.now();
+      }, 5000);
+      
+      // Complete boot after pupil zoom
+      setTimeout(() => onComplete(), 7500);
+    };
+
+    window.addEventListener("click", handleInput, { once: true });
+    window.addEventListener("keydown", handleInput, { once: true });
+    return () => {
+      window.removeEventListener("click", handleInput);
+      window.removeEventListener("keydown", handleInput);
+    };
+  }, [isReboot, waitingForInput, onComplete]);
+
+  // === FIRST BOOT PATH: full cinematic sequence ===
+  // Phase timeline (first boot only)
+  useEffect(() => {
+    if (isReboot) return;
     const timers = [
       setTimeout(() => setPhase(1), 2000),
       setTimeout(() => setPhase(2), 4000),
-      setTimeout(() => setPhase(3), 19000),  // After pupil zoom completes
-      setTimeout(() => setPhase(4), 23000),
-      setTimeout(() => setPhase(5), 25500),
-      setTimeout(() => onComplete(), BOOT_DURATION),
+      setTimeout(() => setPhase(3), 23000),
+      setTimeout(() => setPhase(4), 27000),
+      setTimeout(() => setPhase(5), 29500),
+      setTimeout(() => onComplete(), FIRST_BOOT_DURATION),
     ];
     return () => timers.forEach(clearTimeout);
-  }, [onComplete]);
+  }, [onComplete, isReboot]);
 
-  // Phase 2: Silhouette → zoom → eye → brand text → "enabled by lovable" → pupil zoom → terminal
+  // Phase 2 (first boot): Silhouette → "enabled by lovable" → blink → zoom → eye → OMNI → blink → pupil zoom
   useEffect(() => {
-    if (phase !== 2) return;
+    if (phase !== 2 || isReboot) return;
     const timers = [
-      // Show MatrixAgents immediately (starts as silhouette)
+      // Show MatrixAgents immediately
       setTimeout(() => setShowAgentOverlay(true), 0),
 
-      // Hold silhouette for 2s, then start zoom into eye
+      // Step 1 (1s): Show "enabled by lovable" on the silhouette screen
       setTimeout(() => {
-        window.__matrixZoomStart = Date.now();
-      }, 2000),
+        window.__silhouetteText = {
+          text: "enabled by lovable",
+          startTime: Date.now(),
+        };
+      }, 1000),
 
-      // Brand text AFTER zoom completes (2s + 4.5s zoom + 0.5s settle = 7s)
+      // Step 2 (4s): Blink to transition away from "enabled by lovable"
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("eye-blink"));
+      }, 4000),
+
+      // Step 3 (4.5s): Clear silhouette text & start zoom into eye
+      setTimeout(() => {
+        window.__silhouetteText = null;
+        window.__matrixZoomStart = Date.now();
+      }, 4500),
+
+      // Step 4 (9s): Show OMNI brand text on the eye (zoom is complete by ~9s)
       setTimeout(() => {
         window.__brandText = {
           label: "PRESENTED BY",
           name: "O M N I",
           startTime: Date.now(),
-          enabledBy: "enabled by lovable",
         };
-      }, 7000),
+      }, 9500),
 
-      // Blink to dismiss brand at 12s (gives 5s for brand: underline + OMNI + label + enabled)
+      // Step 5 (14.5s): Blink to dismiss OMNI brand
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent("eye-blink"));
-      }, 12000),
+      }, 14500),
 
-      // Clear brand text while eye is closed
+      // Step 6 (15s): Clear brand text
       setTimeout(() => {
         window.__brandText = null;
-      }, 12500),
+      }, 15000),
 
-      // Start pupil zoom IN (eye → inside pupil → terminal dark) at 13s
+      // Step 7 (16s): Pupil zoom into terminal
       setTimeout(() => {
         window.__matrixPupilZoomStart = Date.now();
-      }, 13000),
+      }, 16000),
     ];
     return () => {
       timers.forEach(clearTimeout);
       window.__brandText = null;
+      window.__silhouetteText = null;
       window.__matrixZoomStart = undefined;
       window.__matrixPupilZoomStart = undefined;
     };
-  }, [phase]);
+  }, [phase, isReboot]);
 
   // Sound per phase
   useEffect(() => {
+    if (isReboot) return;
     if (phase === 1) playStatic(0.3, 0.1);
     if (phase === 3) playStatic(0.15, 0.05);
     if (phase === 5) playStatic(0.1, 0.04);
-  }, [phase]);
+  }, [phase, isReboot]);
 
   // POST lines
   useEffect(() => {
@@ -137,8 +195,9 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
     return () => clearInterval(interval);
   }, [phase]);
 
-  // Flicker
+  // Flicker (first boot only)
   useEffect(() => {
+    if (isReboot) return;
     if (phase < 1) return;
     if (phase >= 5) { setFlickerClass("opacity-100"); return; }
     const interval = setInterval(() => {
@@ -149,7 +208,7 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
       }
     }, phase === 1 ? 60 : 200);
     return () => clearInterval(interval);
-  }, [phase]);
+  }, [phase, isReboot]);
 
   // Scanline
   useEffect(() => {
@@ -162,6 +221,15 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
   const loadingBar = phase === 4
     ? "█".repeat(filled) + "░".repeat(Math.max(0, 25 - filled))
     : "";
+
+  // Reboot: just show the MatrixAgents canvas, nothing else
+  if (isReboot) {
+    return (
+      <div className="fixed inset-0 z-50 bg-background overflow-hidden">
+        {showAgentOverlay && <MatrixAgents />}
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background overflow-hidden font-mono px-4">
@@ -198,7 +266,6 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
           </div>
         )}
 
-        {/* Phase 2: MatrixAgents handles all visuals */}
         {phase === 2 && <div />}
 
         {phase === 3 && (
