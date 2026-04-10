@@ -33,12 +33,11 @@ const storyTree: Record<string, StoryNode> = {
   },
   trapped: {
     lines: [
-      "YOU OPEN HEX.",
+      "YOU OPEN YOUR ANALYTICS TOOL.",
       "WRITE A QUERY. WAIT. DEBUG. REWRITE.",
       "THIRTY MINUTES LATER, A CHART.",
-      "YOUR CEO ASKS: \"WHAT DOES THIS MEAN?\"",
-      "YOU DON'T HAVE AN ANSWER.",
-      "JUST MORE CHARTS.",
+      "NOBODY ASKS WHAT IT MEANS.",
+      "BECAUSE NOBODY READS IT.",
     ],
     prompt: "SOUND FAMILIAR? [Y/N]",
     yes: "redpill",
@@ -46,12 +45,12 @@ const storyTree: Record<string, StoryNode> = {
   },
   redpill: {
     lines: [
-      ">> R E D   P I L L   A C T I V A T E D",
+      ">>  R E D   P I L L   A C T I V A T E D  <<",
       "",
-      "HEX MAKES YOU BUILD THE ANSWER.",
       "NOTEBOOKS. SQL. PYTHON. DRAG. DROP. PRAY.",
-      "YOU BECAME A DASHBOARD ENGINEER.",
-      "THAT WAS NEVER THE JOB.",
+      "YOU DIDN'T SIGN UP TO BE A DASHBOARD ENGINEER.",
+      "THE INSIGHT WAS ALWAYS THERE.",
+      "BURIED UNDER PROCESS.",
     ],
     prompt: "READY TO STOP BUILDING AND START KNOWING? [Y/N]",
     yes: "solution",
@@ -59,11 +58,12 @@ const storyTree: Record<string, StoryNode> = {
   },
   bluepill: {
     lines: [
-      ">> B L U E   P I L L   A C T I V A T E D",
+      ">>  B L U E   P I L L   A C T I V A T E D  <<",
       "",
-      "YOU WANT TO STAY IN NOTEBOOK LAND.",
+      "YOU WANT TO STAY.",
       "STITCHING QUERIES. FORMATTING CHARTS.",
       "PRESENTING DASHBOARDS NOBODY READS.",
+      "COMFORTABLE.",
     ],
     prompt: "OR... DO YOU WANT THE TRUTH? [Y/N]",
     yes: "redpill",
@@ -72,11 +72,11 @@ const storyTree: Record<string, StoryNode> = {
   hesitate: {
     lines: [
       ">> INTERESTING.",
-      "EVERY HOUR IN HEX:",
+      "EVERY HOUR SPENT:",
       "WRITE SQL. BUILD CHART. EXPLAIN CHART.",
       "REPEAT. EVERY. WEEK.",
-      "THE INSIGHT WAS ALWAYS THERE.",
-      "BURIED UNDER PROCESS.",
+      "THE ANSWER WAS ALWAYS THERE.",
+      "YOU JUST COULDN'T GET TO IT.",
     ],
     prompt: "WHAT IF THE PROCESS DISAPPEARED? [Y/N]",
     yes: "solution",
@@ -86,11 +86,11 @@ const storyTree: Record<string, StoryNode> = {
     lines: [
       "THIS IS OMNI.",
       "NO NOTEBOOKS. NO SQL. NO DASHBOARDS.",
-      "ASK A QUESTION. IN ENGLISH.",
+      "ASK A QUESTION. IN PLAIN ENGLISH.",
       "GET THE ANSWER. NOT A CHART.",
       "THE ANSWER.",
       "",
-      "YOUR DATA TALKS BACK.",
+      "YOUR DATA FINALLY TALKS BACK.",
     ],
     prompt: "READY TO HEAR IT? [Y/N]",
     yes: "demo",
@@ -378,15 +378,25 @@ const Terminal = () => {
       setShowPrompt(false);
       const nextKey = answer === "y" ? node.yes : node.no;
       if (nextKey) {
-        // Theatrical pill flash for red/blue pill moments
+        // Theatrical pill flash + screen shake for red/blue pill moments
         if (nextKey === "redpill" || nextKey === "solution") {
           setPillFlash("red");
-          playStatic(0.3, 0.1);
-          setTimeout(() => setPillFlash(null), 600);
+          playStatic(0.4, 0.15);
+          document.body.style.animation = "none";
+          requestAnimationFrame(() => {
+            document.body.style.animation = "shake 0.4s ease-out";
+            setTimeout(() => { document.body.style.animation = ""; }, 500);
+          });
+          setTimeout(() => setPillFlash(null), 800);
         } else if (nextKey === "bluepill" || nextKey === "final_no") {
           setPillFlash("blue");
-          playStatic(0.2, 0.08);
-          setTimeout(() => setPillFlash(null), 600);
+          playStatic(0.3, 0.12);
+          document.body.style.animation = "none";
+          requestAnimationFrame(() => {
+            document.body.style.animation = "shake 0.3s ease-out";
+            setTimeout(() => { document.body.style.animation = ""; }, 400);
+          });
+          setTimeout(() => setPillFlash(null), 800);
         }
         setNextNodeKey(nextKey);
         setTimeout(() => {

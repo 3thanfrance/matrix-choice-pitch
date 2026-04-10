@@ -739,40 +739,42 @@ const MatrixAgents = () => {
         const irisY = H / 2;
         const eyeW = Math.min(W * 0.55, H * 1.2);
         const irisR = eyeW * 0.17;
-        const strokeW = irisR * 0.36; // ring thickness matching font weight
+        // Thicker ring to match Omni reference — chunky geometric O
+        const strokeW = irisR * 0.48;
         const labelSize = Math.max(12, Math.floor(W * 0.018));
 
         ctx.shadowColor = "#00FF41";
 
-        // --- Iris ring glow (the "O") ---
+        // --- Iris ring glow (the "O") — thick complete circle ---
         const ringAlpha = Math.min(0.7, elapsed * 0.6);
         if (ringAlpha > 0) {
           ctx.strokeStyle = `rgba(0, 255, 65, ${ringAlpha * 0.65 * brightness})`;
           ctx.lineWidth = strokeW;
           ctx.lineCap = "round";
-          ctx.shadowBlur = 18 * brightness;
+          ctx.shadowBlur = 22 * brightness;
           ctx.beginPath();
           ctx.arc(irisCx, irisY, irisR, 0, Math.PI * 2);
           ctx.stroke();
           // Subtle outer glow
-          ctx.strokeStyle = `rgba(0, 255, 65, ${ringAlpha * 0.15 * brightness})`;
-          ctx.lineWidth = strokeW * 0.3;
+          ctx.strokeStyle = `rgba(0, 255, 65, ${ringAlpha * 0.12 * brightness})`;
+          ctx.lineWidth = strokeW * 0.25;
           ctx.beginPath();
-          ctx.arc(irisCx, irisY, irisR + strokeW * 0.8, 0, Math.PI * 2);
+          ctx.arc(irisCx, irisY, irisR + strokeW * 0.7, 0, Math.PI * 2);
           ctx.stroke();
         }
 
-        // --- Underline beneath the "O" — dropped lower to match Omni reference ---
-        const underlineGap = strokeW * 1.6;
-        const underlineY = irisY + irisR + underlineGap + strokeW * 0.5;
+        // --- Underline bar beneath the "O" — matching reference spacing ---
+        const underlineGap = irisR * 0.45;
+        const underlineY = irisY + irisR + strokeW / 2 + underlineGap;
         const underlineDelay = 0.2;
         const underlineProgress = Math.min(1, Math.max(0, (elapsed - underlineDelay) / 0.5));
         const easeOut = 1 - Math.pow(1 - underlineProgress, 3);
-        const underlineFullW = irisR * 2.2;
+        // Underline spans wider than the O, matching reference
+        const underlineFullW = irisR * 2.4;
 
         if (underlineProgress > 0) {
           ctx.strokeStyle = `rgba(0, 255, 65, ${0.9 * brightness * underlineProgress})`;
-          ctx.lineWidth = strokeW * 0.75;
+          ctx.lineWidth = strokeW * 0.55;
           ctx.lineCap = "round";
           ctx.shadowBlur = 14 * brightness;
           ctx.beginPath();
