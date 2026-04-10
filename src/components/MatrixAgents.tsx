@@ -359,6 +359,19 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   ctx.lineTo(cx - shoulderW * 0.2, figTop + headH * 1.66);
   ctx.closePath();
   ctx.fill();
+
+  // "enabled by lovable" as negative space (mask text — matrix rain glows through)
+  if (window.__silhouetteText) {
+    const textSize = Math.max(11, Math.floor(W * 0.016));
+    ctx.font = `600 ${textSize}px 'Fira Code', monospace`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "rgb(100, 100, 100)";
+    ctx.fillText("enabled by", W * 0.06, H * 0.08);
+    ctx.fillText("Lovable", W * 0.06, H * 0.08 + textSize * 1.4);
+    ctx.textAlign = "start";
+    ctx.textBaseline = "top";
+  }
 }
 
 function drawEyeMask(
@@ -721,25 +734,7 @@ const MatrixAgents = () => {
       const imgData = offCtx.getImageData(0, 0, W, H);
       const px = imgData.data;
 
-      // --- SILHOUETTE TEXT ("enabled by lovable" shown on silhouette screen) ---
-      const silText = window.__silhouetteText;
-      if (silText && zoom < 0.1 && blinkProgress < 0.3) {
-        const now = Date.now();
-        const elapsed = silText.startTime ? (now - silText.startTime) / 1000 : 2;
-        const fadeIn = Math.min(1, elapsed / 0.8);
-        const textSize = Math.max(14, Math.floor(W * 0.022));
-
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.font = `${textSize}px 'Fira Code', monospace`;
-        ctx.shadowColor = "#00FF41";
-        ctx.shadowBlur = 14;
-        ctx.fillStyle = `rgba(0, 255, 65, ${0.6 * fadeIn})`;
-        ctx.fillText(silText.text, W / 2, H * 0.82);
-        ctx.shadowBlur = 0;
-        ctx.textAlign = "start";
-        ctx.textBaseline = "top";
-      }
+      // "enabled by lovable" is now rendered as negative space in the silhouette mask
 
       // --- BRAND TEXT (OMNI on eye) ---
       const brandText = window.__brandText;
