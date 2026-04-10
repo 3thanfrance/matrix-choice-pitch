@@ -696,8 +696,11 @@ const MatrixAgents = () => {
           offCtx.restore();
         }
       } else if (zoom >= crossoverHigh) {
-        // Pure eye (no pupil zoom)
+        // Pure eye (no pupil zoom) — apply brand offset to shift eye left for Omni
+        offCtx.save();
+        offCtx.translate(currentBrandOffsetX, 0);
         drawEyeMask(offCtx, W, H, tick, blinkProgress);
+        offCtx.restore();
       } else {
         // Blend zone
         const blendT = (zoom - crossoverLow) / (crossoverHigh - crossoverLow);
