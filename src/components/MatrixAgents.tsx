@@ -793,8 +793,8 @@ const MatrixAgents = () => {
           ctx.textBaseline = "alphabetic";
           ctx.shadowBlur = 10;
           ctx.fillStyle = `rgba(0, 255, 65, ${0.65 * brightness * labelAlpha})`;
-          const top = irisY - irisR;
-          ctx.fillText(brandText.label, irisCx, top - labelSize * 1.5);
+          const top = irisY - irisR - strokeW / 2;
+          ctx.fillText(brandText.label, irisCx, top - labelSize * 2.5);
         }
 
         // --- Auto-blink after full reveal (3s) to transition back to eyeball ---

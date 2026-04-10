@@ -45,7 +45,7 @@ const storyTree: Record<string, StoryNode> = {
   },
   redpill: {
     lines: [
-      ">>  R E D   P I L L   A C T I V A T E D  <<",
+      ">> RED PILL PROTOCOL ACTIVATED <<",
       "",
       "NOTEBOOKS. SQL. PYTHON. DRAG. DROP. PRAY.",
       "YOU DIDN'T SIGN UP TO BE A DASHBOARD ENGINEER.",
@@ -58,7 +58,7 @@ const storyTree: Record<string, StoryNode> = {
   },
   bluepill: {
     lines: [
-      ">>  B L U E   P I L L   A C T I V A T E D  <<",
+      ">> BLUE PILL PROTOCOL ACTIVATED <<",
       "",
       "YOU WANT TO STAY.",
       "STITCHING QUERIES. FORMATTING CHARTS.",
@@ -378,25 +378,15 @@ const Terminal = () => {
       setShowPrompt(false);
       const nextKey = answer === "y" ? node.yes : node.no;
       if (nextKey) {
-        // Theatrical pill flash + screen shake for red/blue pill moments
+        // Set pill protocol color indicator (no screen flash/shake)
         if (nextKey === "redpill") {
           setPillFlash("red");
-          playStatic(0.4, 0.15);
-          document.body.style.animation = "none";
-          requestAnimationFrame(() => {
-            document.body.style.animation = "shake 0.4s ease-out";
-            setTimeout(() => { document.body.style.animation = ""; }, 500);
-          });
-          setTimeout(() => setPillFlash(null), 800);
-        } else if (nextKey === "bluepill" || nextKey === "final_no") {
+          playStatic(0.15, 0.06);
+          setTimeout(() => setPillFlash(null), 2500);
+        } else if (nextKey === "bluepill") {
           setPillFlash("blue");
-          playStatic(0.3, 0.12);
-          document.body.style.animation = "none";
-          requestAnimationFrame(() => {
-            document.body.style.animation = "shake 0.3s ease-out";
-            setTimeout(() => { document.body.style.animation = ""; }, 400);
-          });
-          setTimeout(() => setPillFlash(null), 800);
+          playStatic(0.15, 0.06);
+          setTimeout(() => setPillFlash(null), 2500);
         }
         setNextNodeKey(nextKey);
         setTimeout(() => {
@@ -429,18 +419,7 @@ const Terminal = () => {
         <div className="absolute inset-0 pointer-events-none z-20 boot-static opacity-30" />
       )}
 
-      {/* Pill flash overlay — theatrical red/blue screen flash */}
-      {pillFlash && (
-        <div
-          className="absolute inset-0 pointer-events-none z-30 animate-pulse"
-          style={{
-            background: pillFlash === "red"
-              ? "radial-gradient(ellipse at center, rgba(255,0,0,0.25) 0%, rgba(255,0,0,0.08) 60%, transparent 100%)"
-              : "radial-gradient(ellipse at center, rgba(0,100,255,0.25) 0%, rgba(0,100,255,0.08) 60%, transparent 100%)",
-            animation: "pill-flash 0.6s ease-out forwards",
-          }}
-        />
-      )}
+      {/* Pill flash removed — color is now on the text itself */}
       <div className="absolute inset-0 pointer-events-none z-10 opacity-[0.03]"
         style={{
           background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,65,0.05) 2px, rgba(0,255,65,0.05) 4px)',
@@ -465,11 +444,25 @@ const Terminal = () => {
           className="w-full max-w-2xl text-center text-xs sm:text-sm leading-relaxed text-glow transition-transform duration-1000 ease-in-out"
           style={{ transform: `translateY(${floatOffset}px)` }}
         >
-          {displayedLines.map((line, i) => (
-            <div key={`${currentNode}-${i}`} className="line-fade min-h-[1.2em] whitespace-pre-wrap font-mono">
-              {line}
-            </div>
-          ))}
+          {displayedLines.map((line, i) => {
+            const isRedProtocol = pillFlash === "red" && line.includes("RED PILL PROTOCOL");
+            const isBlueProtocol = pillFlash === "blue" && line.includes("BLUE PILL PROTOCOL");
+            return (
+              <div
+                key={`${currentNode}-${i}`}
+                className="line-fade min-h-[1.2em] whitespace-pre-wrap font-mono"
+                style={
+                  isRedProtocol
+                    ? { color: "#ff3333", textShadow: "0 0 8px rgba(255,0,0,0.6), 0 0 20px rgba(255,0,0,0.25)" }
+                    : isBlueProtocol
+                    ? { color: "#3388ff", textShadow: "0 0 8px rgba(50,100,255,0.6), 0 0 20px rgba(50,100,255,0.25)" }
+                    : undefined
+                }
+              >
+                {line}
+              </div>
+            );
+          })}
           {phase === "typing" && (
             <div className="min-h-[1.2em]">
               <span className="cursor-blink text-primary">█</span>
