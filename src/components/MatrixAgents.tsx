@@ -834,35 +834,37 @@ const MatrixAgents = () => {
 
       // "enabled by Lovable" — layered: green glow backing → black text on top
       if (zoom < 0.05) {
-        const lblSize = Math.max(28, Math.floor(H * 0.05));
+        const smallSize = Math.max(16, Math.floor(H * 0.028));
+        const bigSize = Math.max(38, Math.floor(H * 0.075));
         const tx = W * 0.03;
-        const ty = H * 0.04;
-        const line2Y = ty + lblSize * 1.4;
-        const bigSize = Math.floor(lblSize * 1.4);
+        const ty = H * 0.035;
+        const line2Y = ty + smallSize * 1.6;
 
-        // Layer 1: Staticky green solid backing behind the text for contrast
-        ctx.font = `800 ${lblSize}px 'Fira Code', monospace`;
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
+
+        // Layer 1: Staticky green solid backing behind the text for contrast
         const staticFlicker = 0.35 + Math.sin(tick * 0.15) * 0.08 + Math.random() * 0.05;
-        ctx.fillStyle = `rgba(0, 255, 65, ${staticFlicker})`;
         ctx.shadowColor = "#00FF41";
-        ctx.shadowBlur = 20;
-        // Draw slightly expanded backing by stroking
-        ctx.lineWidth = 8;
+        ctx.shadowBlur = 24;
+        ctx.lineWidth = 10;
         ctx.strokeStyle = `rgba(0, 255, 65, ${staticFlicker * 0.7})`;
+        ctx.fillStyle = `rgba(0, 255, 65, ${staticFlicker})`;
+
+        ctx.font = `600 ${smallSize}px 'Fira Code', monospace`;
         ctx.strokeText("enabled by", tx, ty);
         ctx.fillText("enabled by", tx, ty);
-        ctx.font = `900 ${bigSize}px 'Fira Code', monospace`;
+
+        ctx.font = `700 ${bigSize}px Inter, system-ui, sans-serif`;
         ctx.strokeText("Lovable", tx, line2Y);
         ctx.fillText("Lovable", tx, line2Y);
         ctx.shadowBlur = 0;
 
         // Layer 2: Black text on top — crisp readable letters
-        ctx.font = `800 ${lblSize}px 'Fira Code', monospace`;
         ctx.fillStyle = "rgba(0, 0, 0, 0.92)";
+        ctx.font = `600 ${smallSize}px 'Fira Code', monospace`;
         ctx.fillText("enabled by", tx, ty);
-        ctx.font = `900 ${bigSize}px 'Fira Code', monospace`;
+        ctx.font = `700 ${bigSize}px Inter, system-ui, sans-serif`;
         ctx.fillText("Lovable", tx, line2Y);
         ctx.textAlign = "start";
       }
