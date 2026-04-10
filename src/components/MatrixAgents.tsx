@@ -910,7 +910,7 @@ const MatrixAgents = () => {
           ctx.shadowBlur = 10;
           ctx.fillStyle = `rgba(0, 255, 65, ${0.65 * brightness * labelAlpha})`;
           // Center over the full "omni" word
-          const omniCenterX = (W / 2 + lx) / 2;
+          const omniCenterX = (irisCx + lx) / 2;
           ctx.fillText(brandText.label, omniCenterX, top - labelSize * 1.5);
         }
 
