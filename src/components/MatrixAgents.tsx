@@ -360,20 +360,6 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   ctx.closePath();
   ctx.fill();
 
-  // "enabled by Lovable" as a VOID in the matrix rain — white mask suppresses characters
-  // Creating a cutout/absence in the green text background
-  const textSize = Math.max(22, Math.floor(H * 0.042));
-  ctx.font = `900 ${textSize}px 'Fira Code', monospace`;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "top";
-  // White = mask > 160 = characters are hidden, creating a void
-  ctx.fillStyle = "#fff";
-  const tx = W * 0.04;
-  const ty = H * 0.06;
-  ctx.fillText("enabled by", tx, ty);
-  ctx.font = `900 ${Math.floor(textSize * 1.3)}px 'Fira Code', monospace`;
-  ctx.fillText("Lovable", tx, ty + textSize * 1.5);
-  ctx.textAlign = "start";
 }
 
 function drawEyeMask(
@@ -845,6 +831,20 @@ const MatrixAgents = () => {
 
       ctx.shadowBlur = 0;
       ctx.shadowColor = "transparent";
+
+      // "enabled by Lovable" — large black text over the rain, behind the silhouette
+      // Only visible when zoomed out to silhouette view
+      if (zoom < 0.05) {
+        const lblSize = Math.max(28, Math.floor(H * 0.05));
+        ctx.font = `800 ${lblSize}px 'Fira Code', monospace`;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+        ctx.fillText("enabled by", W * 0.03, H * 0.04);
+        ctx.font = `900 ${Math.floor(lblSize * 1.4)}px 'Fira Code', monospace`;
+        ctx.fillText("Lovable", W * 0.03, H * 0.04 + lblSize * 1.4);
+        ctx.textAlign = "start";
+      }
 
       animRef.current = requestAnimationFrame(draw);
     };
