@@ -883,6 +883,7 @@ const MatrixAgents = () => {
         // --- Auto-blink after full reveal (3s) to transition back to eyeball ---
         if (elapsed > 3.0 && elapsed < 3.1) {
           window.dispatchEvent(new Event("eye-blink"));
+          window.__brandText = null; // Clear so it doesn't reappear after blink
         }
 
         ctx.shadowBlur = 0;
