@@ -734,66 +734,137 @@ const MatrixAgents = () => {
         const irisY = H / 2;
         const eyeW = Math.min(W * 0.55, H * 1.2);
         const irisR = eyeW * 0.17;
-        // Font size proportional to iris — "mni" should feel like it completes "omni" with the iris as "o"
-        const letterSize = Math.max(20, Math.floor(irisR * 1.1));
+        // Match Omni logo proportions: the "o" (iris) diameter ≈ cap height of "mni"
+        // In the reference, letters are ~same height as the "o" diameter
+        const capHeight = irisR * 2; // letters match the full diameter of the O
+        const strokeW = capHeight * 0.18; // thick rounded strokes like the logo
         const labelSize = Math.max(12, Math.floor(W * 0.018));
 
         ctx.shadowColor = "#00FF41";
 
-        // --- Iris ring glow (the "O" highlight) ---
-        const ringAlpha = Math.min(0.6, elapsed * 0.5);
+        // --- Iris ring glow (the "O" — thick stroke ring matching logo weight) ---
+        const ringAlpha = Math.min(0.7, elapsed * 0.6);
         if (ringAlpha > 0) {
-          ctx.strokeStyle = `rgba(0, 255, 65, ${ringAlpha * 0.45 * brightness})`;
-          ctx.lineWidth = Math.max(3, letterSize * 0.08);
-          ctx.shadowBlur = 16 * brightness;
+          // Main "O" ring — thick like the logo
+          ctx.strokeStyle = `rgba(0, 255, 65, ${ringAlpha * 0.65 * brightness})`;
+          ctx.lineWidth = strokeW;
+          ctx.lineCap = "round";
+          ctx.shadowBlur = 18 * brightness;
           ctx.beginPath();
-          ctx.arc(W / 2, irisY, irisR + letterSize * 0.12, 0, Math.PI * 2);
+          ctx.arc(W / 2, irisY, irisR, 0, Math.PI * 2);
           ctx.stroke();
-          ctx.strokeStyle = `rgba(0, 255, 65, ${ringAlpha * 0.2 * brightness})`;
-          ctx.lineWidth = Math.max(1, letterSize * 0.03);
+          // Subtle outer glow
+          ctx.strokeStyle = `rgba(0, 255, 65, ${ringAlpha * 0.15 * brightness})`;
+          ctx.lineWidth = strokeW * 0.3;
           ctx.beginPath();
-          ctx.arc(W / 2, irisY, irisR + letterSize * 0.3, 0, Math.PI * 2);
+          ctx.arc(W / 2, irisY, irisR + strokeW * 0.8, 0, Math.PI * 2);
           ctx.stroke();
         }
 
-        // --- Underline beneath iris (like the pink bar in the Omni logo, but green) ---
-        const underlineY = irisY + irisR + letterSize * 0.35;
+        // --- Underline beneath ONLY the "O" (iris) — like the pink bar in the Omni logo ---
+        const underlineGap = strokeW * 0.7;
+        const underlineY = irisY + irisR + underlineGap + strokeW * 0.4;
         const underlineDelay = 0.2;
         const underlineProgress = Math.min(1, Math.max(0, (elapsed - underlineDelay) / 0.5));
         const easeOut = 1 - Math.pow(1 - underlineProgress, 3);
-        // Underline starts from center of iris, extends to full width of "omni"
-        const fullUnderlineW = irisR * 2 + letterSize * 2.5; // covers iris + "mni"
-        const underlineStartX = W / 2 - irisR; // left edge of iris
-        const underlineEndX = underlineStartX + fullUnderlineW * easeOut;
+        // Underline width matches the "O" diameter (2 * irisR), slightly wider
+        const underlineFullW = irisR * 2.2;
+        const underlineCx = W / 2;
 
         if (underlineProgress > 0) {
-          ctx.strokeStyle = `rgba(0, 255, 65, ${0.85 * brightness * underlineProgress})`;
-          ctx.lineWidth = Math.max(4, letterSize * 0.14);
+          ctx.strokeStyle = `rgba(0, 255, 65, ${0.9 * brightness * underlineProgress})`;
+          ctx.lineWidth = strokeW * 0.75;
+          ctx.lineCap = "round";
           ctx.shadowBlur = 14 * brightness;
           ctx.beginPath();
-          ctx.moveTo(underlineStartX, underlineY);
-          ctx.lineTo(underlineEndX, underlineY);
+          const halfW = (underlineFullW * easeOut) / 2;
+          ctx.moveTo(underlineCx - halfW, underlineY);
+          ctx.lineTo(underlineCx + halfW, underlineY);
           ctx.stroke();
         }
 
-        // --- "mni" typed sequentially to the right of the iris ---
-        const letters = ["m", "n", "i"];
-        const typeStartDelay = 0.6; // start after underline is underway
+        // --- "mni" drawn with rounded geometric strokes (matching logo style) ---
+        const typeStartDelay = 0.6;
         const perLetterDuration = 0.18;
-        ctx.textAlign = "left";
-        ctx.textBaseline = "middle";
-        ctx.font = `600 ${letterSize}px 'Fira Code', monospace`;
+        // Position "m" right after the iris with proper spacing
+        const letterGap = strokeW * 0.6;
+        const mStartX = W / 2 + irisR + strokeW / 2 + letterGap;
+        // Baseline: bottom of the "O" circle
+        const baseline = irisY + irisR;
+        const top = irisY - irisR;
 
-        const mniStartX = W / 2 + irisR + letterSize * 0.25;
-        for (let li = 0; li < letters.length; li++) {
+        // Draw each letter as paths (rounded geometric sans-serif like Omni logo)
+        const drawM = (x: number, alpha: number) => {
+          ctx.strokeStyle = `rgba(0, 255, 65, ${alpha * brightness})`;
+          ctx.lineWidth = strokeW;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.shadowBlur = 16 * brightness;
+          // "m" — two arches, like the reference: left vertical + two humps
+          const mW = capHeight * 0.85;
+          const archW = mW / 2;
+          ctx.beginPath();
+          // Left stem
+          ctx.moveTo(x, baseline);
+          ctx.lineTo(x, irisY); // stem goes up to middle
+          // First arch
+          ctx.bezierCurveTo(x, top, x + archW, top, x + archW, irisY);
+          ctx.lineTo(x + archW, baseline);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(x + archW, irisY);
+          // Second arch
+          ctx.bezierCurveTo(x + archW, top, x + archW * 2, top, x + archW * 2, irisY);
+          ctx.lineTo(x + archW * 2, baseline);
+          ctx.stroke();
+          return mW;
+        };
+
+        const drawN = (x: number, alpha: number) => {
+          ctx.strokeStyle = `rgba(0, 255, 65, ${alpha * brightness})`;
+          ctx.lineWidth = strokeW;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.shadowBlur = 16 * brightness;
+          // "n" — one arch
+          const nW = capHeight * 0.45;
+          ctx.beginPath();
+          ctx.moveTo(x, baseline);
+          ctx.lineTo(x, irisY);
+          ctx.bezierCurveTo(x, top, x + nW, top, x + nW, irisY);
+          ctx.lineTo(x + nW, baseline);
+          ctx.stroke();
+          return nW;
+        };
+
+        const drawI = (x: number, alpha: number) => {
+          ctx.strokeStyle = `rgba(0, 255, 65, ${alpha * brightness})`;
+          ctx.fillStyle = `rgba(0, 255, 65, ${alpha * brightness})`;
+          ctx.lineWidth = strokeW;
+          ctx.lineCap = "round";
+          ctx.shadowBlur = 16 * brightness;
+          // "i" — vertical stroke + dot
+          ctx.beginPath();
+          ctx.moveTo(x, irisY);
+          ctx.lineTo(x, baseline);
+          ctx.stroke();
+          // Dot
+          ctx.beginPath();
+          ctx.arc(x, top + strokeW * 0.1, strokeW * 0.55, 0, Math.PI * 2);
+          ctx.fill();
+          return strokeW;
+        };
+
+        const letterDrawers = [drawM, drawN, drawI];
+        const letterWidths = [capHeight * 0.85, capHeight * 0.45, strokeW];
+        let lx = mStartX;
+        for (let li = 0; li < letterDrawers.length; li++) {
           const letterDelay = typeStartDelay + li * perLetterDuration;
           const letterAlpha = Math.min(1, Math.max(0, (elapsed - letterDelay) / 0.15));
           if (letterAlpha > 0) {
-            const lx = mniStartX + li * letterSize * 0.7;
-            ctx.shadowBlur = 18 * brightness;
-            ctx.fillStyle = `rgba(0, 255, 65, ${0.9 * brightness * letterAlpha})`;
-            ctx.fillText(letters[li], lx, irisY);
+            letterDrawers[li](lx, 0.9 * letterAlpha);
           }
+          lx += letterWidths[li] + letterGap;
         }
 
         // --- "PRESENTED BY" label above ---
@@ -804,9 +875,9 @@ const MatrixAgents = () => {
           ctx.textAlign = "center";
           ctx.shadowBlur = 10;
           ctx.fillStyle = `rgba(0, 255, 65, ${0.65 * brightness * labelAlpha})`;
-          // Center the label over the full "omni" word
-          const omniCenterX = W / 2 + (mniStartX + letters.length * letterSize * 0.7 - (W / 2 - irisR)) / 2 - irisR;
-          ctx.fillText(brandText.label, W / 2 + irisR * 0.3, irisY - irisR - letterSize * 0.7);
+          // Center over the full "omni" word
+          const omniCenterX = (W / 2 + lx) / 2;
+          ctx.fillText(brandText.label, omniCenterX, top - labelSize * 1.5);
         }
 
         // --- Auto-blink after full reveal (3s) to transition back to eyeball ---
@@ -817,6 +888,7 @@ const MatrixAgents = () => {
         ctx.shadowBlur = 0;
         ctx.textAlign = "start";
         ctx.textBaseline = "top";
+        ctx.lineCap = "butt";
       }
 
       // --- PRETEXT CHARS ---
