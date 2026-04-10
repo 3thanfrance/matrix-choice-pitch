@@ -966,6 +966,20 @@ const MatrixAgents = () => {
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
 
+        // Measure "Lovable" to position heart
+        ctx.font = `700 ${bigSize}px Inter, system-ui, sans-serif`;
+        const lovableTextW = ctx.measureText("Lovable").width;
+
+        // Heart dimensions — matches the full phrase height
+        const totalH = (line2Y + bigSize) - ty;
+        const heartH = totalH * 1.1;
+        const heartW = heartH;
+
+        // Heart goes LEFT of "Lovable" (matching reference: ♥ Lovable)
+        const heartX = tx;
+        const heartYPos = ty - totalH * 0.1;
+        const textStartX = tx + heartW + bigSize * 0.25; // text starts after heart
+
         // Layer 1: Staticky green solid backing behind the text for contrast
         const staticFlicker = 0.35 + Math.sin(tick * 0.15) * 0.08 + Math.random() * 0.05;
         ctx.shadowColor = "#00FF41";
@@ -975,35 +989,26 @@ const MatrixAgents = () => {
         ctx.fillStyle = `rgba(0, 255, 65, ${staticFlicker})`;
 
         ctx.font = `600 ${smallSize}px 'Fira Code', monospace`;
-        ctx.strokeText("enabled by", tx, ty);
-        ctx.fillText("enabled by", tx, ty);
+        ctx.strokeText("enabled by", textStartX, ty);
+        ctx.fillText("enabled by", textStartX, ty);
 
         ctx.font = `700 ${bigSize}px Inter, system-ui, sans-serif`;
-        ctx.strokeText("Lovable", tx, line2Y);
-        ctx.fillText("Lovable", tx, line2Y);
+        ctx.strokeText("Lovable", textStartX, line2Y);
+        ctx.fillText("Lovable", textStartX, line2Y);
         ctx.shadowBlur = 0;
 
         // Layer 2: Black text on top — crisp readable letters
         ctx.fillStyle = "rgba(0, 0, 0, 0.92)";
         ctx.font = `600 ${smallSize}px 'Fira Code', monospace`;
-        ctx.fillText("enabled by", tx, ty);
+        ctx.fillText("enabled by", textStartX, ty);
         ctx.font = `700 ${bigSize}px Inter, system-ui, sans-serif`;
-        ctx.fillText("Lovable", tx, line2Y);
+        ctx.fillText("Lovable", textStartX, line2Y);
 
-        // Lovable heart logo — the tallest element, spanning entire phrase height
-        const lovableTextW = ctx.measureText("Lovable").width;
-        const totalH = (line2Y + bigSize) - ty;
-        const heartH = totalH * 1.1; // heart is the tallest element
-        const heartW = heartH; // square aspect from source image
-        const heartX = tx + lovableTextW + bigSize * 0.35;
-        const heartYPos = ty - totalH * 0.1;
-
-        // Load heart image and extract silhouette (cached after first load)
+        // Lovable heart logo — to the LEFT, spanning entire phrase height
         if (!(window as any).__lovableHeartSilhouette) {
           const img = new Image();
           img.src = heartSrc;
           img.onload = () => {
-            // Extract heart shape from black background using pixel data
             const oc = document.createElement("canvas");
             oc.width = img.width; oc.height = img.height;
             const ox = oc.getContext("2d")!;
@@ -1012,17 +1017,14 @@ const MatrixAgents = () => {
             const d = imageData.data;
             for (let i = 0; i < d.length; i += 4) {
               const r = d[i], g = d[i+1], b = d[i+2];
-              // If pixel is dark/black background, make transparent
               if (r < 30 && g < 30 && b < 30) {
                 d[i+3] = 0;
               } else {
-                // Heart pixel — make fully opaque (keep color for glow version)
                 d[i+3] = 255;
               }
             }
             ox.putImageData(imageData, 0, 0);
 
-            // Black silhouette version
             const bc = document.createElement("canvas");
             bc.width = oc.width; bc.height = oc.height;
             const bx = bc.getContext("2d")!;
@@ -1031,7 +1033,6 @@ const MatrixAgents = () => {
             bx.fillStyle = "#000000";
             bx.fillRect(0, 0, bc.width, bc.height);
 
-            // Green glow version
             const gc = document.createElement("canvas");
             gc.width = oc.width; gc.height = oc.height;
             const gx = gc.getContext("2d")!;
@@ -1046,12 +1047,10 @@ const MatrixAgents = () => {
         const cached = (window as any).__lovableHeartSilhouette as { black: HTMLCanvasElement; glow: HTMLCanvasElement } | undefined;
         if (cached) {
           ctx.save();
-          // Green glow behind
           ctx.shadowColor = "#00FF41";
           ctx.shadowBlur = 20;
           ctx.globalAlpha = 0.35 + Math.sin(tick * 0.15) * 0.08 + Math.random() * 0.05;
           ctx.drawImage(cached.glow, heartX, heartYPos, heartW, heartH);
-          // Black void on top
           ctx.shadowBlur = 0;
           ctx.globalAlpha = 1;
           ctx.drawImage(cached.black, heartX, heartYPos, heartW, heartH);
