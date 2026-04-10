@@ -189,7 +189,25 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   ctx.closePath();
   ctx.fill();
 
-  // ── SUNGLASSES — BRIGHT edge glow (higher gray = brighter green glow)
+  // ── RIM LIGHT for depth — bright edge glow on left side (directional lighting) ──
+  ctx.strokeStyle = "rgb(100, 100, 100)";
+  ctx.lineWidth = headH * 0.04;
+  // Left arm/shoulder edge highlight
+  ctx.beginPath();
+  ctx.moveTo(cx - shoulderW * 0.88, figTop + headH * 1.7);
+  ctx.bezierCurveTo(
+    cx - shoulderW * 0.82, figTop + figH * 0.35,
+    cx - shoulderW * 0.78, figTop + figH * 0.5,
+    cx - shoulderW * 0.75, bodyBottom
+  );
+  ctx.stroke();
+  // Left hat brim edge
+  ctx.lineWidth = headH * 0.03;
+  ctx.beginPath();
+  ctx.moveTo(cx - brimW, hatBrimY + headH * 0.02);
+  ctx.lineTo(cx - headW * 0.78, figTop + headH * 0.15);
+  ctx.stroke();
+
   // rgb(140) → edgeFactor 0.8 = very bright glowing green chars
   ctx.fillStyle = "rgb(140, 140, 140)";
   const glassY = figTop + headH * 0.36;
