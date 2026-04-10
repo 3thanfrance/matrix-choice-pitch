@@ -379,7 +379,7 @@ const Terminal = () => {
       const nextKey = answer === "y" ? node.yes : node.no;
       if (nextKey) {
         // Theatrical pill flash + screen shake for red/blue pill moments
-        if (nextKey === "redpill" || nextKey === "solution") {
+        if (nextKey === "redpill") {
           setPillFlash("red");
           playStatic(0.4, 0.15);
           document.body.style.animation = "none";
