@@ -740,7 +740,6 @@ const MatrixAgents = () => {
         const eyeW = Math.min(W * 0.55, H * 1.2);
         const irisR = eyeW * 0.17;
         const strokeW = irisR * 0.36; // ring thickness matching font weight
-        const omniFontSize = irisR * 2 * 1.1; // font size ≈ iris diameter
         const labelSize = Math.max(12, Math.floor(W * 0.018));
 
         ctx.shadowColor = "#00FF41";
