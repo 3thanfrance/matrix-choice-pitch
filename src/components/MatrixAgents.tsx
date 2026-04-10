@@ -537,7 +537,7 @@ const MatrixAgents = () => {
     let zoomBlinkTriggeredIn = false;
     let zoomBlinkTriggeredOut = false;
     let outroBlinkCompleted = false;
-    let currentBrandOffsetX = 0; // eye X shift for Omni centering
+    // eye stays centered, no offset needed
 
     const handleForcedBlink = () => {
       if (!isBlinking) {
@@ -560,26 +560,7 @@ const MatrixAgents = () => {
       } else if (zoomInStart) {
         rawZoom = Math.min(1, (Date.now() - zoomInStart) / ZOOM_DURATION);
       }
-      // Cap zoom while brand text is showing — less zoomed for Omni reveal
-      // The blink on dismiss hides the transition to full zoom
-      if (window.__brandText && rawZoom > 0.65) {
-        rawZoom = 0.65;
-      }
-
-      // --- BRAND EYE OFFSET (shift eye left so "OMNI" is centered on screen) ---
-      if (window.__brandText && rawZoom > 0.5) {
-        const _eyeW = Math.min(W * 0.55, H * 1.2);
-        const _irisR = _eyeW * 0.17;
-        const _fontSize = _irisR * 2 * 1.1;
-        // Measure "mni" width using font metrics
-        ctx.font = `700 ${_fontSize}px Quicksand, sans-serif`;
-        const mniWidth = ctx.measureText("mni").width;
-        const _gap = _irisR * 0.35; // gap between O and mni
-        currentBrandOffsetX = -(mniWidth + _gap) / 2;
-      } else if (blinkProgress >= 0.95) {
-        // Snap to center while eyes are fully closed
-        currentBrandOffsetX = 0;
-      }
+      // No zoom cap or eye offset needed — eye stays centered, just show O ring
 
       // --- PUPIL ZOOM (eye ↔ inside pupil/terminal) ---
       const pupilZoomInStart = window.__matrixPupilZoomStart;
@@ -696,11 +677,8 @@ const MatrixAgents = () => {
           offCtx.restore();
         }
       } else if (zoom >= crossoverHigh) {
-        // Pure eye (no pupil zoom) — apply brand offset to shift eye left for Omni
-        offCtx.save();
-        offCtx.translate(currentBrandOffsetX, 0);
+        // Pure eye — centered
         drawEyeMask(offCtx, W, H, tick, blinkProgress);
-        offCtx.restore();
       } else {
         // Blend zone
         const blendT = (zoom - crossoverLow) / (crossoverHigh - crossoverLow);
@@ -738,7 +716,7 @@ const MatrixAgents = () => {
         if (showEyeAmount > 0.02) {
           offCtx.save();
           offCtx.globalAlpha = showEyeAmount;
-          offCtx.translate(currentBrandOffsetX, 0);
+          // eye centered
           drawEyeMask(offCtx, W, H, tick, blinkProgress);
           offCtx.restore();
         }
@@ -756,13 +734,12 @@ const MatrixAgents = () => {
         const now = Date.now();
         const elapsed = brandText.startTime ? (now - brandText.startTime) / 1000 : 2;
 
-        // Eye center is shifted by brandOffsetX
-        const irisCx = W / 2 + currentBrandOffsetX;
+        // Eye center — always centered
+        const irisCx = W / 2;
         const irisY = H / 2;
         const eyeW = Math.min(W * 0.55, H * 1.2);
         const irisR = eyeW * 0.17;
         const strokeW = irisR * 0.36; // ring thickness matching font weight
-        const omniFontSize = irisR * 2 * 1.1; // font size ≈ iris diameter
         const labelSize = Math.max(12, Math.floor(W * 0.018));
 
         ctx.shadowColor = "#00FF41";
@@ -805,38 +782,17 @@ const MatrixAgents = () => {
           ctx.stroke();
         }
 
-        // --- "mni" using Quicksand font (rounded geometric sans-serif, matches Omni logo) ---
-        const typeStartDelay = 0.6;
-        const mniAlpha = Math.min(1, Math.max(0, (elapsed - typeStartDelay) / 0.3));
-        if (mniAlpha > 0) {
-          ctx.font = `700 ${omniFontSize}px Quicksand, sans-serif`;
-          ctx.textAlign = "left";
+        // --- "PRESENTED BY" label above the O, centered ---
+        const labelDelay = 0.6;
+        const labelAlpha = Math.min(1, Math.max(0, (elapsed - labelDelay) / 0.4));
+        if (labelAlpha > 0) {
+          ctx.font = `600 ${labelSize}px 'Fira Code', monospace`;
+          ctx.textAlign = "center";
           ctx.textBaseline = "alphabetic";
-          ctx.fillStyle = `rgba(0, 255, 65, ${0.9 * mniAlpha * brightness})`;
-          ctx.shadowBlur = 16 * brightness;
-          // Position "mni" right after the iris with a gap
-          const gap = irisR * 0.35;
-          const mniX = irisCx + irisR + strokeW / 2 + gap;
-          // Baseline aligned to bottom of iris
-          const baseline = irisY + irisR * 0.35; // visually center lowercase to O
-          ctx.fillText("mni", mniX, baseline);
-
-          // Measure for centering "PRESENTED BY"
-          const mniWidth = ctx.measureText("mni").width;
-          const omniEndX = mniX + mniWidth;
-
-          // --- "PRESENTED BY" label above, centered over full "omni" word ---
-          const labelDelay = 1.2;
-          const labelAlpha = Math.min(1, Math.max(0, (elapsed - labelDelay) / 0.4));
-          if (labelAlpha > 0) {
-            ctx.font = `600 ${labelSize}px 'Fira Code', monospace`;
-            ctx.textAlign = "center";
-            ctx.shadowBlur = 10;
-            ctx.fillStyle = `rgba(0, 255, 65, ${0.65 * brightness * labelAlpha})`;
-            const omniCenterX = (irisCx + omniEndX) / 2;
-            const top = irisY - irisR;
-            ctx.fillText(brandText.label, omniCenterX, top - labelSize * 1.5);
-          }
+          ctx.shadowBlur = 10;
+          ctx.fillStyle = `rgba(0, 255, 65, ${0.65 * brightness * labelAlpha})`;
+          const top = irisY - irisR;
+          ctx.fillText(brandText.label, irisCx, top - labelSize * 1.5);
         }
 
         // --- Auto-blink after full reveal (3s) to transition back to eyeball ---
