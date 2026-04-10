@@ -114,7 +114,8 @@ const DELETE_SPEED = 4;
 const LINGER_DURATION = 1200;
 const AUTO_LINGER = 1500;
 const OUTRO_DELAY = 3500;
-const ZOOM_OUT_DURATION = 3500;
+const PUPIL_ZOOM_OUT_DURATION = 2000;
+const ZOOM_OUT_DURATION = 4500;
 
 type Phase = "typing" | "lingering" | "deleting" | "idle";
 
@@ -129,6 +130,7 @@ const Terminal = () => {
   const [nextNodeKey, setNextNodeKey] = useState<string | null>(null);
   const [floatOffset, setFloatOffset] = useState(0);
   const [showOutro, setShowOutro] = useState(false);
+  const [staticBurst, setStaticBurst] = useState(false);
   const autoSeqIndexRef = useRef(0);
   const clickCountRef = useRef(0);
   const floatRef = useRef<number>(0);
@@ -148,7 +150,19 @@ const Terminal = () => {
     return () => cancelAnimationFrame(floatRef.current);
   }, []);
 
-  // Publish text block rect + content for PretextRain pixel collision
+  // Occasional static bursts on the terminal screen
+  useEffect(() => {
+    const triggerStatic = () => {
+      setStaticBurst(true);
+      setTimeout(() => setStaticBurst(false), 80 + Math.random() * 120);
+    };
+    const interval = setInterval(() => {
+      if (Math.random() > 0.7 && !showOutro) triggerStatic();
+    }, 4000 + Math.random() * 6000);
+    return () => clearInterval(interval);
+  }, [showOutro]);
+
+  // Publish text block rect
   useEffect(() => {
     const updateRect = () => {
       const el = textBlockRef.current;
@@ -213,7 +227,7 @@ const Terminal = () => {
       return () => clearTimeout(timer);
     }
 
-    // End states: zoom back out and loop
+    // End states: zoom back out
     if (currentNode === "demo2" || currentNode === "final_no") {
       if (!node.prompt) {
         const timer = setTimeout(() => setShowOutro(true), OUTRO_DELAY);
@@ -222,20 +236,34 @@ const Terminal = () => {
     }
   }, [phase, currentNode, node, showOutro]);
 
-  // Outro: blink first, then zoom back out to silhouette, then reboot
+  // Outro: pupil zoom out → eye appears → silhouette zoom out → reboot
   useEffect(() => {
     if (!showOutro) return;
 
-    // Trigger a blink first — must fully close before zoom-out starts
-    window.dispatchEvent(new CustomEvent("eye-blink"));
+    // Step 1: Start pupil zoom OUT immediately (we're "inside" the pupil)
+    // MatrixAgents mounts with pupilZoom starting at 1 (via future timestamp trick)
+    // Set pupilZoomOutStart in the future so initial pupilZoom = 1 (inside pupil = dark)
+    // Then it decays to 0 (eye visible)
+    window.__matrixPupilZoomOutStart = Date.now();
+    // Also set the main zoom to fully zoomed in (eye visible) — no zoom-out yet
+    // Don't set __matrixZoomOutStart yet
 
-    // Start zoom-out AFTER blink has fully closed (~800ms to be safe)
-    const zoomDelay = setTimeout(() => {
-      (window as any).__matrixZoomOutStart = Date.now();
-    }, 800);
+    // Step 2: After pupil zoom completes (2s), trigger blink and start eye→silhouette zoom
+    const eyeZoomDelay = setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("eye-blink"));
+      // Start eye→silhouette zoom after blink closes (~400ms)
+      setTimeout(() => {
+        window.__matrixZoomOutStart = Date.now();
+      }, 600);
+    }, PUPIL_ZOOM_OUT_DURATION + 500);
 
+    // Step 3: Reboot after everything completes
+    const totalOutroDuration = PUPIL_ZOOM_OUT_DURATION + 500 + 600 + ZOOM_OUT_DURATION + 1500;
     const rebootTimer = setTimeout(() => {
-      (window as any).__matrixZoomOutStart = undefined;
+      window.__matrixZoomOutStart = undefined;
+      window.__matrixPupilZoomOutStart = undefined;
+      window.__matrixZoomStart = undefined;
+      window.__matrixPupilZoomStart = undefined;
       setShowOutro(false);
       setDisplayedLines([]);
       setCurrentNode("verify");
@@ -247,12 +275,13 @@ const Terminal = () => {
       autoSeqIndexRef.current = 0;
       setPhase("typing");
       window.dispatchEvent(new CustomEvent("terminal-reboot"));
-    }, ZOOM_OUT_DURATION + 1000);
+    }, totalOutroDuration);
 
     return () => {
-      clearTimeout(zoomDelay);
+      clearTimeout(eyeZoomDelay);
       clearTimeout(rebootTimer);
-      (window as any).__matrixZoomOutStart = undefined;
+      window.__matrixZoomOutStart = undefined;
+      window.__matrixPupilZoomOutStart = undefined;
     };
   }, [showOutro]);
 
@@ -359,6 +388,25 @@ const Terminal = () => {
     <div className="relative z-10 flex h-[100dvh] flex-col overflow-hidden">
       {/* Outro zoom-out overlay */}
       {showOutro && <MatrixAgents />}
+
+      {/* Occasional static burst overlay */}
+      {staticBurst && (
+        <div className="absolute inset-0 pointer-events-none z-20 boot-static opacity-30" />
+      )}
+
+      {/* Ambient scanline effect */}
+      <div className="absolute inset-0 pointer-events-none z-10 opacity-[0.03]"
+        style={{
+          background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,65,0.05) 2px, rgba(0,255,65,0.05) 4px)',
+        }}
+      />
+
+      {/* Subtle vignette */}
+      <div className="absolute inset-0 pointer-events-none z-10"
+        style={{
+          background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%)',
+        }}
+      />
 
       <div className={`crt-header border-b border-border px-3 sm:px-4 py-1.5 text-[10px] sm:text-xs tracking-widest text-muted-foreground transition-opacity duration-700 ${showOutro ? "opacity-0" : ""}`}>
         <span className="text-primary text-glow">■</span>

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { playPowerOn, startCRTHum, playStatic, playKeyClick } from "@/lib/sounds";
 import MatrixAgents from "./MatrixAgents";
 
-const BOOT_DURATION = 24000;
+const BOOT_DURATION = 28000;
 
 const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
   const [phase, setPhase] = useState(0);
@@ -34,45 +34,61 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
 
   useEffect(() => () => { humStopRef.current?.(); }, []);
 
-  // Phase timeline
+  // Phase timeline — extended for brand text + pupil zoom
   useEffect(() => {
     const timers = [
       setTimeout(() => setPhase(1), 2000),
       setTimeout(() => setPhase(2), 4000),
-      setTimeout(() => setPhase(3), 16000),
-      setTimeout(() => setPhase(4), 20000),
-      setTimeout(() => setPhase(5), 22500),
+      setTimeout(() => setPhase(3), 19000),  // After pupil zoom completes
+      setTimeout(() => setPhase(4), 23000),
+      setTimeout(() => setPhase(5), 25500),
       setTimeout(() => onComplete(), BOOT_DURATION),
     ];
     return () => timers.forEach(clearTimeout);
   }, [onComplete]);
 
-  // Phase 2: Silhouette → zoom → eye → brand text → blink
+  // Phase 2: Silhouette → zoom → eye → brand text → "enabled by lovable" → pupil zoom → terminal
   useEffect(() => {
     if (phase !== 2) return;
     const timers = [
+      // Show MatrixAgents immediately (starts as silhouette)
       setTimeout(() => setShowAgentOverlay(true), 0),
+
       // Hold silhouette for 2s, then start zoom into eye
       setTimeout(() => {
-        (window as any).__matrixZoomStart = Date.now();
+        window.__matrixZoomStart = Date.now();
       }, 2000),
-      // Brand text AFTER zoom completes (2s delay + 4.5s zoom + 0.5s settle)
+
+      // Brand text AFTER zoom completes (2s + 4.5s zoom + 0.5s settle = 7s)
       setTimeout(() => {
-        (window as any).__brandText = { label: "PRESENTED BY", name: "O M N I", startTime: Date.now(), enabledBy: "enabled by lovable" };
+        window.__brandText = {
+          label: "PRESENTED BY",
+          name: "O M N I",
+          startTime: Date.now(),
+          enabledBy: "enabled by lovable",
+        };
       }, 7000),
-      // Blink to dismiss brand
+
+      // Blink to dismiss brand at 12s (gives 5s for brand: underline + OMNI + label + enabled)
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent("eye-blink"));
-      }, 10500),
-      // Clear text while eye is closed
+      }, 12000),
+
+      // Clear brand text while eye is closed
       setTimeout(() => {
-        (window as any).__brandText = null;
-      }, 11000),
+        window.__brandText = null;
+      }, 12500),
+
+      // Start pupil zoom IN (eye → inside pupil → terminal dark) at 13s
+      setTimeout(() => {
+        window.__matrixPupilZoomStart = Date.now();
+      }, 13000),
     ];
     return () => {
       timers.forEach(clearTimeout);
-      (window as any).__brandText = null;
-      (window as any).__matrixZoomStart = undefined;
+      window.__brandText = null;
+      window.__matrixZoomStart = undefined;
+      window.__matrixPupilZoomStart = undefined;
     };
   }, [phase]);
 
@@ -182,7 +198,7 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
           </div>
         )}
 
-        {/* Phase 2: MatrixAgents handles all visuals (silhouette → eye → brand) */}
+        {/* Phase 2: MatrixAgents handles all visuals */}
         {phase === 2 && <div />}
 
         {phase === 3 && (
