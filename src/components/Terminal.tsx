@@ -430,8 +430,7 @@ const Terminal = () => {
             animation: "pill-flash 0.6s ease-out forwards",
           }}
         />
-
-      {/* Ambient scanline effect */}
+      )}
       <div className="absolute inset-0 pointer-events-none z-10 opacity-[0.03]"
         style={{
           background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,65,0.05) 2px, rgba(0,255,65,0.05) 4px)',
