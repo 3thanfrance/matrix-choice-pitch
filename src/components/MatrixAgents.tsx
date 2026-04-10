@@ -7,7 +7,8 @@ declare global {
     __matrixZoomOutStart?: number;
     __matrixPupilZoomStart?: number;
     __matrixPupilZoomOutStart?: number;
-    __brandText?: { label: string; name: string; startTime?: number; enabledBy?: string } | null;
+    __brandText?: { label: string; name: string; startTime?: number } | null;
+    __silhouetteText?: { text: string; startTime?: number } | null;
   }
 }
 
