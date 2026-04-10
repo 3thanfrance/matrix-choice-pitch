@@ -33,55 +33,66 @@ const storyTree: Record<string, StoryNode> = {
   },
   trapped: {
     lines: [
-      "YOUR DATA IS BURIED.",
-      "SCATTERED ACROSS DASHBOARDS.",
-      "YOUR TEAM ASKS ONE QUESTION.",
-      "THREE DIFFERENT ANSWERS.",
+      "YOU OPEN HEX.",
+      "WRITE A QUERY. WAIT. DEBUG. REWRITE.",
+      "THIRTY MINUTES LATER, A CHART.",
+      "YOUR CEO ASKS: \"WHAT DOES THIS MEAN?\"",
+      "YOU DON'T HAVE AN ANSWER.",
+      "JUST MORE CHARTS.",
     ],
-    prompt: "TIRED OF GUESSING? [Y/N]",
+    prompt: "SOUND FAMILIAR? [Y/N]",
     yes: "redpill",
     no: "bluepill",
   },
   redpill: {
     lines: [
-      ">> THOUGHT SO.",
-      "THE PROBLEM ISN'T YOUR DATA.",
-      "IT'S THE LAYERS BETWEEN YOU AND IT.",
-      "CHARTS. DASHBOARDS. TRANSLATIONS.",
-      "EVERY LAYER ADDS NOISE.",
+      ">> R E D   P I L L   A C T I V A T E D",
+      "",
+      "HEX MAKES YOU BUILD THE ANSWER.",
+      "NOTEBOOKS. SQL. PYTHON. DRAG. DROP. PRAY.",
+      "YOU BECAME A DASHBOARD ENGINEER.",
+      "THAT WAS NEVER THE JOB.",
     ],
-    prompt: "WANT TO CUT THROUGH? [Y/N]",
+    prompt: "READY TO STOP BUILDING AND START KNOWING? [Y/N]",
     yes: "solution",
     no: "hesitate",
   },
   bluepill: {
     lines: [
-      ">> UNDERSTOOD.",
-      "MOST STAY COMFORTABLE.",
-      "BUT COMFORT ISN'T CLARITY.",
+      ">> B L U E   P I L L   A C T I V A T E D",
+      "",
+      "YOU WANT TO STAY IN NOTEBOOK LAND.",
+      "STITCHING QUERIES. FORMATTING CHARTS.",
+      "PRESENTING DASHBOARDS NOBODY READS.",
     ],
-    prompt: "CURIOUS WHAT CLARITY LOOKS LIKE? [Y/N]",
+    prompt: "OR... DO YOU WANT THE TRUTH? [Y/N]",
     yes: "redpill",
     no: "final_no",
   },
   hesitate: {
     lines: [
-      ">> FAIR ENOUGH.",
-      "BUT EVERY HOUR SPENT",
-      "TRANSLATING CHARTS INTO DECISIONS",
-      "IS AN HOUR LOST.",
+      ">> INTERESTING.",
+      "EVERY HOUR IN HEX:",
+      "WRITE SQL. BUILD CHART. EXPLAIN CHART.",
+      "REPEAT. EVERY. WEEK.",
+      "THE INSIGHT WAS ALWAYS THERE.",
+      "BURIED UNDER PROCESS.",
     ],
-    prompt: "RECONSIDER? [Y/N]",
+    prompt: "WHAT IF THE PROCESS DISAPPEARED? [Y/N]",
     yes: "solution",
     no: "final_no",
   },
   solution: {
     lines: [
-      "OMNI. NO DASHBOARDS. NO NOISE.",
-      "ASK IN PLAIN ENGLISH.",
-      "GET ONE ANSWER. THE RIGHT ONE.",
+      "THIS IS OMNI.",
+      "NO NOTEBOOKS. NO SQL. NO DASHBOARDS.",
+      "ASK A QUESTION. IN ENGLISH.",
+      "GET THE ANSWER. NOT A CHART.",
+      "THE ANSWER.",
+      "",
+      "YOUR DATA TALKS BACK.",
     ],
-    prompt: "READY TO SEE IT? [Y/N]",
+    prompt: "READY TO HEAR IT? [Y/N]",
     yes: "demo",
     no: "final_no",
   },
@@ -96,13 +107,15 @@ const storyTree: Record<string, StoryNode> = {
     lines: [
       "OMNI.CO/SCHEDULE",
       "",
-      "SEE YOU ON THE OTHER SIDE.",
+      "THE MATRIX HAD DASHBOARDS TOO.",
+      "NEO CHOSE DIFFERENTLY.",
     ],
   },
   final_no: {
     lines: [
-      "THE OFFER STANDS.",
-      "OMNI.CO — WHEN YOU'RE READY.",
+      "THE NOTEBOOK AWAITS.",
+      "BUT WHEN THE QUERIES PILE UP...",
+      "OMNI.CO",
     ],
   },
 };
@@ -118,6 +131,7 @@ const PUPIL_ZOOM_OUT_DURATION = 2000;
 const ZOOM_OUT_DURATION = 4500;
 
 type Phase = "typing" | "lingering" | "deleting" | "idle";
+type PillFlash = "red" | "blue" | null;
 
 const Terminal = () => {
   const [displayedLines, setDisplayedLines] = useState<string[]>([]);
@@ -131,6 +145,7 @@ const Terminal = () => {
   const [floatOffset, setFloatOffset] = useState(0);
   const [showOutro, setShowOutro] = useState(false);
   const [staticBurst, setStaticBurst] = useState(false);
+  const [pillFlash, setPillFlash] = useState<PillFlash>(null);
   const autoSeqIndexRef = useRef(0);
   const clickCountRef = useRef(0);
   const floatRef = useRef<number>(0);
@@ -363,6 +378,16 @@ const Terminal = () => {
       setShowPrompt(false);
       const nextKey = answer === "y" ? node.yes : node.no;
       if (nextKey) {
+        // Theatrical pill flash for red/blue pill moments
+        if (nextKey === "redpill" || nextKey === "solution") {
+          setPillFlash("red");
+          playStatic(0.3, 0.1);
+          setTimeout(() => setPillFlash(null), 600);
+        } else if (nextKey === "bluepill" || nextKey === "final_no") {
+          setPillFlash("blue");
+          playStatic(0.2, 0.08);
+          setTimeout(() => setPillFlash(null), 600);
+        }
         setNextNodeKey(nextKey);
         setTimeout(() => {
           playStatic(0.1, 0.04);
@@ -394,7 +419,18 @@ const Terminal = () => {
         <div className="absolute inset-0 pointer-events-none z-20 boot-static opacity-30" />
       )}
 
-      {/* Ambient scanline effect */}
+      {/* Pill flash overlay — theatrical red/blue screen flash */}
+      {pillFlash && (
+        <div
+          className="absolute inset-0 pointer-events-none z-30 animate-pulse"
+          style={{
+            background: pillFlash === "red"
+              ? "radial-gradient(ellipse at center, rgba(255,0,0,0.25) 0%, rgba(255,0,0,0.08) 60%, transparent 100%)"
+              : "radial-gradient(ellipse at center, rgba(0,100,255,0.25) 0%, rgba(0,100,255,0.08) 60%, transparent 100%)",
+            animation: "pill-flash 0.6s ease-out forwards",
+          }}
+        />
+      )}
       <div className="absolute inset-0 pointer-events-none z-10 opacity-[0.03]"
         style={{
           background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,65,0.05) 2px, rgba(0,255,65,0.05) 4px)',
