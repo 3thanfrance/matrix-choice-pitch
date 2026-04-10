@@ -5,6 +5,8 @@ declare global {
   interface Window {
     __matrixZoomStart?: number;
     __matrixZoomOutStart?: number;
+    __matrixPupilZoomStart?: number;
+    __matrixPupilZoomOutStart?: number;
     __brandText?: { label: string; name: string; startTime?: number; enabledBy?: string } | null;
   }
 }
@@ -22,11 +24,11 @@ const CORPUS = [
 
 const FULL_CORPUS = (CORPUS + " ").repeat(12);
 const ZOOM_DURATION = 4500;
+const PUPIL_ZOOM_DURATION = 2000;
 
 function getEyePosition(W: number, H: number) {
   const figH = Math.min(H * 0.78, W * 1.0);
   const figTop = (H - figH) / 2 - figH * 0.02;
-  // Use same 7.5-head proportion as drawSilhouetteMask
   const headH = figH / 7.5;
   const headW = headH * 0.82;
   const eyeY = figTop + headH * 0.46;
@@ -44,24 +46,16 @@ function cinematicEase(t: number): number {
 
 /**
  * Draw agent silhouette — faithful to reference images:
- * - image-3: Slim build, high collar/turtleneck, proportional head, sunglasses
- * - image-4: Fedora with moderate brim, large wraparound glasses, coat collar
- * 
- * Figure drawing proportions (Loomis method):
- * - Total height = 7.5 heads
- * - Shoulders = ~2 head widths (slim male)
- * - Head width = ~2/3 head height
- * - Waist at ~3 heads down, hips at ~4
+ * - Slim build, sunglasses, fedora with TALL dome
+ * - Glasses and tie render as BRIGHT green (edge glow range)
+ * - Figure drawing 7.5-head Loomis proportions
  */
 function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number) {
   const cx = W / 2;
-  // Figure fills ~78% of height, closer framing
   const figH = Math.min(H * 0.78, W * 1.0);
   const figTop = (H - figH) / 2 - figH * 0.02;
-  const headH = figH / 7.5; // 7.5-head canon
-  const headW = headH * 0.82; // wider head ratio (was 0.72 = too small)
-
-  // Shoulders: ~1.45x head height (slimmer per reference image-3)
+  const headH = figH / 7.5;
+  const headW = headH * 0.82;
   const shoulderW = headH * 1.45;
   const neckW = headH * 0.26;
 
@@ -69,21 +63,19 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
 
   // ── FULL BODY as single path ──
   ctx.beginPath();
-
   const bodyBottom = figTop + figH + 20;
 
-  // Start bottom-left
   ctx.moveTo(cx - shoulderW * 0.55, bodyBottom);
   ctx.lineTo(cx - shoulderW * 0.75, bodyBottom);
 
-  // Left arm up — slight taper
+  // Left arm
   ctx.bezierCurveTo(
     cx - shoulderW * 0.78, figTop + figH * 0.5,
     cx - shoulderW * 0.82, figTop + figH * 0.35,
     cx - shoulderW * 0.88, figTop + headH * 1.7
   );
 
-  // Left shoulder — clean line
+  // Left shoulder
   ctx.bezierCurveTo(
     cx - shoulderW * 0.86, figTop + headH * 1.45,
     cx - shoulderW * 0.72, figTop + headH * 1.2,
@@ -97,67 +89,61 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
     cx - neckW, figTop + headH * 0.90
   );
 
-  // HIGH COAT COLLAR (reference image-4) — rises up framing the jaw
+  // HIGH COAT COLLAR
   ctx.bezierCurveTo(
     cx - neckW * 1.1, figTop + headH * 0.80,
     cx - headW * 0.7, figTop + headH * 0.75,
     cx - headW * 0.78, figTop + headH * 0.62
   );
 
-  // Left jaw — rounder, fuller head
+  // Left jaw
   ctx.bezierCurveTo(
     cx - headW * 0.88, figTop + headH * 0.48,
     cx - headW * 0.92, figTop + headH * 0.32,
     cx - headW * 0.78, figTop + headH * 0.15
   );
 
-  // FEDORA — moderate brim, not oversized (reference image-4)
-  const brimW = headW * 1.5; // reduced from 2.2x — more proportional
+  // FEDORA — moderate brim, TALLER dome
+  const brimW = headW * 1.5;
   const hatBrimY = figTop + headH * 0.13;
   ctx.lineTo(cx - brimW, hatBrimY + headH * 0.02);
 
-  // Brim left edge — slight curve
   ctx.bezierCurveTo(
     cx - brimW * 1.03, hatBrimY,
     cx - brimW * 1.04, hatBrimY - headH * 0.015,
     cx - brimW * 1.0, hatBrimY - headH * 0.025
   );
 
-  // Brim top to crown — taller dome
-  ctx.lineTo(cx - headW * 0.65, figTop + headH * 0.06);
+  // Brim top to crown — TALLER dome (increased negative offset)
+  ctx.lineTo(cx - headW * 0.65, figTop + headH * 0.04);
 
-  // ROUNDED CROWN — taller dome (not flat)
+  // ROUNDED CROWN — significantly taller
   ctx.bezierCurveTo(
-    cx - headW * 0.58, figTop - headH * 0.08,
-    cx - headW * 0.38, figTop - headH * 0.2,
-    cx - headW * 0.08, figTop - headH * 0.24
+    cx - headW * 0.58, figTop - headH * 0.14,
+    cx - headW * 0.38, figTop - headH * 0.32,
+    cx - headW * 0.08, figTop - headH * 0.36
   );
 
-  // Crown apex
   ctx.bezierCurveTo(
-    cx, figTop - headH * 0.25,
-    cx + headW * 0.08, figTop - headH * 0.24,
-    cx + headW * 0.08, figTop - headH * 0.24
+    cx, figTop - headH * 0.38,
+    cx + headW * 0.08, figTop - headH * 0.36,
+    cx + headW * 0.08, figTop - headH * 0.36
   );
 
-  // Right crown
   ctx.bezierCurveTo(
-    cx + headW * 0.38, figTop - headH * 0.2,
-    cx + headW * 0.58, figTop - headH * 0.08,
-    cx + headW * 0.65, figTop + headH * 0.06
+    cx + headW * 0.38, figTop - headH * 0.32,
+    cx + headW * 0.58, figTop - headH * 0.14,
+    cx + headW * 0.65, figTop + headH * 0.04
   );
 
-  // Right crown to brim
+  // Right brim
   ctx.lineTo(cx + brimW * 1.0, hatBrimY - headH * 0.025);
-
-  // Right brim edge
   ctx.bezierCurveTo(
     cx + brimW * 1.04, hatBrimY - headH * 0.015,
     cx + brimW * 1.03, hatBrimY,
     cx + brimW, hatBrimY + headH * 0.02
   );
 
-  // Right brim to face
   ctx.lineTo(cx + headW * 0.78, figTop + headH * 0.15);
 
   // Right jaw
@@ -167,7 +153,7 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
     cx + headW * 0.78, figTop + headH * 0.62
   );
 
-  // Right coat collar
+  // Right collar
   ctx.bezierCurveTo(
     cx + headW * 0.7, figTop + headH * 0.75,
     cx + neckW * 1.1, figTop + headH * 0.80,
@@ -188,7 +174,7 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
     cx + shoulderW * 0.88, figTop + headH * 1.7
   );
 
-  // Right arm down
+  // Right arm
   ctx.bezierCurveTo(
     cx + shoulderW * 0.82, figTop + figH * 0.35,
     cx + shoulderW * 0.78, figTop + figH * 0.5,
@@ -199,14 +185,15 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   ctx.closePath();
   ctx.fill();
 
-  // ── LARGE SUNGLASSES — black cutouts so green chars show through ──
-  ctx.fillStyle = "#000";
+  // ── SUNGLASSES — BRIGHT edge glow (gray in mask = edge glow in render) ──
+  // Using rgb(90,90,90) puts them in the 60-160 edge glow range → bright green chars
+  ctx.fillStyle = "rgb(90, 90, 90)";
   const glassY = figTop + headH * 0.36;
   const glassW = headW * 0.52;
   const glassH = headH * 0.16;
   const glassSpacing = headW * 0.05;
 
-  // Left lens — aviator shape
+  // Left lens
   ctx.beginPath();
   ctx.moveTo(cx - glassSpacing - glassW, glassY - glassH * 0.4);
   ctx.bezierCurveTo(
@@ -227,7 +214,7 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   ctx.closePath();
   ctx.fill();
 
-  // Right lens (mirror)
+  // Right lens
   ctx.beginPath();
   ctx.moveTo(cx + glassSpacing + glassW, glassY - glassH * 0.4);
   ctx.bezierCurveTo(
@@ -248,8 +235,8 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   ctx.closePath();
   ctx.fill();
 
-  // Bridge between lenses
-  ctx.strokeStyle = "#000";
+  // Bridge
+  ctx.strokeStyle = "rgb(90, 90, 90)";
   ctx.lineWidth = headH * 0.025;
   ctx.beginPath();
   ctx.moveTo(cx - glassSpacing, glassY - glassH * 0.3);
@@ -261,7 +248,6 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   ctx.stroke();
 
   // ── SUIT DETAILS ──
-  // Lapel V-lines
   ctx.strokeStyle = "rgb(10,10,10)";
   ctx.lineWidth = headH * 0.025;
 
@@ -296,8 +282,8 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   ctx.lineTo(cx + shoulderW * 0.28, figTop + headH * 1.08);
   ctx.stroke();
 
-  // TIE — black cutout
-  ctx.fillStyle = "#000";
+  // TIE — BRIGHT edge glow (gray mask → green chars glow through)
+  ctx.fillStyle = "rgb(80, 80, 80)";
   // Knot
   ctx.beginPath();
   ctx.moveTo(cx - headH * 0.06, figTop + headH * 0.92);
@@ -341,7 +327,7 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
     ctx.fill();
   }
 
-  // Pocket square hint
+  // Pocket square
   ctx.fillStyle = "rgb(190,190,190)";
   ctx.beginPath();
   ctx.moveTo(cx - shoulderW * 0.22, figTop + headH * 1.5);
@@ -393,11 +379,11 @@ function drawEyeMask(
   ctx.save();
   ctx.clip();
 
-  // Sclera — white mask = dark void (characters won't render here)
+  // Sclera — white = dark void
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(cx - eyeW / 2 - 10, cy - eyeH - 10, eyeW + 20, eyeH * 2 + 20);
 
-  // Iris — medium gray so characters show as edge glow
+  // Iris — gray for edge glow
   ctx.fillStyle = "rgb(100, 100, 100)";
   ctx.beginPath();
   ctx.arc(cx, cy, irisR, 0, Math.PI * 2);
@@ -423,7 +409,7 @@ function drawEyeMask(
     ctx.stroke();
   }
 
-  // Pupil — white mask = dark void = the terminal space we zoom into
+  // Pupil — white = dark void = the terminal space
   ctx.fillStyle = "#ffffff";
   ctx.beginPath();
   ctx.arc(cx, cy, pupilR, 0, Math.PI * 2);
@@ -525,6 +511,7 @@ const MatrixAgents = () => {
 
     let zoomBlinkTriggeredIn = false;
     let zoomBlinkTriggeredOut = false;
+    let outroBlinkCompleted = false;
 
     const handleForcedBlink = () => {
       if (!isBlinking) {
@@ -538,15 +525,26 @@ const MatrixAgents = () => {
     const draw = () => {
       tick++;
 
-      // --- ZOOM ---
-      const zoomInStart = (window as any).__matrixZoomStart as number | undefined;
-      const zoomOutStart = (window as any).__matrixZoomOutStart as number | undefined;
+      // --- ZOOM (silhouette ↔ eye) ---
+      const zoomInStart = window.__matrixZoomStart;
+      const zoomOutStart = window.__matrixZoomOutStart;
       let rawZoom = 0;
       if (zoomOutStart) {
         rawZoom = Math.max(0, 1 - (Date.now() - zoomOutStart) / ZOOM_DURATION);
       } else if (zoomInStart) {
         rawZoom = Math.min(1, (Date.now() - zoomInStart) / ZOOM_DURATION);
       }
+
+      // --- PUPIL ZOOM (eye ↔ inside pupil/terminal) ---
+      const pupilZoomInStart = window.__matrixPupilZoomStart;
+      const pupilZoomOutStart = window.__matrixPupilZoomOutStart;
+      let rawPupilZoom = 0;
+      if (pupilZoomOutStart) {
+        rawPupilZoom = Math.max(0, 1 - (Date.now() - pupilZoomOutStart) / PUPIL_ZOOM_DURATION);
+      } else if (pupilZoomInStart) {
+        rawPupilZoom = Math.min(1, (Date.now() - pupilZoomInStart) / PUPIL_ZOOM_DURATION);
+      }
+      const pupilZoom = cinematicEase(rawPupilZoom);
 
       // Trigger blink at crossover during zoom-in
       if (zoomInStart && !zoomOutStart && rawZoom > 0.3 && rawZoom < 0.5 && !zoomBlinkTriggeredIn) {
@@ -555,24 +553,26 @@ const MatrixAgents = () => {
       }
       if (!zoomInStart) zoomBlinkTriggeredIn = false;
 
-      // Trigger blink at start of zoom-out
+      // Track when outro blink completes
       if (zoomOutStart && !zoomBlinkTriggeredOut) {
         zoomBlinkTriggeredOut = true;
-        handleForcedBlink();
+        outroBlinkCompleted = false;
       }
-      if (!zoomOutStart) zoomBlinkTriggeredOut = false;
+      if (!zoomOutStart) {
+        zoomBlinkTriggeredOut = false;
+        outroBlinkCompleted = false;
+      }
 
-      const zoom = cinematicEase(rawZoom);
+      const zoom = cinematicEase(Math.min(1, rawZoom));
 
-      // --- BRIGHTNESS — boost when showing silhouette so negative space pops ---
+      // --- BRIGHTNESS ---
       let brightness = 1;
       if (zoom < 0.3) {
-        // Silhouette phase: brighter background
-        brightness = 1.4;
+        brightness = 1.5; // Brighter background for silhouette phase
       } else if (zoom > 0.25 && zoom < 0.75) {
         const t = (zoom - 0.25) / 0.5;
         const dip = Math.pow(Math.sin(t * Math.PI), 2);
-        brightness = Math.max(0.5, 1.4 - dip * 0.9);
+        brightness = Math.max(0.5, 1.5 - dip * 1.0);
       }
 
       // --- BLINK ---
@@ -596,6 +596,7 @@ const MatrixAgents = () => {
             forcedBlink = false;
             blinkTimer = 0;
             nextBlinkAt = 180 + Math.random() * 300;
+            if (zoomOutStart) outroBlinkCompleted = true;
           }
         } else {
           if (blinkTimer < 8) blinkProgress = blinkTimer / 8;
@@ -621,23 +622,35 @@ const MatrixAgents = () => {
       const crossoverLow = 0.3;
       const crossoverHigh = 0.7;
       const isZoomingOut = !!zoomOutStart;
-      const blinkFullyClosed = blinkProgress > 0.9;
 
-      if (zoom <= crossoverLow) {
-        // Pure silhouette
-        const eyePos = getEyePosition(W, H);
-        const maxScale = 14;
-        const normalizedZoom = zoom / crossoverLow;
-        const scale = 1 + cinematicEase(normalizedZoom) * (maxScale - 1);
-
+      // If pupil zoom is active and we're at the eye phase, scale the eye mask
+      if (pupilZoom > 0.01 && zoom >= crossoverHigh) {
+        const pupilScale = 1 + pupilZoom * 18;
         offCtx.save();
         offCtx.translate(W / 2, H / 2);
-        offCtx.scale(scale, scale);
-        offCtx.translate(-eyePos.x, -eyePos.y);
-        drawSilhouetteMask(offCtx, W, H);
+        offCtx.scale(pupilScale, pupilScale);
+        offCtx.translate(-W / 2, -H / 2);
+        drawEyeMask(offCtx, W, H, tick, blinkProgress);
         offCtx.restore();
+      } else if (zoom <= crossoverLow) {
+        // Pure silhouette — but during zoom-out, only show after blink completed
+        if (isZoomingOut && !outroBlinkCompleted) {
+          // Don't draw silhouette yet — keep screen dark
+        } else {
+          const eyePos = getEyePosition(W, H);
+          const maxScale = 14;
+          const normalizedZoom = zoom / crossoverLow;
+          const scale = 1 + cinematicEase(normalizedZoom) * (maxScale - 1);
+
+          offCtx.save();
+          offCtx.translate(W / 2, H / 2);
+          offCtx.scale(scale, scale);
+          offCtx.translate(-eyePos.x, -eyePos.y);
+          drawSilhouetteMask(offCtx, W, H);
+          offCtx.restore();
+        }
       } else if (zoom >= crossoverHigh) {
-        // Pure eye
+        // Pure eye (no pupil zoom)
         drawEyeMask(offCtx, W, H, tick, blinkProgress);
       } else {
         // Blend zone
@@ -648,8 +661,7 @@ const MatrixAgents = () => {
         let showEyeAmount: number;
 
         if (isZoomingOut) {
-          // Don't show silhouette until blink is fully closed
-          if (blinkFullyClosed) {
+          if (outroBlinkCompleted) {
             showSilhouetteAmount = 1 - easedBlend;
             showEyeAmount = easedBlend;
           } else {
@@ -657,7 +669,6 @@ const MatrixAgents = () => {
             showEyeAmount = 1;
           }
         } else {
-          // Zoom in: use blink to mask transition
           const blinkMask = blinkProgress > 0.7 ? 1 : easedBlend;
           showSilhouetteAmount = 1 - blinkMask;
           showEyeAmount = blinkMask;
@@ -687,9 +698,9 @@ const MatrixAgents = () => {
       const imgData = offCtx.getImageData(0, 0, W, H);
       const px = imgData.data;
 
-      // --- BRAND TEXT: Iris IS the O, underline extends, "O M N I", enabled by lovable ---
-      const brandText = (window as any).__brandText as { label: string; name: string; startTime?: number; enabledBy?: string } | null;
-      if (brandText && zoom >= 0.95 && blinkProgress < 0.3) {
+      // --- BRAND TEXT ---
+      const brandText = window.__brandText;
+      if (brandText && zoom >= 0.95 && pupilZoom < 0.3 && blinkProgress < 0.3) {
         const nameSize = Math.max(18, Math.floor(W * 0.04));
         const labelSize = Math.max(10, Math.floor(W * 0.012));
         const now = Date.now();
@@ -704,14 +715,14 @@ const MatrixAgents = () => {
         const irisR = eyeW * 0.17;
         const underlineY = irisY + irisR + nameSize * 0.5;
 
-        // Step 1 (0-0.7s): Underline extends — THICKER
+        // Step 1 (0-0.7s): Underline extends — THICK
         const underlineProgress = Math.min(1, elapsed / 0.7);
         const easeOut = 1 - Math.pow(1 - underlineProgress, 3);
         const lineW = nameSize * 2.5 * easeOut;
 
         if (underlineProgress > 0) {
           ctx.strokeStyle = `rgba(0, 255, 65, ${0.8 * brightness * underlineProgress})`;
-          ctx.lineWidth = Math.max(3, nameSize * 0.12); // THICKER underline
+          ctx.lineWidth = Math.max(4, nameSize * 0.14);
           ctx.shadowBlur = 14 * brightness;
           ctx.beginPath();
           ctx.moveTo(W / 2 - lineW / 2, underlineY);
@@ -719,7 +730,7 @@ const MatrixAgents = () => {
           ctx.stroke();
         }
 
-        // Step 2 (0.6-1.1s): "O M N I" text fades in
+        // Step 2 (0.6-1.1s): "O M N I"
         const textDelay = 0.6;
         const textAlpha = Math.min(1, Math.max(0, (elapsed - textDelay) / 0.5));
         if (textAlpha > 0) {
@@ -730,7 +741,7 @@ const MatrixAgents = () => {
           ctx.fillText("O M N I", W / 2, textY);
         }
 
-        // Step 3 (1.2-1.6s): "PRESENTED BY" above
+        // Step 3 (1.2-1.6s): "PRESENTED BY"
         const labelDelay = 1.2;
         const labelAlpha = Math.min(1, Math.max(0, (elapsed - labelDelay) / 0.4));
         if (labelAlpha > 0) {
@@ -740,9 +751,9 @@ const MatrixAgents = () => {
           ctx.fillText(brandText.label, W / 2, irisY - irisR - nameSize * 0.8);
         }
 
-        // Step 4 (1.6-2.1s): "enabled by lovable" at bottom
+        // Step 4 (1.8-2.3s): "enabled by lovable"
         if (brandText.enabledBy) {
-          const ebDelay = 1.6;
+          const ebDelay = 1.8;
           const ebAlpha = Math.min(1, Math.max(0, (elapsed - ebDelay) / 0.5));
           if (ebAlpha > 0) {
             const ebSize = Math.max(9, Math.floor(W * 0.011));
@@ -775,13 +786,13 @@ const MatrixAgents = () => {
 
         if (mask > 60) {
           const edgeFactor = (mask - 60) / 100;
-          const edgeAlpha = (0.2 + edgeFactor * 0.6) * brightness;
+          const edgeAlpha = (0.25 + edgeFactor * 0.65) * brightness;
           const ch = tick % 2 === 0
             ? corpusChars[Math.floor(Math.random() * corpusChars.length)]
             : cell.ch;
           ctx.shadowColor = "#00FF41";
-          ctx.shadowBlur = (6 + edgeFactor * 14) * brightness;
-          ctx.fillStyle = `rgba(0, 255, 65, ${Math.min(0.75, edgeAlpha)})`;
+          ctx.shadowBlur = (8 + edgeFactor * 16) * brightness;
+          ctx.fillStyle = `rgba(0, 255, 65, ${Math.min(0.85, edgeAlpha)})`;
           ctx.fillText(ch, cell.x, cell.y);
           ctx.shadowBlur = 0;
           continue;
@@ -790,18 +801,18 @@ const MatrixAgents = () => {
         pulsePhase[i] += 0.012;
         const pulse = 0.5 + Math.sin(pulsePhase[i]) * 0.15;
         const wave = Math.sin(tick * 0.008 + cell.x * 0.003 + cell.y * 0.005) * 0.04;
-        // Higher base alpha for brighter background — makes silhouette pop via negative space
-        const alpha = (0.18 + pulse * 0.16 + wave) * brightness;
+        // Higher base alpha for brighter background
+        const alpha = (0.22 + pulse * 0.18 + wave) * brightness;
 
         let ch = cell.ch;
         if (tick % 10 === 0 && Math.random() > 0.97) {
           ch = corpusChars[Math.floor(Math.random() * corpusChars.length)];
         }
 
-        const glow = alpha > 0.22 * brightness ? 2.2 * brightness : 0;
+        const glow = alpha > 0.25 * brightness ? 2.5 * brightness : 0;
         ctx.shadowColor = glow > 0 ? "#00FF41" : "transparent";
         ctx.shadowBlur = glow;
-        ctx.fillStyle = `rgba(0, 255, 65, ${Math.min(0.5, alpha)})`;
+        ctx.fillStyle = `rgba(0, 255, 65, ${Math.min(0.55, alpha)})`;
         ctx.fillText(ch, cell.x, cell.y);
       }
 
