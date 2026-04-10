@@ -902,18 +902,24 @@ const MatrixAgents = () => {
         ctx.strokeStyle = `rgba(0, 255, 65, ${heartFlicker * 0.7})`;
         ctx.lineWidth = 10;
 
-        // Lovable-style heart: rounded bottom-left, pointed bottom
+        // Lovable heart: flat/squared top-left, rounded right lobe, soft bottom point
         ctx.beginPath();
-        // Start at bottom point
-        ctx.moveTo(0, hs * 0.85);
-        // Left side curve up
-        ctx.bezierCurveTo(-hs * 0.35, hs * 0.55, -hs * 0.55, hs * 0.25, -hs * 0.55, -hs * 0.05);
-        // Left lobe
-        ctx.bezierCurveTo(-hs * 0.55, -hs * 0.45, -hs * 0.3, -hs * 0.65, 0, -hs * 0.45);
-        // Right lobe
-        ctx.bezierCurveTo(hs * 0.3, -hs * 0.65, hs * 0.55, -hs * 0.45, hs * 0.55, -hs * 0.05);
-        // Right side curve down to bottom
-        ctx.bezierCurveTo(hs * 0.55, hs * 0.25, hs * 0.35, hs * 0.55, 0, hs * 0.85);
+        // Start at top-left corner (flat squared edge)
+        ctx.moveTo(-hs * 0.52, -hs * 0.55);
+        // Top-left: slight round on the corner
+        ctx.bezierCurveTo(-hs * 0.52, -hs * 0.62, -hs * 0.48, -hs * 0.65, -hs * 0.40, -hs * 0.65);
+        // Top edge going right toward the cleft
+        ctx.lineTo(-hs * 0.05, -hs * 0.65);
+        // Dip into the heart cleft
+        ctx.bezierCurveTo(-hs * 0.02, -hs * 0.55, hs * 0.02, -hs * 0.55, hs * 0.05, -hs * 0.65);
+        // Right lobe — full rounded bump
+        ctx.bezierCurveTo(hs * 0.20, -hs * 0.82, hs * 0.55, -hs * 0.72, hs * 0.55, -hs * 0.38);
+        // Right side curves down to bottom point
+        ctx.bezierCurveTo(hs * 0.55, -hs * 0.05, hs * 0.30, hs * 0.30, 0, hs * 0.65);
+        // Bottom point back up to left side
+        ctx.bezierCurveTo(-hs * 0.30, hs * 0.30, -hs * 0.52, hs * 0.05, -hs * 0.52, -hs * 0.20);
+        // Left side straight up to start
+        ctx.lineTo(-hs * 0.52, -hs * 0.55);
         ctx.closePath();
 
         ctx.stroke();
