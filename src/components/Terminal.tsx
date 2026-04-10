@@ -226,13 +226,13 @@ const Terminal = () => {
   useEffect(() => {
     if (!showOutro) return;
 
-    // Trigger a blink first — the zoom starts while the eye is closed
+    // Trigger a blink first — must fully close before zoom-out starts
     window.dispatchEvent(new CustomEvent("eye-blink"));
 
-    // Start zoom-out after a brief delay (while eye is closing)
+    // Start zoom-out AFTER blink has fully closed (~650ms)
     const zoomDelay = setTimeout(() => {
       (window as any).__matrixZoomOutStart = Date.now();
-    }, 400);
+    }, 650);
 
     const rebootTimer = setTimeout(() => {
       (window as any).__matrixZoomOutStart = undefined;
