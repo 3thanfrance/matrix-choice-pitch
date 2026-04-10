@@ -378,6 +378,16 @@ const Terminal = () => {
       setShowPrompt(false);
       const nextKey = answer === "y" ? node.yes : node.no;
       if (nextKey) {
+        // Theatrical pill flash for red/blue pill moments
+        if (nextKey === "redpill" || nextKey === "solution") {
+          setPillFlash("red");
+          playStatic(0.3, 0.1);
+          setTimeout(() => setPillFlash(null), 600);
+        } else if (nextKey === "bluepill" || nextKey === "final_no") {
+          setPillFlash("blue");
+          playStatic(0.2, 0.08);
+          setTimeout(() => setPillFlash(null), 600);
+        }
         setNextNodeKey(nextKey);
         setTimeout(() => {
           playStatic(0.1, 0.04);
@@ -408,6 +418,18 @@ const Terminal = () => {
       {staticBurst && (
         <div className="absolute inset-0 pointer-events-none z-20 boot-static opacity-30" />
       )}
+
+      {/* Pill flash overlay — theatrical red/blue screen flash */}
+      {pillFlash && (
+        <div
+          className="absolute inset-0 pointer-events-none z-30 animate-pulse"
+          style={{
+            background: pillFlash === "red"
+              ? "radial-gradient(ellipse at center, rgba(255,0,0,0.25) 0%, rgba(255,0,0,0.08) 60%, transparent 100%)"
+              : "radial-gradient(ellipse at center, rgba(0,100,255,0.25) 0%, rgba(0,100,255,0.08) 60%, transparent 100%)",
+            animation: "pill-flash 0.6s ease-out forwards",
+          }}
+        />
 
       {/* Ambient scanline effect */}
       <div className="absolute inset-0 pointer-events-none z-10 opacity-[0.03]"
