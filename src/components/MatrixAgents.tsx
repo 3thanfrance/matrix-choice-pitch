@@ -777,13 +777,13 @@ const MatrixAgents = () => {
           ctx.lineCap = "round";
           ctx.shadowBlur = 18 * brightness;
           ctx.beginPath();
-          ctx.arc(W / 2, irisY, irisR, 0, Math.PI * 2);
+          ctx.arc(irisCx, irisY, irisR, 0, Math.PI * 2);
           ctx.stroke();
           // Subtle outer glow
           ctx.strokeStyle = `rgba(0, 255, 65, ${ringAlpha * 0.15 * brightness})`;
           ctx.lineWidth = strokeW * 0.3;
           ctx.beginPath();
-          ctx.arc(W / 2, irisY, irisR + strokeW * 0.8, 0, Math.PI * 2);
+          ctx.arc(irisCx, irisY, irisR + strokeW * 0.8, 0, Math.PI * 2);
           ctx.stroke();
         }
 
@@ -795,7 +795,7 @@ const MatrixAgents = () => {
         const easeOut = 1 - Math.pow(1 - underlineProgress, 3);
         // Underline width matches the "O" diameter (2 * irisR), slightly wider
         const underlineFullW = irisR * 2.2;
-        const underlineCx = W / 2;
+        const underlineCx = irisCx;
 
         if (underlineProgress > 0) {
           ctx.strokeStyle = `rgba(0, 255, 65, ${0.9 * brightness * underlineProgress})`;
@@ -814,7 +814,7 @@ const MatrixAgents = () => {
         const perLetterDuration = 0.18;
         // Position "m" right after the iris with proper spacing
         const letterGap = strokeW * 0.6;
-        const mStartX = W / 2 + irisR + strokeW / 2 + letterGap;
+        const mStartX = irisCx + irisR + strokeW / 2 + letterGap;
         // Baseline: bottom of the "O" circle
         const baseline = irisY + irisR;
         const top = irisY - irisR;
