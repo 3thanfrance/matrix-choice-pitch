@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { prepareWithSegments, layoutWithLines } from "@chenglou/pretext";
+import heartSrc from "../assets/lovable-heart.png";
 
 declare global {
   interface Window {
@@ -886,52 +887,51 @@ const MatrixAgents = () => {
 
         // Lovable heart logo — the tallest element, spanning entire phrase height
         const lovableTextW = ctx.measureText("Lovable").width;
-        const totalH = (line2Y + bigSize) - ty; // full height from top of "enabled by" to bottom of "Lovable"
-        const hs = totalH * 0.65; // heart scale — dominant element
-        const heartX = tx + lovableTextW + bigSize * 0.45 + hs * 0.45;
-        const heartY = ty + totalH * 0.35; // vertically centered
+        const totalH = (line2Y + bigSize) - ty;
+        const heartH = totalH * 1.1; // heart is the tallest element
+        const heartW = heartH; // square aspect from source image
+        const heartX = tx + lovableTextW + bigSize * 0.35;
+        const heartYPos = ty - totalH * 0.1;
 
-        ctx.save();
-        ctx.translate(heartX, heartY);
-        ctx.rotate(-0.15); // slight angle like the Lovable logo
+        // Load heart image (cached after first load)
+        if (!(window as any).__lovableHeartImg) {
+          const img = new Image();
+          img.src = heartSrc;
+          img.onload = () => { (window as any).__lovableHeartImg = img; };
+        }
+        const heartImg = (window as any).__lovableHeartImg as HTMLImageElement | undefined;
+        if (heartImg && heartImg.complete) {
+          // Create silhouette: draw image to offscreen canvas, then composite black
+          const oc = document.createElement("canvas");
+          oc.width = Math.ceil(heartW * 2);
+          oc.height = Math.ceil(heartH * 2);
+          const ox = oc.getContext("2d")!;
+          ox.drawImage(heartImg, 0, 0, oc.width, oc.height);
+          // Replace all visible pixels with black
+          ox.globalCompositeOperation = "source-in";
+          ox.fillStyle = "rgba(0, 0, 0, 0.97)";
+          ox.fillRect(0, 0, oc.width, oc.height);
 
-        // Green glow backing for heart
-        const heartFlicker = 0.35 + Math.sin(tick * 0.15) * 0.08 + Math.random() * 0.05;
-        ctx.shadowColor = "#00FF41";
-        ctx.shadowBlur = 24;
-        ctx.strokeStyle = `rgba(0, 255, 65, ${heartFlicker * 0.7})`;
-        ctx.lineWidth = 10;
+          // Draw green glow version behind
+          const gc = document.createElement("canvas");
+          gc.width = oc.width; gc.height = oc.height;
+          const gx = gc.getContext("2d")!;
+          gx.drawImage(heartImg, 0, 0, gc.width, gc.height);
+          gx.globalCompositeOperation = "source-in";
+          const heartFlicker = 0.35 + Math.sin(tick * 0.15) * 0.08 + Math.random() * 0.05;
+          gx.fillStyle = `rgba(0, 255, 65, ${heartFlicker})`;
+          gx.fillRect(0, 0, gc.width, gc.height);
 
-        // Lovable heart: flat/squared top-left, rounded right lobe, soft bottom point
-        ctx.beginPath();
-        // Start at top-left corner (flat squared edge)
-        ctx.moveTo(-hs * 0.52, -hs * 0.55);
-        // Top-left: slight round on the corner
-        ctx.bezierCurveTo(-hs * 0.52, -hs * 0.62, -hs * 0.48, -hs * 0.65, -hs * 0.40, -hs * 0.65);
-        // Top edge going right toward the cleft
-        ctx.lineTo(-hs * 0.05, -hs * 0.65);
-        // Dip into the heart cleft
-        ctx.bezierCurveTo(-hs * 0.02, -hs * 0.55, hs * 0.02, -hs * 0.55, hs * 0.05, -hs * 0.65);
-        // Right lobe — full rounded bump
-        ctx.bezierCurveTo(hs * 0.20, -hs * 0.82, hs * 0.55, -hs * 0.72, hs * 0.55, -hs * 0.38);
-        // Right side curves down to bottom point
-        ctx.bezierCurveTo(hs * 0.55, -hs * 0.05, hs * 0.30, hs * 0.30, 0, hs * 0.65);
-        // Bottom point back up to left side
-        ctx.bezierCurveTo(-hs * 0.30, hs * 0.30, -hs * 0.52, hs * 0.05, -hs * 0.52, -hs * 0.20);
-        // Left side straight up to start
-        ctx.lineTo(-hs * 0.52, -hs * 0.55);
-        ctx.closePath();
+          ctx.save();
+          ctx.shadowColor = "#00FF41";
+          ctx.shadowBlur = 24;
+          ctx.drawImage(gc, heartX, heartYPos, heartW, heartH);
+          ctx.shadowBlur = 0;
+          // Black silhouette on top
+          ctx.drawImage(oc, heartX, heartYPos, heartW, heartH);
+          ctx.restore();
+        }
 
-        ctx.stroke();
-        ctx.fillStyle = `rgba(0, 255, 65, ${heartFlicker})`;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-
-        // Black void heart on top
-        ctx.fillStyle = "rgba(0, 0, 0, 0.97)";
-        ctx.fill();
-
-        ctx.restore();
         ctx.textAlign = "start";
       }
 
