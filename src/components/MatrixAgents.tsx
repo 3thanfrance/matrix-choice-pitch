@@ -884,11 +884,12 @@ const MatrixAgents = () => {
         ctx.font = `700 ${bigSize}px Inter, system-ui, sans-serif`;
         ctx.fillText("Lovable", tx, line2Y);
 
-        // Lovable heart logo — angled, void style, to the right of "Lovable"
+        // Lovable heart logo — the tallest element, spanning entire phrase height
         const lovableTextW = ctx.measureText("Lovable").width;
-        const heartX = tx + lovableTextW + bigSize * 0.5;
-        const heartY = line2Y + bigSize * 0.5;
-        const hs = bigSize * 0.4; // heart size
+        const totalH = (line2Y + bigSize) - ty; // full height from top of "enabled by" to bottom of "Lovable"
+        const hs = totalH * 0.65; // heart scale — dominant element
+        const heartX = tx + lovableTextW + bigSize * 0.45 + hs * 0.45;
+        const heartY = ty + totalH * 0.35; // vertically centered
 
         ctx.save();
         ctx.translate(heartX, heartY);
@@ -897,16 +898,24 @@ const MatrixAgents = () => {
         // Green glow backing for heart
         const heartFlicker = 0.35 + Math.sin(tick * 0.15) * 0.08 + Math.random() * 0.05;
         ctx.shadowColor = "#00FF41";
-        ctx.shadowBlur = 20;
+        ctx.shadowBlur = 24;
         ctx.strokeStyle = `rgba(0, 255, 65, ${heartFlicker * 0.7})`;
-        ctx.lineWidth = 8;
+        ctx.lineWidth = 10;
+
+        // Lovable-style heart: rounded bottom-left, pointed bottom
         ctx.beginPath();
-        ctx.moveTo(0, hs * 0.35);
-        ctx.bezierCurveTo(-hs * 0.05, -hs * 0.1, -hs * 0.45, -hs * 0.45, -hs * 0.45, -hs * 0.15);
-        ctx.bezierCurveTo(-hs * 0.45, hs * 0.1, -hs * 0.2, hs * 0.35, 0, hs * 0.55);
-        ctx.bezierCurveTo(hs * 0.2, hs * 0.35, hs * 0.45, hs * 0.1, hs * 0.45, -hs * 0.15);
-        ctx.bezierCurveTo(hs * 0.45, -hs * 0.45, hs * 0.05, -hs * 0.1, 0, hs * 0.35);
+        // Start at bottom point
+        ctx.moveTo(0, hs * 0.85);
+        // Left side curve up
+        ctx.bezierCurveTo(-hs * 0.35, hs * 0.55, -hs * 0.55, hs * 0.25, -hs * 0.55, -hs * 0.05);
+        // Left lobe
+        ctx.bezierCurveTo(-hs * 0.55, -hs * 0.45, -hs * 0.3, -hs * 0.65, 0, -hs * 0.45);
+        // Right lobe
+        ctx.bezierCurveTo(hs * 0.3, -hs * 0.65, hs * 0.55, -hs * 0.45, hs * 0.55, -hs * 0.05);
+        // Right side curve down to bottom
+        ctx.bezierCurveTo(hs * 0.55, hs * 0.25, hs * 0.35, hs * 0.55, 0, hs * 0.85);
         ctx.closePath();
+
         ctx.stroke();
         ctx.fillStyle = `rgba(0, 255, 65, ${heartFlicker})`;
         ctx.fill();
