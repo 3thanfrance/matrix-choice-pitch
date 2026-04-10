@@ -360,17 +360,22 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   ctx.closePath();
   ctx.fill();
 
-  // "enabled by lovable" as negative space (mask text — matrix rain glows through)
-  if (window.__silhouetteText) {
-    const textSize = Math.max(11, Math.floor(W * 0.016));
-    ctx.font = `600 ${textSize}px 'Fira Code', monospace`;
+  // "enabled by Lovable" as negative space — matrix rain glows through letter shapes
+  // Rendered via path-based letter outlines for crisp negative space at any scale
+  const showLovableText = window.__silhouetteText;
+  if (showLovableText) {
+    const textSize = Math.max(16, Math.floor(H * 0.028));
+    ctx.font = `700 ${textSize}px 'Fira Code', monospace`;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillStyle = "rgb(100, 100, 100)";
-    ctx.fillText("enabled by", W * 0.06, H * 0.08);
-    ctx.fillText("Lovable", W * 0.06, H * 0.08 + textSize * 1.4);
+    // Use bright gray so matrix characters glow through intensely
+    ctx.fillStyle = "rgb(120, 120, 120)";
+    // Position upper-left, away from the silhouette figure
+    const tx = cx - shoulderW * 1.8;
+    const ty = figTop - headH * 0.5;
+    ctx.fillText("enabled by", tx, ty);
+    ctx.fillText("Lovable", tx, ty + textSize * 1.5);
     ctx.textAlign = "start";
-    ctx.textBaseline = "top";
   }
 }
 
