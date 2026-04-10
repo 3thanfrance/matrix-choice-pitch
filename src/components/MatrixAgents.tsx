@@ -893,42 +893,63 @@ const MatrixAgents = () => {
         const heartX = tx + lovableTextW + bigSize * 0.35;
         const heartYPos = ty - totalH * 0.1;
 
-        // Load heart image (cached after first load)
-        if (!(window as any).__lovableHeartImg) {
+        // Load heart image and extract silhouette (cached after first load)
+        if (!(window as any).__lovableHeartSilhouette) {
           const img = new Image();
           img.src = heartSrc;
-          img.onload = () => { (window as any).__lovableHeartImg = img; };
+          img.onload = () => {
+            // Extract heart shape from black background using pixel data
+            const oc = document.createElement("canvas");
+            oc.width = img.width; oc.height = img.height;
+            const ox = oc.getContext("2d")!;
+            ox.drawImage(img, 0, 0);
+            const imageData = ox.getImageData(0, 0, oc.width, oc.height);
+            const d = imageData.data;
+            for (let i = 0; i < d.length; i += 4) {
+              const r = d[i], g = d[i+1], b = d[i+2];
+              // If pixel is dark/black background, make transparent
+              if (r < 30 && g < 30 && b < 30) {
+                d[i+3] = 0;
+              } else {
+                // Heart pixel — make fully opaque (keep color for glow version)
+                d[i+3] = 255;
+              }
+            }
+            ox.putImageData(imageData, 0, 0);
+
+            // Black silhouette version
+            const bc = document.createElement("canvas");
+            bc.width = oc.width; bc.height = oc.height;
+            const bx = bc.getContext("2d")!;
+            bx.drawImage(oc, 0, 0);
+            bx.globalCompositeOperation = "source-in";
+            bx.fillStyle = "#000000";
+            bx.fillRect(0, 0, bc.width, bc.height);
+
+            // Green glow version
+            const gc = document.createElement("canvas");
+            gc.width = oc.width; gc.height = oc.height;
+            const gx = gc.getContext("2d")!;
+            gx.drawImage(oc, 0, 0);
+            gx.globalCompositeOperation = "source-in";
+            gx.fillStyle = "#00FF41";
+            gx.fillRect(0, 0, gc.width, gc.height);
+
+            (window as any).__lovableHeartSilhouette = { black: bc, glow: gc };
+          };
         }
-        const heartImg = (window as any).__lovableHeartImg as HTMLImageElement | undefined;
-        if (heartImg && heartImg.complete) {
-          // Create silhouette: draw image to offscreen canvas, then composite black
-          const oc = document.createElement("canvas");
-          oc.width = Math.ceil(heartW * 2);
-          oc.height = Math.ceil(heartH * 2);
-          const ox = oc.getContext("2d")!;
-          ox.drawImage(heartImg, 0, 0, oc.width, oc.height);
-          // Replace all visible pixels with black
-          ox.globalCompositeOperation = "source-in";
-          ox.fillStyle = "rgba(0, 0, 0, 0.97)";
-          ox.fillRect(0, 0, oc.width, oc.height);
-
-          // Draw green glow version behind
-          const gc = document.createElement("canvas");
-          gc.width = oc.width; gc.height = oc.height;
-          const gx = gc.getContext("2d")!;
-          gx.drawImage(heartImg, 0, 0, gc.width, gc.height);
-          gx.globalCompositeOperation = "source-in";
-          const heartFlicker = 0.35 + Math.sin(tick * 0.15) * 0.08 + Math.random() * 0.05;
-          gx.fillStyle = `rgba(0, 255, 65, ${heartFlicker})`;
-          gx.fillRect(0, 0, gc.width, gc.height);
-
+        const cached = (window as any).__lovableHeartSilhouette as { black: HTMLCanvasElement; glow: HTMLCanvasElement } | undefined;
+        if (cached) {
           ctx.save();
+          // Green glow behind
           ctx.shadowColor = "#00FF41";
-          ctx.shadowBlur = 24;
-          ctx.drawImage(gc, heartX, heartYPos, heartW, heartH);
+          ctx.shadowBlur = 20;
+          ctx.globalAlpha = 0.35 + Math.sin(tick * 0.15) * 0.08 + Math.random() * 0.05;
+          ctx.drawImage(cached.glow, heartX, heartYPos, heartW, heartH);
+          // Black void on top
           ctx.shadowBlur = 0;
-          // Black silhouette on top
-          ctx.drawImage(oc, heartX, heartYPos, heartW, heartH);
+          ctx.globalAlpha = 1;
+          ctx.drawImage(cached.black, heartX, heartYPos, heartW, heartH);
           ctx.restore();
         }
 
