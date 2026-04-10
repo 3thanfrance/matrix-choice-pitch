@@ -378,15 +378,25 @@ const Terminal = () => {
       setShowPrompt(false);
       const nextKey = answer === "y" ? node.yes : node.no;
       if (nextKey) {
-        // Theatrical pill flash for red/blue pill moments
+        // Theatrical pill flash + screen shake for red/blue pill moments
         if (nextKey === "redpill" || nextKey === "solution") {
           setPillFlash("red");
-          playStatic(0.3, 0.1);
-          setTimeout(() => setPillFlash(null), 600);
+          playStatic(0.4, 0.15);
+          document.body.style.animation = "none";
+          requestAnimationFrame(() => {
+            document.body.style.animation = "shake 0.4s ease-out";
+            setTimeout(() => { document.body.style.animation = ""; }, 500);
+          });
+          setTimeout(() => setPillFlash(null), 800);
         } else if (nextKey === "bluepill" || nextKey === "final_no") {
           setPillFlash("blue");
-          playStatic(0.2, 0.08);
-          setTimeout(() => setPillFlash(null), 600);
+          playStatic(0.3, 0.12);
+          document.body.style.animation = "none";
+          requestAnimationFrame(() => {
+            document.body.style.animation = "shake 0.3s ease-out";
+            setTimeout(() => { document.body.style.animation = ""; }, 400);
+          });
+          setTimeout(() => setPillFlash(null), 800);
         }
         setNextNodeKey(nextKey);
         setTimeout(() => {
