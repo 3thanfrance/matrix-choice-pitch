@@ -537,6 +537,7 @@ const MatrixAgents = () => {
     let zoomBlinkTriggeredIn = false;
     let zoomBlinkTriggeredOut = false;
     let outroBlinkCompleted = false;
+    let currentBrandOffsetX = 0; // eye X shift for Omni centering
 
     const handleForcedBlink = () => {
       if (!isBlinking) {
@@ -563,6 +564,21 @@ const MatrixAgents = () => {
       // The blink on dismiss hides the transition to full zoom
       if (window.__brandText && rawZoom > 0.65) {
         rawZoom = 0.65;
+      }
+
+      // --- BRAND EYE OFFSET (shift eye left so "OMNI" is centered on screen) ---
+      if (window.__brandText && rawZoom > 0.5) {
+        const _eyeW = Math.min(W * 0.55, H * 1.2);
+        const _irisR = _eyeW * 0.17;
+        const _capH = _irisR * 2;
+        const _strokeW = _capH * 0.18;
+        const _letterGap = _strokeW * 0.6;
+        // Total width of "mni" + gap after O
+        const mniW = _capH * 0.82 + _letterGap + _capH * 0.44 + _letterGap + _strokeW;
+        currentBrandOffsetX = -(mniW + _letterGap) / 2;
+      } else if (blinkProgress >= 0.95) {
+        // Snap to center while eyes are fully closed
+        currentBrandOffsetX = 0;
       }
 
       // --- PUPIL ZOOM (eye ↔ inside pupil/terminal) ---
@@ -680,8 +696,11 @@ const MatrixAgents = () => {
           offCtx.restore();
         }
       } else if (zoom >= crossoverHigh) {
-        // Pure eye (no pupil zoom)
+        // Pure eye (no pupil zoom) — apply brand offset to shift eye left for Omni
+        offCtx.save();
+        offCtx.translate(currentBrandOffsetX, 0);
         drawEyeMask(offCtx, W, H, tick, blinkProgress);
+        offCtx.restore();
       } else {
         // Blend zone
         const blendT = (zoom - crossoverLow) / (crossoverHigh - crossoverLow);
@@ -719,6 +738,7 @@ const MatrixAgents = () => {
         if (showEyeAmount > 0.02) {
           offCtx.save();
           offCtx.globalAlpha = showEyeAmount;
+          offCtx.translate(currentBrandOffsetX, 0);
           drawEyeMask(offCtx, W, H, tick, blinkProgress);
           offCtx.restore();
         }
@@ -736,6 +756,8 @@ const MatrixAgents = () => {
         const now = Date.now();
         const elapsed = brandText.startTime ? (now - brandText.startTime) / 1000 : 2;
 
+        // Eye center is shifted by brandOffsetX
+        const irisCx = W / 2 + currentBrandOffsetX;
         const irisY = H / 2;
         const eyeW = Math.min(W * 0.55, H * 1.2);
         const irisR = eyeW * 0.17;
@@ -756,13 +778,13 @@ const MatrixAgents = () => {
           ctx.lineCap = "round";
           ctx.shadowBlur = 18 * brightness;
           ctx.beginPath();
-          ctx.arc(W / 2, irisY, irisR, 0, Math.PI * 2);
+          ctx.arc(irisCx, irisY, irisR, 0, Math.PI * 2);
           ctx.stroke();
           // Subtle outer glow
           ctx.strokeStyle = `rgba(0, 255, 65, ${ringAlpha * 0.15 * brightness})`;
           ctx.lineWidth = strokeW * 0.3;
           ctx.beginPath();
-          ctx.arc(W / 2, irisY, irisR + strokeW * 0.8, 0, Math.PI * 2);
+          ctx.arc(irisCx, irisY, irisR + strokeW * 0.8, 0, Math.PI * 2);
           ctx.stroke();
         }
 
@@ -774,7 +796,7 @@ const MatrixAgents = () => {
         const easeOut = 1 - Math.pow(1 - underlineProgress, 3);
         // Underline width matches the "O" diameter (2 * irisR), slightly wider
         const underlineFullW = irisR * 2.2;
-        const underlineCx = W / 2;
+        const underlineCx = irisCx;
 
         if (underlineProgress > 0) {
           ctx.strokeStyle = `rgba(0, 255, 65, ${0.9 * brightness * underlineProgress})`;
@@ -793,7 +815,7 @@ const MatrixAgents = () => {
         const perLetterDuration = 0.18;
         // Position "m" right after the iris with proper spacing
         const letterGap = strokeW * 0.6;
-        const mStartX = W / 2 + irisR + strokeW / 2 + letterGap;
+        const mStartX = irisCx + irisR + strokeW / 2 + letterGap;
         // Baseline: bottom of the "O" circle
         const baseline = irisY + irisR;
         const top = irisY - irisR;
@@ -889,7 +911,7 @@ const MatrixAgents = () => {
           ctx.shadowBlur = 10;
           ctx.fillStyle = `rgba(0, 255, 65, ${0.65 * brightness * labelAlpha})`;
           // Center over the full "omni" word
-          const omniCenterX = (W / 2 + lx) / 2;
+          const omniCenterX = (irisCx + lx) / 2;
           ctx.fillText(brandText.label, omniCenterX, top - labelSize * 1.5);
         }
 
