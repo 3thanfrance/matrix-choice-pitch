@@ -832,17 +832,38 @@ const MatrixAgents = () => {
       ctx.shadowBlur = 0;
       ctx.shadowColor = "transparent";
 
-      // "enabled by Lovable" — large black text over the rain, behind the silhouette
-      // Only visible when zoomed out to silhouette view
+      // "enabled by Lovable" — layered: green glow backing → black text on top
       if (zoom < 0.05) {
         const lblSize = Math.max(28, Math.floor(H * 0.05));
+        const tx = W * 0.03;
+        const ty = H * 0.04;
+        const line2Y = ty + lblSize * 1.4;
+        const bigSize = Math.floor(lblSize * 1.4);
+
+        // Layer 1: Staticky green solid backing behind the text for contrast
         ctx.font = `800 ${lblSize}px 'Fira Code', monospace`;
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
-        ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
-        ctx.fillText("enabled by", W * 0.03, H * 0.04);
-        ctx.font = `900 ${Math.floor(lblSize * 1.4)}px 'Fira Code', monospace`;
-        ctx.fillText("Lovable", W * 0.03, H * 0.04 + lblSize * 1.4);
+        const staticFlicker = 0.35 + Math.sin(tick * 0.15) * 0.08 + Math.random() * 0.05;
+        ctx.fillStyle = `rgba(0, 255, 65, ${staticFlicker})`;
+        ctx.shadowColor = "#00FF41";
+        ctx.shadowBlur = 20;
+        // Draw slightly expanded backing by stroking
+        ctx.lineWidth = 8;
+        ctx.strokeStyle = `rgba(0, 255, 65, ${staticFlicker * 0.7})`;
+        ctx.strokeText("enabled by", tx, ty);
+        ctx.fillText("enabled by", tx, ty);
+        ctx.font = `900 ${bigSize}px 'Fira Code', monospace`;
+        ctx.strokeText("Lovable", tx, line2Y);
+        ctx.fillText("Lovable", tx, line2Y);
+        ctx.shadowBlur = 0;
+
+        // Layer 2: Black text on top — crisp readable letters
+        ctx.font = `800 ${lblSize}px 'Fira Code', monospace`;
+        ctx.fillStyle = "rgba(0, 0, 0, 0.92)";
+        ctx.fillText("enabled by", tx, ty);
+        ctx.font = `900 ${bigSize}px 'Fira Code', monospace`;
+        ctx.fillText("Lovable", tx, line2Y);
         ctx.textAlign = "start";
       }
 
