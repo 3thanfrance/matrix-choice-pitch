@@ -738,6 +738,7 @@ const MatrixAgents = () => {
         if (showEyeAmount > 0.02) {
           offCtx.save();
           offCtx.globalAlpha = showEyeAmount;
+          offCtx.translate(currentBrandOffsetX, 0);
           drawEyeMask(offCtx, W, H, tick, blinkProgress);
           offCtx.restore();
         }
