@@ -389,15 +389,15 @@ const Terminal = () => {
       setShowPrompt(false);
       const nextKey = answer === "y" ? node.yes : node.no;
       if (nextKey) {
-        // Set pill protocol color indicator (no screen flash/shake)
+        // Protocol activation glow when entering redpill or bluepill nodes
         if (nextKey === "redpill") {
           setPillFlash("red");
-          playStatic(0.15, 0.06);
-          setTimeout(() => setPillFlash(null), 2500);
+          playStatic(0.2, 0.08);
+          setTimeout(() => setPillFlash(null), 4000);
         } else if (nextKey === "bluepill") {
           setPillFlash("blue");
-          playStatic(0.15, 0.06);
-          setTimeout(() => setPillFlash(null), 2500);
+          playStatic(0.2, 0.08);
+          setTimeout(() => setPillFlash(null), 4000);
         }
         setNextNodeKey(nextKey);
         setTimeout(() => {
