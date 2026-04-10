@@ -570,12 +570,12 @@ const MatrixAgents = () => {
       if (window.__brandText && rawZoom > 0.5) {
         const _eyeW = Math.min(W * 0.55, H * 1.2);
         const _irisR = _eyeW * 0.17;
-        const _capH = _irisR * 2;
-        const _strokeW = _capH * 0.18;
-        const _letterGap = _strokeW * 0.6;
-        // Total width of "mni" + gap after O
-        const mniW = _capH * 0.82 + _letterGap + _capH * 0.44 + _letterGap + _strokeW;
-        currentBrandOffsetX = -(mniW + _letterGap) / 2;
+        const _fontSize = _irisR * 2 * 1.1;
+        // Measure "mni" width using font metrics
+        ctx.font = `700 ${_fontSize}px Quicksand, sans-serif`;
+        const mniWidth = ctx.measureText("mni").width;
+        const _gap = _irisR * 0.35; // gap between O and mni
+        currentBrandOffsetX = -(mniWidth + _gap) / 2;
       } else if (blinkProgress >= 0.95) {
         // Snap to center while eyes are fully closed
         currentBrandOffsetX = 0;
