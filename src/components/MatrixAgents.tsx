@@ -762,9 +762,9 @@ const MatrixAgents = () => {
           ctx.stroke();
         }
 
-        // --- Underline beneath the "O" ---
-        const underlineGap = strokeW * 0.7;
-        const underlineY = irisY + irisR + underlineGap + strokeW * 0.4;
+        // --- Underline beneath the "O" — dropped lower to match Omni reference ---
+        const underlineGap = strokeW * 1.6;
+        const underlineY = irisY + irisR + underlineGap + strokeW * 0.5;
         const underlineDelay = 0.2;
         const underlineProgress = Math.min(1, Math.max(0, (elapsed - underlineDelay) / 0.5));
         const easeOut = 1 - Math.pow(1 - underlineProgress, 3);
