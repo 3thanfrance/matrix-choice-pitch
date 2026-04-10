@@ -928,7 +928,7 @@ const MatrixAgents = () => {
         ctx.shadowBlur = 0;
 
         // Black void heart on top
-        ctx.fillStyle = "rgba(0, 0, 0, 0.92)";
+        ctx.fillStyle = "rgba(0, 0, 0, 0.97)";
         ctx.fill();
 
         ctx.restore();
