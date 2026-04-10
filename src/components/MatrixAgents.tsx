@@ -783,38 +783,17 @@ const MatrixAgents = () => {
           ctx.stroke();
         }
 
-        // --- "mni" using Quicksand font (rounded geometric sans-serif, matches Omni logo) ---
-        const typeStartDelay = 0.6;
-        const mniAlpha = Math.min(1, Math.max(0, (elapsed - typeStartDelay) / 0.3));
-        if (mniAlpha > 0) {
-          ctx.font = `700 ${omniFontSize}px Quicksand, sans-serif`;
-          ctx.textAlign = "left";
+        // --- "PRESENTED BY" label above the O, centered ---
+        const labelDelay = 0.6;
+        const labelAlpha = Math.min(1, Math.max(0, (elapsed - labelDelay) / 0.4));
+        if (labelAlpha > 0) {
+          ctx.font = `600 ${labelSize}px 'Fira Code', monospace`;
+          ctx.textAlign = "center";
           ctx.textBaseline = "alphabetic";
-          ctx.fillStyle = `rgba(0, 255, 65, ${0.9 * mniAlpha * brightness})`;
-          ctx.shadowBlur = 16 * brightness;
-          // Position "mni" right after the iris with a gap
-          const gap = irisR * 0.35;
-          const mniX = irisCx + irisR + strokeW / 2 + gap;
-          // Baseline aligned to bottom of iris
-          const baseline = irisY + irisR * 0.35; // visually center lowercase to O
-          ctx.fillText("mni", mniX, baseline);
-
-          // Measure for centering "PRESENTED BY"
-          const mniWidth = ctx.measureText("mni").width;
-          const omniEndX = mniX + mniWidth;
-
-          // --- "PRESENTED BY" label above, centered over full "omni" word ---
-          const labelDelay = 1.2;
-          const labelAlpha = Math.min(1, Math.max(0, (elapsed - labelDelay) / 0.4));
-          if (labelAlpha > 0) {
-            ctx.font = `600 ${labelSize}px 'Fira Code', monospace`;
-            ctx.textAlign = "center";
-            ctx.shadowBlur = 10;
-            ctx.fillStyle = `rgba(0, 255, 65, ${0.65 * brightness * labelAlpha})`;
-            const omniCenterX = (irisCx + omniEndX) / 2;
-            const top = irisY - irisR;
-            ctx.fillText(brandText.label, omniCenterX, top - labelSize * 1.5);
-          }
+          ctx.shadowBlur = 10;
+          ctx.fillStyle = `rgba(0, 255, 65, ${0.65 * brightness * labelAlpha})`;
+          const top = irisY - irisR;
+          ctx.fillText(brandText.label, irisCx, top - labelSize * 1.5);
         }
 
         // --- Auto-blink after full reveal (3s) to transition back to eyeball ---
