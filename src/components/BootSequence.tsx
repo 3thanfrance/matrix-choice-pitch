@@ -2,6 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { playPowerOn, startCRTHum, playStatic, playKeyClick } from "@/lib/sounds";
 import MatrixAgents from "./MatrixAgents";
 
+declare global {
+  // Extend in case MatrixAgents hasn't loaded yet
+  interface Window {
+    __silhouetteText?: { text: string; startTime?: number } | null;
+  }
+}
 const FIRST_BOOT_DURATION = 32000;
 
 interface BootSequenceProps {
