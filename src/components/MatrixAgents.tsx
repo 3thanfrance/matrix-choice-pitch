@@ -721,7 +721,27 @@ const MatrixAgents = () => {
       const imgData = offCtx.getImageData(0, 0, W, H);
       const px = imgData.data;
 
-      // --- BRAND TEXT ---
+      // --- SILHOUETTE TEXT ("enabled by lovable" shown on silhouette screen) ---
+      const silText = window.__silhouetteText;
+      if (silText && zoom < 0.1 && blinkProgress < 0.3) {
+        const now = Date.now();
+        const elapsed = silText.startTime ? (now - silText.startTime) / 1000 : 2;
+        const fadeIn = Math.min(1, elapsed / 0.8);
+        const textSize = Math.max(14, Math.floor(W * 0.022));
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = `${textSize}px 'Fira Code', monospace`;
+        ctx.shadowColor = "#00FF41";
+        ctx.shadowBlur = 14;
+        ctx.fillStyle = `rgba(0, 255, 65, ${0.6 * fadeIn})`;
+        ctx.fillText(silText.text, W / 2, H * 0.82);
+        ctx.shadowBlur = 0;
+        ctx.textAlign = "start";
+        ctx.textBaseline = "top";
+      }
+
+      // --- BRAND TEXT (OMNI on eye) ---
       const brandText = window.__brandText;
       if (brandText && zoom >= 0.95 && pupilZoom < 0.3 && blinkProgress < 0.3) {
         const nameSize = Math.max(22, Math.floor(W * 0.05));
@@ -764,7 +784,7 @@ const MatrixAgents = () => {
           ctx.fillText("O M N I", W / 2, textY);
         }
 
-        // Step 3 (1.2-1.6s): "PRESENTED BY" — larger and more visible
+        // Step 3 (1.2-1.6s): "PRESENTED BY"
         const labelDelay = 1.2;
         const labelAlpha = Math.min(1, Math.max(0, (elapsed - labelDelay) / 0.4));
         if (labelAlpha > 0) {
@@ -772,19 +792,6 @@ const MatrixAgents = () => {
           ctx.shadowBlur = 12;
           ctx.fillStyle = `rgba(0, 255, 65, ${0.7 * brightness * labelAlpha})`;
           ctx.fillText(brandText.label, W / 2, irisY - irisR - nameSize * 0.8);
-        }
-
-        // Step 4 (1.8-2.3s): "enabled by lovable" — VISIBLE
-        if (brandText.enabledBy) {
-          const ebDelay = 1.8;
-          const ebAlpha = Math.min(1, Math.max(0, (elapsed - ebDelay) / 0.5));
-          if (ebAlpha > 0) {
-            const ebSize = Math.max(12, Math.floor(W * 0.018));
-            ctx.font = `${ebSize}px 'Fira Code', monospace`;
-            ctx.shadowBlur = 12;
-            ctx.fillStyle = `rgba(0, 255, 65, ${0.55 * brightness * ebAlpha})`;
-            ctx.fillText(brandText.enabledBy, W / 2, underlineY + nameSize * 1.8);
-          }
         }
 
         ctx.shadowBlur = 0;
