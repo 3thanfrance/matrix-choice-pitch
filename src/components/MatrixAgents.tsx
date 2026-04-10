@@ -537,6 +537,7 @@ const MatrixAgents = () => {
     let zoomBlinkTriggeredIn = false;
     let zoomBlinkTriggeredOut = false;
     let outroBlinkCompleted = false;
+    let currentBrandOffsetX = 0; // eye X shift for Omni centering
 
     const handleForcedBlink = () => {
       if (!isBlinking) {
