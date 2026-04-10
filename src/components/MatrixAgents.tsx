@@ -716,7 +716,7 @@ const MatrixAgents = () => {
         if (showEyeAmount > 0.02) {
           offCtx.save();
           offCtx.globalAlpha = showEyeAmount;
-          offCtx.translate(currentBrandOffsetX, 0);
+          // eye centered
           drawEyeMask(offCtx, W, H, tick, blinkProgress);
           offCtx.restore();
         }
@@ -734,8 +734,8 @@ const MatrixAgents = () => {
         const now = Date.now();
         const elapsed = brandText.startTime ? (now - brandText.startTime) / 1000 : 2;
 
-        // Eye center is shifted by brandOffsetX
-        const irisCx = W / 2 + currentBrandOffsetX;
+        // Eye center — always centered
+        const irisCx = W / 2;
         const irisY = H / 2;
         const eyeW = Math.min(W * 0.55, H * 1.2);
         const irisR = eyeW * 0.17;
