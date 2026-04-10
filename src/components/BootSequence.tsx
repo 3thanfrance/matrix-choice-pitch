@@ -52,22 +52,22 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
     if (phase !== 2) return;
     const timers = [
       setTimeout(() => setShowAgentOverlay(true), 0),
-      // Hold silhouette for 2s, then start zoom
+      // Hold silhouette for 2s, then start zoom into eye
       setTimeout(() => {
         (window as any).__matrixZoomStart = Date.now();
       }, 2000),
-      // Brand text after zoom completes
+      // Brand text AFTER zoom completes (2s delay + 4.5s zoom + 0.5s settle)
       setTimeout(() => {
         (window as any).__brandText = { label: "PRESENTED BY", name: "O M N I", startTime: Date.now(), enabledBy: "enabled by lovable" };
-      }, 5500),
-      // Blink to dismiss
+      }, 7000),
+      // Blink to dismiss brand
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent("eye-blink"));
-      }, 9000),
+      }, 10500),
       // Clear text while eye is closed
       setTimeout(() => {
         (window as any).__brandText = null;
-      }, 9500),
+      }, 11000),
     ];
     return () => {
       timers.forEach(clearTimeout);
