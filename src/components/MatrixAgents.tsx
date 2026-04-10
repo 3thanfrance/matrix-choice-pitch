@@ -566,6 +566,21 @@ const MatrixAgents = () => {
         rawZoom = 0.65;
       }
 
+      // --- BRAND EYE OFFSET (shift eye left so "OMNI" is centered on screen) ---
+      if (window.__brandText && rawZoom > 0.5) {
+        const _eyeW = Math.min(W * 0.55, H * 1.2);
+        const _irisR = _eyeW * 0.17;
+        const _capH = _irisR * 2;
+        const _strokeW = _capH * 0.18;
+        const _letterGap = _strokeW * 0.6;
+        // Total width of "mni" + gap after O
+        const mniW = _capH * 0.82 + _letterGap + _capH * 0.44 + _letterGap + _strokeW;
+        currentBrandOffsetX = -(mniW + _letterGap) / 2;
+      } else if (blinkProgress >= 0.95) {
+        // Snap to center while eyes are fully closed
+        currentBrandOffsetX = 0;
+      }
+
       // --- PUPIL ZOOM (eye ↔ inside pupil/terminal) ---
       const pupilZoomInStart = window.__matrixPupilZoomStart;
       const pupilZoomOutStart = window.__matrixPupilZoomOutStart;
