@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { prepareWithSegments, layoutWithLines } from "@chenglou/pretext";
+import heartSrc from "../assets/lovable-heart.png";
 
 declare global {
   interface Window {
