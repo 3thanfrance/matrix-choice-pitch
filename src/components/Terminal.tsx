@@ -229,10 +229,10 @@ const Terminal = () => {
     // Trigger a blink first — must fully close before zoom-out starts
     window.dispatchEvent(new CustomEvent("eye-blink"));
 
-    // Start zoom-out AFTER blink has fully closed (~650ms)
+    // Start zoom-out AFTER blink has fully closed (~800ms to be safe)
     const zoomDelay = setTimeout(() => {
       (window as any).__matrixZoomOutStart = Date.now();
-    }, 650);
+    }, 800);
 
     const rebootTimer = setTimeout(() => {
       (window as any).__matrixZoomOutStart = undefined;
