@@ -45,7 +45,7 @@ const storyTree: Record<string, StoryNode> = {
   },
   redpill: {
     lines: [
-      ">>  R E D   P I L L   A C T I V A T E D  <<",
+      ">> RED PILL PROTOCOL ACTIVATED <<",
       "",
       "NOTEBOOKS. SQL. PYTHON. DRAG. DROP. PRAY.",
       "YOU DIDN'T SIGN UP TO BE A DASHBOARD ENGINEER.",
@@ -58,7 +58,7 @@ const storyTree: Record<string, StoryNode> = {
   },
   bluepill: {
     lines: [
-      ">>  B L U E   P I L L   A C T I V A T E D  <<",
+      ">> BLUE PILL PROTOCOL ACTIVATED <<",
       "",
       "YOU WANT TO STAY.",
       "STITCHING QUERIES. FORMATTING CHARTS.",
