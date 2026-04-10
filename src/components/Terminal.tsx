@@ -236,29 +236,29 @@ const Terminal = () => {
     }
   }, [phase, currentNode, node, showOutro]);
 
-  // Outro: pupil zoom out → eye appears → silhouette zoom out → reboot
+  // Outro: reverse the intro — pupil zoom out → eye visible → blink → zoom out to silhouette → hold → reboot
   useEffect(() => {
     if (!showOutro) return;
 
-    // Step 1: Start pupil zoom OUT immediately (we're "inside" the pupil)
-    // MatrixAgents mounts with pupilZoom starting at 1 (via future timestamp trick)
-    // Set pupilZoomOutStart in the future so initial pupilZoom = 1 (inside pupil = dark)
-    // Then it decays to 0 (eye visible)
-    window.__matrixPupilZoomOutStart = Date.now();
-    // Also set the main zoom to fully zoomed in (eye visible) — no zoom-out yet
-    // Don't set __matrixZoomOutStart yet
+    // Set zoom to "fully zoomed in" (eye visible) by pretending zoom-in completed long ago
+    window.__matrixZoomStart = Date.now() - 10000;
+    window.__matrixZoomOutStart = undefined;
+    window.__matrixPupilZoomOutStart = undefined;
 
-    // Step 2: After pupil zoom completes (2s), trigger blink and start eye→silhouette zoom
+    // Step 1: Pupil zoom out (we're inside the pupil → eye becomes visible)
+    window.__matrixPupilZoomOutStart = Date.now();
+
+    // Step 2: After pupil zoom completes, blink then zoom out eye → silhouette
     const eyeZoomDelay = setTimeout(() => {
       window.dispatchEvent(new CustomEvent("eye-blink"));
-      // Start eye→silhouette zoom after blink closes (~400ms)
+      // After blink closes, start the eye→silhouette zoom out
       setTimeout(() => {
         window.__matrixZoomOutStart = Date.now();
-      }, 600);
+      }, 800);
     }, PUPIL_ZOOM_OUT_DURATION + 500);
 
-    // Step 3: Reboot after everything completes
-    const totalOutroDuration = PUPIL_ZOOM_OUT_DURATION + 500 + 600 + ZOOM_OUT_DURATION + 1500;
+    // Step 3: Reboot after everything
+    const totalOutroDuration = PUPIL_ZOOM_OUT_DURATION + 500 + 800 + ZOOM_OUT_DURATION + 2000;
     const rebootTimer = setTimeout(() => {
       window.__matrixZoomOutStart = undefined;
       window.__matrixPupilZoomOutStart = undefined;

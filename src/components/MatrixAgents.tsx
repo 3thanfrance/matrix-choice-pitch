@@ -31,9 +31,13 @@ function getEyePosition(W: number, H: number) {
   const figTop = (H - figH) / 2 - figH * 0.02;
   const headH = figH / 7.5;
   const headW = headH * 0.82;
-  const eyeY = figTop + headH * 0.46;
-  const eyeSpacing = headW * 0.18;
-  return { x: W / 2 - eyeSpacing, y: eyeY };
+  const cx = W / 2;
+  // Center on the LEFT lens of the sunglasses
+  const glassSpacing = headW * 0.05;
+  const glassW = headW * 0.52;
+  const eyeX = cx - glassSpacing - glassW / 2;
+  const eyeY = figTop + headH * 0.36; // Glasses Y position
+  return { x: eyeX, y: eyeY };
 }
 
 function cinematicEase(t: number): number {
@@ -185,9 +189,27 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   ctx.closePath();
   ctx.fill();
 
-  // ── SUNGLASSES — BRIGHT edge glow (gray in mask = edge glow in render) ──
-  // Using rgb(90,90,90) puts them in the 60-160 edge glow range → bright green chars
-  ctx.fillStyle = "rgb(90, 90, 90)";
+  // ── RIM LIGHT for depth — bright edge glow on left side (directional lighting) ──
+  ctx.strokeStyle = "rgb(100, 100, 100)";
+  ctx.lineWidth = headH * 0.04;
+  // Left arm/shoulder edge highlight
+  ctx.beginPath();
+  ctx.moveTo(cx - shoulderW * 0.88, figTop + headH * 1.7);
+  ctx.bezierCurveTo(
+    cx - shoulderW * 0.82, figTop + figH * 0.35,
+    cx - shoulderW * 0.78, figTop + figH * 0.5,
+    cx - shoulderW * 0.75, bodyBottom
+  );
+  ctx.stroke();
+  // Left hat brim edge
+  ctx.lineWidth = headH * 0.03;
+  ctx.beginPath();
+  ctx.moveTo(cx - brimW, hatBrimY + headH * 0.02);
+  ctx.lineTo(cx - headW * 0.78, figTop + headH * 0.15);
+  ctx.stroke();
+
+  // rgb(140) → edgeFactor 0.8 = very bright glowing green chars
+  ctx.fillStyle = "rgb(140, 140, 140)";
   const glassY = figTop + headH * 0.36;
   const glassW = headW * 0.52;
   const glassH = headH * 0.16;
@@ -236,7 +258,7 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   ctx.fill();
 
   // Bridge
-  ctx.strokeStyle = "rgb(90, 90, 90)";
+  ctx.strokeStyle = "rgb(140, 140, 140)";
   ctx.lineWidth = headH * 0.025;
   ctx.beginPath();
   ctx.moveTo(cx - glassSpacing, glassY - glassH * 0.3);
@@ -247,9 +269,9 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   );
   ctx.stroke();
 
-  // ── SUIT DETAILS ──
-  ctx.strokeStyle = "rgb(10,10,10)";
-  ctx.lineWidth = headH * 0.025;
+  // ── SUIT DETAILS — subtle depth lines ──
+  // Lapels slightly brighter than body for depth
+  ctx.strokeStyle = "rgb(40,40,40)";
 
   // Left lapel
   ctx.beginPath();
@@ -282,8 +304,8 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   ctx.lineTo(cx + shoulderW * 0.28, figTop + headH * 1.08);
   ctx.stroke();
 
-  // TIE — BRIGHT edge glow (gray mask → green chars glow through)
-  ctx.fillStyle = "rgb(80, 80, 80)";
+  // TIE — BRIGHT edge glow (higher gray = brighter green glow)
+  ctx.fillStyle = "rgb(130, 130, 130)";
   // Knot
   ctx.beginPath();
   ctx.moveTo(cx - headH * 0.06, figTop + headH * 0.92);
@@ -310,9 +332,9 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   ctx.closePath();
   ctx.fill();
 
-  // Shirt collar V
-  ctx.strokeStyle = "rgb(30,30,30)";
-  ctx.lineWidth = headH * 0.014;
+  // Shirt collar V — subtle depth
+  ctx.strokeStyle = "rgb(50,50,50)";
+  ctx.lineWidth = headH * 0.018;
   ctx.beginPath();
   ctx.moveTo(cx - neckW * 1.3, figTop + headH * 0.94);
   ctx.lineTo(cx, figTop + headH * 1.14);
@@ -327,8 +349,8 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
     ctx.fill();
   }
 
-  // Pocket square
-  ctx.fillStyle = "rgb(190,190,190)";
+  // Pocket square — bright edge glow
+  ctx.fillStyle = "rgb(150, 150, 150)";
   ctx.beginPath();
   ctx.moveTo(cx - shoulderW * 0.22, figTop + headH * 1.5);
   ctx.lineTo(cx - shoulderW * 0.16, figTop + headH * 1.46);
@@ -568,11 +590,11 @@ const MatrixAgents = () => {
       // --- BRIGHTNESS ---
       let brightness = 1;
       if (zoom < 0.3) {
-        brightness = 1.5; // Brighter background for silhouette phase
+        brightness = 1.8; // Brighter background for silhouette to make negative space pop
       } else if (zoom > 0.25 && zoom < 0.75) {
         const t = (zoom - 0.25) / 0.5;
         const dip = Math.pow(Math.sin(t * Math.PI), 2);
-        brightness = Math.max(0.5, 1.5 - dip * 1.0);
+        brightness = Math.max(0.6, 1.8 - dip * 1.2);
       }
 
       // --- BLINK ---
@@ -701,8 +723,8 @@ const MatrixAgents = () => {
       // --- BRAND TEXT ---
       const brandText = window.__brandText;
       if (brandText && zoom >= 0.95 && pupilZoom < 0.3 && blinkProgress < 0.3) {
-        const nameSize = Math.max(18, Math.floor(W * 0.04));
-        const labelSize = Math.max(10, Math.floor(W * 0.012));
+        const nameSize = Math.max(22, Math.floor(W * 0.05));
+        const labelSize = Math.max(13, Math.floor(W * 0.02));
         const now = Date.now();
         const elapsed = brandText.startTime ? (now - brandText.startTime) / 1000 : 2;
 
@@ -721,9 +743,9 @@ const MatrixAgents = () => {
         const lineW = nameSize * 2.5 * easeOut;
 
         if (underlineProgress > 0) {
-          ctx.strokeStyle = `rgba(0, 255, 65, ${0.8 * brightness * underlineProgress})`;
-          ctx.lineWidth = Math.max(4, nameSize * 0.14);
-          ctx.shadowBlur = 14 * brightness;
+          ctx.strokeStyle = `rgba(0, 255, 65, ${0.9 * brightness * underlineProgress})`;
+          ctx.lineWidth = Math.max(5, nameSize * 0.16);
+          ctx.shadowBlur = 18 * brightness;
           ctx.beginPath();
           ctx.moveTo(W / 2 - lineW / 2, underlineY);
           ctx.lineTo(W / 2 + lineW / 2, underlineY);
@@ -735,31 +757,31 @@ const MatrixAgents = () => {
         const textAlpha = Math.min(1, Math.max(0, (elapsed - textDelay) / 0.5));
         if (textAlpha > 0) {
           ctx.font = `bold ${nameSize}px 'Fira Code', monospace`;
-          ctx.shadowBlur = 18 * brightness;
+          ctx.shadowBlur = 22 * brightness;
           const textY = underlineY + nameSize * 0.8;
-          ctx.fillStyle = `rgba(0, 255, 65, ${0.85 * brightness * textAlpha})`;
+          ctx.fillStyle = `rgba(0, 255, 65, ${0.9 * brightness * textAlpha})`;
           ctx.fillText("O M N I", W / 2, textY);
         }
 
-        // Step 3 (1.2-1.6s): "PRESENTED BY"
+        // Step 3 (1.2-1.6s): "PRESENTED BY" — larger and more visible
         const labelDelay = 1.2;
         const labelAlpha = Math.min(1, Math.max(0, (elapsed - labelDelay) / 0.4));
         if (labelAlpha > 0) {
-          ctx.font = `${labelSize}px 'Fira Code', monospace`;
-          ctx.shadowBlur = 8;
-          ctx.fillStyle = `rgba(0, 255, 65, ${0.45 * brightness * labelAlpha})`;
+          ctx.font = `bold ${labelSize}px 'Fira Code', monospace`;
+          ctx.shadowBlur = 12;
+          ctx.fillStyle = `rgba(0, 255, 65, ${0.7 * brightness * labelAlpha})`;
           ctx.fillText(brandText.label, W / 2, irisY - irisR - nameSize * 0.8);
         }
 
-        // Step 4 (1.8-2.3s): "enabled by lovable"
+        // Step 4 (1.8-2.3s): "enabled by lovable" — VISIBLE
         if (brandText.enabledBy) {
           const ebDelay = 1.8;
           const ebAlpha = Math.min(1, Math.max(0, (elapsed - ebDelay) / 0.5));
           if (ebAlpha > 0) {
-            const ebSize = Math.max(9, Math.floor(W * 0.011));
+            const ebSize = Math.max(12, Math.floor(W * 0.018));
             ctx.font = `${ebSize}px 'Fira Code', monospace`;
-            ctx.shadowBlur = 8;
-            ctx.fillStyle = `rgba(0, 255, 65, ${0.35 * brightness * ebAlpha})`;
+            ctx.shadowBlur = 12;
+            ctx.fillStyle = `rgba(0, 255, 65, ${0.55 * brightness * ebAlpha})`;
             ctx.fillText(brandText.enabledBy, W / 2, underlineY + nameSize * 1.8);
           }
         }
@@ -801,8 +823,8 @@ const MatrixAgents = () => {
         pulsePhase[i] += 0.012;
         const pulse = 0.5 + Math.sin(pulsePhase[i]) * 0.15;
         const wave = Math.sin(tick * 0.008 + cell.x * 0.003 + cell.y * 0.005) * 0.04;
-        // Higher base alpha for brighter background
-        const alpha = (0.22 + pulse * 0.18 + wave) * brightness;
+        // Higher base alpha for brighter background — makes silhouette negative space pop
+        const alpha = (0.28 + pulse * 0.2 + wave) * brightness;
 
         let ch = cell.ch;
         if (tick % 10 === 0 && Math.random() > 0.97) {
