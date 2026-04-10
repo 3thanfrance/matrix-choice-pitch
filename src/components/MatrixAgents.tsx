@@ -560,26 +560,7 @@ const MatrixAgents = () => {
       } else if (zoomInStart) {
         rawZoom = Math.min(1, (Date.now() - zoomInStart) / ZOOM_DURATION);
       }
-      // Cap zoom while brand text is showing — less zoomed for Omni reveal
-      // The blink on dismiss hides the transition to full zoom
-      if (window.__brandText && rawZoom > 0.65) {
-        rawZoom = 0.65;
-      }
-
-      // --- BRAND EYE OFFSET (shift eye left so "OMNI" is centered on screen) ---
-      if (window.__brandText && rawZoom > 0.5) {
-        const _eyeW = Math.min(W * 0.55, H * 1.2);
-        const _irisR = _eyeW * 0.17;
-        const _fontSize = _irisR * 2 * 1.1;
-        // Measure "mni" width using font metrics
-        ctx.font = `700 ${_fontSize}px Quicksand, sans-serif`;
-        const mniWidth = ctx.measureText("mni").width;
-        const _gap = _irisR * 0.35; // gap between O and mni
-        currentBrandOffsetX = -(mniWidth + _gap) / 2;
-      } else if (blinkProgress >= 0.95) {
-        // Snap to center while eyes are fully closed
-        currentBrandOffsetX = 0;
-      }
+      // No zoom cap or eye offset needed — eye stays centered, just show O ring
 
       // --- PUPIL ZOOM (eye ↔ inside pupil/terminal) ---
       const pupilZoomInStart = window.__matrixPupilZoomStart;
