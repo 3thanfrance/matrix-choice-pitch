@@ -251,9 +251,9 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   );
   ctx.stroke();
 
-  // ── SUIT DETAILS ──
-  ctx.strokeStyle = "rgb(10,10,10)";
-  ctx.lineWidth = headH * 0.025;
+  // ── SUIT DETAILS — subtle depth lines ──
+  // Lapels slightly brighter than body for depth
+  ctx.strokeStyle = "rgb(40,40,40)";
 
   // Left lapel
   ctx.beginPath();
@@ -314,9 +314,9 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   ctx.closePath();
   ctx.fill();
 
-  // Shirt collar V
-  ctx.strokeStyle = "rgb(30,30,30)";
-  ctx.lineWidth = headH * 0.014;
+  // Shirt collar V — subtle depth
+  ctx.strokeStyle = "rgb(50,50,50)";
+  ctx.lineWidth = headH * 0.018;
   ctx.beginPath();
   ctx.moveTo(cx - neckW * 1.3, figTop + headH * 0.94);
   ctx.lineTo(cx, figTop + headH * 1.14);
