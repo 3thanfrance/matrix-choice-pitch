@@ -725,74 +725,93 @@ const MatrixAgents = () => {
 
       // "enabled by lovable" is now rendered as negative space in the silhouette mask
 
-      // --- BRAND TEXT (OMNI on eye) ---
+      // --- BRAND TEXT (OMNI on eye — iris IS the "O") ---
       const brandText = window.__brandText;
       if (brandText && zoom >= 0.95 && pupilZoom < 0.3 && blinkProgress < 0.3) {
-        const nameSize = Math.max(22, Math.floor(W * 0.05));
-        const labelSize = Math.max(13, Math.floor(W * 0.02));
         const now = Date.now();
         const elapsed = brandText.startTime ? (now - brandText.startTime) / 1000 : 2;
-
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.shadowColor = "#00FF41";
 
         const irisY = H / 2;
         const eyeW = Math.min(W * 0.55, H * 1.2);
         const irisR = eyeW * 0.17;
-        const underlineY = irisY + irisR + nameSize * 0.5;
+        // Font size proportional to iris — "mni" should feel like it completes "omni" with the iris as "o"
+        const letterSize = Math.max(20, Math.floor(irisR * 1.1));
+        const labelSize = Math.max(12, Math.floor(W * 0.018));
 
-        // Iris outline ring — subtle glowing border around the iris
-        const ringAlpha = Math.min(0.5, elapsed * 0.4);
+        ctx.shadowColor = "#00FF41";
+
+        // --- Iris ring glow (the "O" highlight) ---
+        const ringAlpha = Math.min(0.6, elapsed * 0.5);
         if (ringAlpha > 0) {
-          ctx.strokeStyle = `rgba(0, 255, 65, ${ringAlpha * 0.35 * brightness})`;
-          ctx.lineWidth = Math.max(2, nameSize * 0.06);
-          ctx.shadowBlur = 12 * brightness;
+          ctx.strokeStyle = `rgba(0, 255, 65, ${ringAlpha * 0.45 * brightness})`;
+          ctx.lineWidth = Math.max(3, letterSize * 0.08);
+          ctx.shadowBlur = 16 * brightness;
           ctx.beginPath();
-          ctx.arc(W / 2, irisY, irisR + nameSize * 0.15, 0, Math.PI * 2);
+          ctx.arc(W / 2, irisY, irisR + letterSize * 0.12, 0, Math.PI * 2);
           ctx.stroke();
-          // Second softer outer ring
-          ctx.strokeStyle = `rgba(0, 255, 65, ${ringAlpha * 0.18 * brightness})`;
-          ctx.lineWidth = Math.max(1, nameSize * 0.03);
+          ctx.strokeStyle = `rgba(0, 255, 65, ${ringAlpha * 0.2 * brightness})`;
+          ctx.lineWidth = Math.max(1, letterSize * 0.03);
           ctx.beginPath();
-          ctx.arc(W / 2, irisY, irisR + nameSize * 0.35, 0, Math.PI * 2);
+          ctx.arc(W / 2, irisY, irisR + letterSize * 0.3, 0, Math.PI * 2);
           ctx.stroke();
         }
 
-        // Step 1 (0-0.7s): Underline extends — THICK
-        const underlineProgress = Math.min(1, elapsed / 0.7);
+        // --- Underline beneath iris (like the pink bar in the Omni logo, but green) ---
+        const underlineY = irisY + irisR + letterSize * 0.35;
+        const underlineDelay = 0.2;
+        const underlineProgress = Math.min(1, Math.max(0, (elapsed - underlineDelay) / 0.5));
         const easeOut = 1 - Math.pow(1 - underlineProgress, 3);
-        const lineW = nameSize * 2.5 * easeOut;
+        // Underline starts from center of iris, extends to full width of "omni"
+        const fullUnderlineW = irisR * 2 + letterSize * 2.5; // covers iris + "mni"
+        const underlineStartX = W / 2 - irisR; // left edge of iris
+        const underlineEndX = underlineStartX + fullUnderlineW * easeOut;
 
         if (underlineProgress > 0) {
-          ctx.strokeStyle = `rgba(0, 255, 65, ${0.9 * brightness * underlineProgress})`;
-          ctx.lineWidth = Math.max(5, nameSize * 0.16);
-          ctx.shadowBlur = 18 * brightness;
+          ctx.strokeStyle = `rgba(0, 255, 65, ${0.85 * brightness * underlineProgress})`;
+          ctx.lineWidth = Math.max(4, letterSize * 0.14);
+          ctx.shadowBlur = 14 * brightness;
           ctx.beginPath();
-          ctx.moveTo(W / 2 - lineW / 2, underlineY);
-          ctx.lineTo(W / 2 + lineW / 2, underlineY);
+          ctx.moveTo(underlineStartX, underlineY);
+          ctx.lineTo(underlineEndX, underlineY);
           ctx.stroke();
         }
 
-        // Step 2 (0.6-1.1s): "O M N I"
-        const textDelay = 0.6;
-        const textAlpha = Math.min(1, Math.max(0, (elapsed - textDelay) / 0.5));
-        if (textAlpha > 0) {
-          ctx.font = `bold ${nameSize}px 'Fira Code', monospace`;
-          ctx.shadowBlur = 22 * brightness;
-          const textY = underlineY + nameSize * 0.8;
-          ctx.fillStyle = `rgba(0, 255, 65, ${0.9 * brightness * textAlpha})`;
-          ctx.fillText("O M N I", W / 2, textY);
+        // --- "mni" typed sequentially to the right of the iris ---
+        const letters = ["m", "n", "i"];
+        const typeStartDelay = 0.6; // start after underline is underway
+        const perLetterDuration = 0.18;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.font = `600 ${letterSize}px 'Fira Code', monospace`;
+
+        const mniStartX = W / 2 + irisR + letterSize * 0.25;
+        for (let li = 0; li < letters.length; li++) {
+          const letterDelay = typeStartDelay + li * perLetterDuration;
+          const letterAlpha = Math.min(1, Math.max(0, (elapsed - letterDelay) / 0.15));
+          if (letterAlpha > 0) {
+            const lx = mniStartX + li * letterSize * 0.7;
+            ctx.shadowBlur = 18 * brightness;
+            ctx.fillStyle = `rgba(0, 255, 65, ${0.9 * brightness * letterAlpha})`;
+            ctx.fillText(letters[li], lx, irisY);
+          }
         }
 
-        // Step 3 (1.2-1.6s): "PRESENTED BY"
+        // --- "PRESENTED BY" label above ---
         const labelDelay = 1.2;
         const labelAlpha = Math.min(1, Math.max(0, (elapsed - labelDelay) / 0.4));
         if (labelAlpha > 0) {
           ctx.font = `bold ${labelSize}px 'Fira Code', monospace`;
-          ctx.shadowBlur = 12;
-          ctx.fillStyle = `rgba(0, 255, 65, ${0.7 * brightness * labelAlpha})`;
-          ctx.fillText(brandText.label, W / 2, irisY - irisR - nameSize * 0.8);
+          ctx.textAlign = "center";
+          ctx.shadowBlur = 10;
+          ctx.fillStyle = `rgba(0, 255, 65, ${0.65 * brightness * labelAlpha})`;
+          // Center the label over the full "omni" word
+          const omniCenterX = W / 2 + (mniStartX + letters.length * letterSize * 0.7 - (W / 2 - irisR)) / 2 - irisR;
+          ctx.fillText(brandText.label, W / 2 + irisR * 0.3, irisY - irisR - letterSize * 0.7);
+        }
+
+        // --- Auto-blink after full reveal (3s) to transition back to eyeball ---
+        if (elapsed > 3.0 && elapsed < 3.1) {
+          window.dispatchEvent(new Event("eye-blink"));
         }
 
         ctx.shadowBlur = 0;
