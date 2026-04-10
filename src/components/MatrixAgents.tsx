@@ -793,28 +793,32 @@ const MatrixAgents = () => {
         const baseline = irisY + irisR;
         const top = irisY - irisR;
 
-        // Draw each letter as paths (rounded geometric sans-serif like Omni logo)
+        // Draw each letter as paths — faithful to Omni logo reference
+        // In the logo, o/m/n/i are all same height. Stems go full height.
+        // Arches are smooth semicircles from top, curving down to baseline.
         const drawM = (x: number, alpha: number) => {
           ctx.strokeStyle = `rgba(0, 255, 65, ${alpha * brightness})`;
           ctx.lineWidth = strokeW;
           ctx.lineCap = "round";
           ctx.lineJoin = "round";
           ctx.shadowBlur = 16 * brightness;
-          // "m" — two arches, like the reference: left vertical + two humps
-          const mW = capHeight * 0.85;
+          const mW = capHeight * 0.82;
           const archW = mW / 2;
+          // Left stem — full height
           ctx.beginPath();
-          // Left stem
           ctx.moveTo(x, baseline);
-          ctx.lineTo(x, irisY); // stem goes up to middle
-          // First arch
-          ctx.bezierCurveTo(x, top, x + archW, top, x + archW, irisY);
+          ctx.lineTo(x, top);
+          ctx.stroke();
+          // First arch: from top of stem, curves right and down to baseline
+          ctx.beginPath();
+          ctx.moveTo(x, top);
+          ctx.bezierCurveTo(x, top - capHeight * 0.05, x + archW, top - capHeight * 0.05, x + archW, top + capHeight * 0.35);
           ctx.lineTo(x + archW, baseline);
           ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(x + archW, irisY);
           // Second arch
-          ctx.bezierCurveTo(x + archW, top, x + archW * 2, top, x + archW * 2, irisY);
+          ctx.beginPath();
+          ctx.moveTo(x + archW, top);
+          ctx.bezierCurveTo(x + archW, top - capHeight * 0.05, x + archW * 2, top - capHeight * 0.05, x + archW * 2, top + capHeight * 0.35);
           ctx.lineTo(x + archW * 2, baseline);
           ctx.stroke();
           return mW;
@@ -826,12 +830,16 @@ const MatrixAgents = () => {
           ctx.lineCap = "round";
           ctx.lineJoin = "round";
           ctx.shadowBlur = 16 * brightness;
-          // "n" — one arch
-          const nW = capHeight * 0.45;
+          const nW = capHeight * 0.44;
+          // Left stem — full height
           ctx.beginPath();
           ctx.moveTo(x, baseline);
-          ctx.lineTo(x, irisY);
-          ctx.bezierCurveTo(x, top, x + nW, top, x + nW, irisY);
+          ctx.lineTo(x, top);
+          ctx.stroke();
+          // Arch: from top, curves right and down
+          ctx.beginPath();
+          ctx.moveTo(x, top);
+          ctx.bezierCurveTo(x, top - capHeight * 0.05, x + nW, top - capHeight * 0.05, x + nW, top + capHeight * 0.35);
           ctx.lineTo(x + nW, baseline);
           ctx.stroke();
           return nW;
@@ -843,14 +851,14 @@ const MatrixAgents = () => {
           ctx.lineWidth = strokeW;
           ctx.lineCap = "round";
           ctx.shadowBlur = 16 * brightness;
-          // "i" — vertical stroke + dot
+          // Stem — full height
           ctx.beginPath();
-          ctx.moveTo(x, irisY);
+          ctx.moveTo(x, top + capHeight * 0.25);
           ctx.lineTo(x, baseline);
           ctx.stroke();
-          // Dot
+          // Dot above
           ctx.beginPath();
-          ctx.arc(x, top + strokeW * 0.1, strokeW * 0.55, 0, Math.PI * 2);
+          ctx.arc(x, top - strokeW * 0.6, strokeW * 0.5, 0, Math.PI * 2);
           ctx.fill();
           return strokeW;
         };
