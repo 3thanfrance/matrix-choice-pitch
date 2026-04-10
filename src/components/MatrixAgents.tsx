@@ -741,6 +741,23 @@ const MatrixAgents = () => {
         const irisR = eyeW * 0.17;
         const underlineY = irisY + irisR + nameSize * 0.5;
 
+        // Iris outline ring — subtle glowing border around the iris
+        const ringAlpha = Math.min(0.5, elapsed * 0.4);
+        if (ringAlpha > 0) {
+          ctx.strokeStyle = `rgba(0, 255, 65, ${ringAlpha * 0.35 * brightness})`;
+          ctx.lineWidth = Math.max(2, nameSize * 0.06);
+          ctx.shadowBlur = 12 * brightness;
+          ctx.beginPath();
+          ctx.arc(W / 2, irisY, irisR + nameSize * 0.15, 0, Math.PI * 2);
+          ctx.stroke();
+          // Second softer outer ring
+          ctx.strokeStyle = `rgba(0, 255, 65, ${ringAlpha * 0.18 * brightness})`;
+          ctx.lineWidth = Math.max(1, nameSize * 0.03);
+          ctx.beginPath();
+          ctx.arc(W / 2, irisY, irisR + nameSize * 0.35, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
         // Step 1 (0-0.7s): Underline extends — THICK
         const underlineProgress = Math.min(1, elapsed / 0.7);
         const easeOut = 1 - Math.pow(1 - underlineProgress, 3);
@@ -866,6 +883,40 @@ const MatrixAgents = () => {
         ctx.fillText("enabled by", tx, ty);
         ctx.font = `700 ${bigSize}px Inter, system-ui, sans-serif`;
         ctx.fillText("Lovable", tx, line2Y);
+
+        // Lovable heart logo — angled, void style, to the right of "Lovable"
+        const lovableTextW = ctx.measureText("Lovable").width;
+        const heartX = tx + lovableTextW + bigSize * 0.5;
+        const heartY = line2Y + bigSize * 0.5;
+        const hs = bigSize * 0.4; // heart size
+
+        ctx.save();
+        ctx.translate(heartX, heartY);
+        ctx.rotate(-0.15); // slight angle like the Lovable logo
+
+        // Green glow backing for heart
+        const heartFlicker = 0.35 + Math.sin(tick * 0.15) * 0.08 + Math.random() * 0.05;
+        ctx.shadowColor = "#00FF41";
+        ctx.shadowBlur = 20;
+        ctx.strokeStyle = `rgba(0, 255, 65, ${heartFlicker * 0.7})`;
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(0, hs * 0.35);
+        ctx.bezierCurveTo(-hs * 0.05, -hs * 0.1, -hs * 0.45, -hs * 0.45, -hs * 0.45, -hs * 0.15);
+        ctx.bezierCurveTo(-hs * 0.45, hs * 0.1, -hs * 0.2, hs * 0.35, 0, hs * 0.55);
+        ctx.bezierCurveTo(hs * 0.2, hs * 0.35, hs * 0.45, hs * 0.1, hs * 0.45, -hs * 0.15);
+        ctx.bezierCurveTo(hs * 0.45, -hs * 0.45, hs * 0.05, -hs * 0.1, 0, hs * 0.35);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fillStyle = `rgba(0, 255, 65, ${heartFlicker})`;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Black void heart on top
+        ctx.fillStyle = "rgba(0, 0, 0, 0.92)";
+        ctx.fill();
+
+        ctx.restore();
         ctx.textAlign = "start";
       }
 
