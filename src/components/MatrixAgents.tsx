@@ -741,6 +741,23 @@ const MatrixAgents = () => {
         const irisR = eyeW * 0.17;
         const underlineY = irisY + irisR + nameSize * 0.5;
 
+        // Iris outline ring — subtle glowing border around the iris
+        const ringAlpha = Math.min(0.5, elapsed * 0.4);
+        if (ringAlpha > 0) {
+          ctx.strokeStyle = `rgba(0, 255, 65, ${ringAlpha * 0.35 * brightness})`;
+          ctx.lineWidth = Math.max(2, nameSize * 0.06);
+          ctx.shadowBlur = 12 * brightness;
+          ctx.beginPath();
+          ctx.arc(W / 2, irisY, irisR + nameSize * 0.15, 0, Math.PI * 2);
+          ctx.stroke();
+          // Second softer outer ring
+          ctx.strokeStyle = `rgba(0, 255, 65, ${ringAlpha * 0.18 * brightness})`;
+          ctx.lineWidth = Math.max(1, nameSize * 0.03);
+          ctx.beginPath();
+          ctx.arc(W / 2, irisY, irisR + nameSize * 0.35, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
         // Step 1 (0-0.7s): Underline extends — THICK
         const underlineProgress = Math.min(1, elapsed / 0.7);
         const easeOut = 1 - Math.pow(1 - underlineProgress, 3);
