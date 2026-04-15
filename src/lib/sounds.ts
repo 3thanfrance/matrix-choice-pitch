@@ -259,7 +259,7 @@ export const startAmbientMusic = (): (() => void) => {
     const master = c.createGain();
     master.connect(c.destination);
     master.gain.value = 0;
-    master.gain.linearRampToValueAtTime(0.06, c.currentTime + 2);
+    master.gain.linearRampToValueAtTime(0.15, c.currentTime + 3);
 
     // Reverb-like delay
     const delay = c.createDelay();
