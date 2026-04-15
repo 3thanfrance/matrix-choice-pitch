@@ -243,7 +243,7 @@ const Terminal = () => {
     if (currentNode === "verify") {
       playStatic(0.2, 0.06);
       if (!droneStopRef.current) {
-        droneStopRef.current = startAmbientDrone();
+        droneStopRef.current = startAmbientMusic();
       }
     }
     if (currentNode === "verified") playConfirm();
