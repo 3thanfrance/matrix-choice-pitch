@@ -237,15 +237,23 @@ const Terminal = () => {
     if (clickCountRef.current % 4 === 0) playKeyClick();
   }, [charIndex, phase]);
 
-  // Sound on specific nodes + ambient drone
+  // Start ambient music on mount
   const droneStopRef = useRef<(() => void) | null>(null);
   useEffect(() => {
-    if (currentNode === "verify") {
-      playStatic(0.2, 0.06);
-      if (!droneStopRef.current) {
-        droneStopRef.current = startAmbientMusic();
-      }
+    if (!droneStopRef.current) {
+      droneStopRef.current = startAmbientMusic();
     }
+    return () => {
+      if (droneStopRef.current) {
+        droneStopRef.current();
+        droneStopRef.current = null;
+      }
+    };
+  }, []);
+
+  // Sound on specific nodes
+  useEffect(() => {
+    if (currentNode === "verify") playStatic(0.2, 0.06);
     if (currentNode === "verified") playConfirm();
     if (currentNode === "demo") playConfirm();
   }, [currentNode]);
