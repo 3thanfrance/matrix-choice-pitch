@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { playKeyClick, playEnterKey, playStatic, playConfirm } from "@/lib/sounds";
+import { playKeyClick, playEnterKey, playStatic, playConfirm, startAmbientDrone } from "@/lib/sounds";
 import MatrixAgents from "./MatrixAgents";
 
 declare global {
@@ -33,52 +33,50 @@ const storyTree: Record<string, StoryNode> = {
   },
   trapped: {
     lines: [
-      "YOUR DASHBOARDS TELL DIFFERENT STORIES.",
-      "YOUR METRICS DON'T MATCH ACROSS TEAMS.",
-      "EVERYONE WRITES THEIR OWN QUERY JUST TO BE SURE.",
+      "YOU'VE FELT IT.",
+      "SOMETHING ISN'T WORKING.",
+      "THE NUMBERS DON'T LINE UP. THE TRUST ISN'T THERE.",
     ],
-    prompt: "DOES THAT SOUND RIGHT? [Y/N]",
+    prompt: "YOU KNOW WHAT WE'RE TALKING ABOUT? [Y/N]",
     yes: "deeper",
     no: "comfortable",
   },
   deeper: {
     lines: [
-      "YOUR DATA TEAM SPENDS MORE TIME EXPLAINING NUMBERS",
-      "THAN FINDING INSIGHTS.",
-      "SELF-SERVE WAS THE PROMISE. BOTTLENECKS ARE THE REALITY.",
+      "THE QUESTIONS KEEP COMING.",
+      "THE ANSWERS KEEP CHANGING.",
+      "YOUR TEAM DESERVES BETTER THAN THAT.",
     ],
-    prompt: "ARE YOU READY TO SEE ANOTHER WAY? [Y/N]",
+    prompt: "WANT TO SEE WHAT BETTER LOOKS LIKE? [Y/N]",
     yes: "redpill",
     no: "hesitate",
   },
   comfortable: {
     lines: [
-      "FAIR ENOUGH.",
-      "BUT ASK YOURSELF —",
-      "HOW MANY HOURS THIS WEEK WERE SPENT",
-      "RECONCILING NUMBERS THAT SHOULD ALREADY AGREE?",
+      "MAYBE NOT YET.",
+      "BUT YOU WOULDN'T STILL BE HERE IF EVERYTHING WAS FINE.",
     ],
-    prompt: "IS THAT SUSTAINABLE? [Y/N]",
+    prompt: "SOMETHING COULD BE BETTER, RIGHT? [Y/N]",
     yes: "deeper_alt",
     no: "bluepill",
   },
   deeper_alt: {
     lines: [
-      "GOVERNANCE SHOULDN'T BE AN AFTERTHOUGHT.",
-      "DEFINITIONS SHOULDN'T LIVE IN SOMEONE'S NOTEBOOK.",
-      "WHAT IF EVERY QUESTION HIT THE SAME SOURCE OF TRUTH?",
+      "WHAT IF YOUR TEAM COULD GET ANSWERS",
+      "WITHOUT FILING A TICKET?",
+      "WHAT IF THE DATA JUST... WORKED?",
     ],
-    prompt: "WOULD THAT CHANGE THINGS? [Y/N]",
+    prompt: "WORTH EXPLORING? [Y/N]",
     yes: "redpill",
     no: "bluepill",
   },
   hesitate: {
     lines: [
-      "THE COST ISN'T JUST TIME.",
-      "IT'S TRUST. IN THE DATA. IN THE TEAM.",
-      "EVERY DUPLICATED DEFINITION WIDENS THE GAP.",
+      "NO RUSH.",
+      "BUT EVERY WEEK IT STAYS THE SAME",
+      "IS A WEEK YOUR TEAM DOESN'T GET BACK.",
     ],
-    prompt: "DO YOU WANT TO CLOSE IT? [Y/N]",
+    prompt: "READY TO MOVE FORWARD? [Y/N]",
     yes: "redpill",
     no: "bluepill",
   },
@@ -88,16 +86,16 @@ const storyTree: Record<string, StoryNode> = {
       "",
       "THIS IS OMNI.",
       "ONE SEMANTIC LAYER. ONE SOURCE OF TRUTH.",
-      "GOVERNED. CONSISTENT. SELF-SERVE THAT WORKS.",
+      "SELF-SERVE THAT ACTUALLY WORKS.",
     ],
-    prompt: "SCHEDULE A MEETING? [Y/N]",
+    prompt: "15 MINUTES. THAT'S ALL WE NEED. [Y/N]",
     yes: "demo",
     no: "redpill_no",
   },
   redpill_no: {
     lines: [
       "NO PRESSURE.",
-      "BUT THE DOOR IS OPEN.",
+      "THE DOOR'S OPEN WHEN YOU'RE READY.",
       "",
       "KARL@OMNI.CO",
     ],
@@ -106,10 +104,9 @@ const storyTree: Record<string, StoryNode> = {
     lines: [
       ">> BLUE PILL PROTOCOL ACTIVATED <<",
       "",
-      "THE STATUS QUO CONTINUES.",
-      "MORE NOTEBOOKS. MORE RECONCILIATION.",
+      "BACK TO BUSINESS AS USUAL.",
     ],
-    prompt: "CHANGE YOUR MIND? [Y/N]",
+    prompt: "OR... ONE MORE CHANCE? [Y/N]",
     yes: "redpill",
     no: "bluepill_final",
   },
@@ -130,7 +127,7 @@ const storyTree: Record<string, StoryNode> = {
   demo2: {
     lines: [
       "NO MATTER HOW IT GOES —",
-      "YOU DESERVE A SEMANTIC LAYER THAT WORKS.",
+      "YOU DESERVE BETTER THAN THE STATUS QUO.",
       "",
       "KARL@OMNI.CO",
     ],
@@ -221,19 +218,33 @@ const Terminal = () => {
     };
   }, [displayedLines, showPrompt, floatOffset, node, showOutro]);
 
-  // Key click sounds
+  // Key click sounds — every 4th character to reduce frequency
   useEffect(() => {
     if (phase !== "typing") return;
     clickCountRef.current++;
-    if (clickCountRef.current % 2 === 0) playKeyClick();
+    if (clickCountRef.current % 4 === 0) playKeyClick();
   }, [charIndex, phase]);
 
-  // Sound on specific nodes
+  // Sound on specific nodes + ambient drone
+  const droneStopRef = useRef<(() => void) | null>(null);
   useEffect(() => {
-    if (currentNode === "verify") playStatic(0.2, 0.06);
+    if (currentNode === "verify") {
+      playStatic(0.2, 0.06);
+      if (!droneStopRef.current) {
+        droneStopRef.current = startAmbientDrone();
+      }
+    }
     if (currentNode === "verified") playConfirm();
     if (currentNode === "demo") playConfirm();
   }, [currentNode]);
+
+  // Stop drone on outro
+  useEffect(() => {
+    if (showOutro && droneStopRef.current) {
+      droneStopRef.current();
+      droneStopRef.current = null;
+    }
+  }, [showOutro]);
 
   // Auto-advance for non-interactive nodes
   useEffect(() => {

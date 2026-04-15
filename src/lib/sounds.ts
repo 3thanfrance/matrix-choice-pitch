@@ -251,3 +251,68 @@ export const playConfirm = () => {
     });
   } catch {}
 };
+
+// Ambient matrix drone — low filtered noise + sub-bass pulse
+export const startAmbientDrone = (): (() => void) => {
+  try {
+    const c = getCtx();
+    const master = c.createGain();
+    master.connect(c.destination);
+    master.gain.value = 0;
+    master.gain.linearRampToValueAtTime(0.035, c.currentTime + 3);
+
+    // Brown noise layer
+    const bufferSize = c.sampleRate * 4;
+    const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
+    const data = buffer.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      last = (last + 0.02 * white) / 1.02;
+      data[i] = last * 3.5;
+    }
+    const noise = c.createBufferSource();
+    noise.buffer = buffer;
+    noise.loop = true;
+
+    const noiseLPF = c.createBiquadFilter();
+    noiseLPF.type = "lowpass";
+    noiseLPF.frequency.value = 300;
+    noiseLPF.Q.value = 0.5;
+
+    noise.connect(noiseLPF);
+    noiseLPF.connect(master);
+    noise.start();
+
+    // Sub-bass pulse
+    const sub = c.createOscillator();
+    const subGain = c.createGain();
+    sub.type = "sine";
+    sub.frequency.value = 38;
+    subGain.gain.value = 0.4;
+    sub.connect(subGain);
+    subGain.connect(master);
+    sub.start();
+
+    // Very slow LFO on the noise filter for movement
+    const lfo = c.createOscillator();
+    const lfoGain = c.createGain();
+    lfo.type = "sine";
+    lfo.frequency.value = 0.08;
+    lfoGain.gain.value = 100;
+    lfo.connect(lfoGain);
+    lfoGain.connect(noiseLPF.frequency);
+    lfo.start();
+
+    return () => {
+      master.gain.linearRampToValueAtTime(0, c.currentTime + 1.5);
+      setTimeout(() => {
+        noise.stop();
+        sub.stop();
+        lfo.stop();
+      }, 2000);
+    };
+  } catch {
+    return () => {};
+  }
+};
