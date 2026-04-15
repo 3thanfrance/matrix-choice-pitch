@@ -31,52 +31,64 @@ const storyTree: Record<string, StoryNode> = {
   start: {
     lines: ["HELLO, ANTON."],
   },
-  trapped: {
+  pitch1: {
     lines: [
-      "YOU'VE FELT IT.",
-      "SOMETHING ISN'T WORKING.",
-      "THE NUMBERS DON'T LINE UP. THE TRUST ISN'T THERE.",
+      "YOUR TEAM ASKS A DATA QUESTION.",
+      "THREE PEOPLE WRITE THREE DIFFERENT QUERIES.",
+      "THREE DIFFERENT ANSWERS.",
     ],
-    prompt: "YOU KNOW WHAT WE'RE TALKING ABOUT? [Y/N]",
-    yes: "deeper",
-    no: "comfortable",
+    prompt: "SOUND FAMILIAR? [Y/N]",
+    yes: "pitch2",
+    no: "pitch1_no",
   },
-  deeper: {
+  pitch2: {
     lines: [
-      "THE QUESTIONS KEEP COMING.",
-      "THE ANSWERS KEEP CHANGING.",
-      "YOUR TEAM DESERVES BETTER THAN THAT.",
+      "METRICS SCATTERED ACROSS NOTEBOOKS.",
+      "NO SINGLE SOURCE OF TRUTH.",
+      "ANALYSTS BOTTLENECKED. STAKEHOLDERS WAITING.",
     ],
-    prompt: "WANT TO SEE WHAT BETTER LOOKS LIKE? [Y/N]",
+    prompt: "READY TO FIX THAT? [Y/N]",
     yes: "redpill",
     no: "hesitate",
   },
-  comfortable: {
+  pitch1_no: {
     lines: [
-      "MAYBE NOT YET.",
-      "BUT YOU WOULDN'T STILL BE HERE IF EVERYTHING WAS FINE.",
+      "FAIR ENOUGH.",
+      "BUT CAN ANYONE ON YOUR TEAM",
+      "GET ANSWERS WITHOUT WRITING SQL?",
     ],
-    prompt: "SOMETHING COULD BE BETTER, RIGHT? [Y/N]",
-    yes: "deeper_alt",
-    no: "bluepill",
+    prompt: "CAN THEY? [Y/N]",
+    yes: "pitch1_no_yes",
+    no: "redpill",
   },
-  deeper_alt: {
+  pitch1_no_yes: {
     lines: [
-      "WHAT IF YOUR TEAM COULD GET ANSWERS",
-      "WITHOUT FILING A TICKET?",
-      "WHAT IF THE DATA JUST... WORKED?",
+      "BUT ARE THOSE ANSWERS GOVERNED?",
+      "SAME METRIC, SAME DEFINITION, EVERY TIME?",
     ],
-    prompt: "WORTH EXPLORING? [Y/N]",
+    prompt: "EVERY TIME? [Y/N]",
+    yes: "skeptic",
+    no: "redpill",
+  },
+  skeptic: {
+    lines: [
+      "THEN YOU'RE AHEAD OF MOST.",
+      "WHAT IF YOU COULD DO IT WITH AI",
+      "AND KNOW THE ANSWERS ARE GROUNDED",
+      "IN YOUR ACTUAL BUSINESS LOGIC?",
+    ],
+    prompt: "WORTH 15 MINUTES? [Y/N]",
     yes: "redpill",
     no: "bluepill",
   },
   hesitate: {
     lines: [
       "NO RUSH.",
-      "BUT EVERY WEEK IT STAYS THE SAME",
+      "BUT EVERY WEEK SPENT REBUILDING",
+      "THE SAME LOGIC IN A NOTEBOOK",
       "IS A WEEK YOUR TEAM DOESN'T GET BACK.",
     ],
-    prompt: "READY TO MOVE FORWARD? [Y/N]",
+    prompt: "WORTH A CONVERSATION? [Y/N]",
     yes: "redpill",
     no: "bluepill",
   },
@@ -85,17 +97,17 @@ const storyTree: Record<string, StoryNode> = {
       ">> RED PILL PROTOCOL ACTIVATED <<",
       "",
       "THIS IS OMNI.",
-      "ONE SEMANTIC LAYER. ONE SOURCE OF TRUTH.",
-      "SELF-SERVE THAT ACTUALLY WORKS.",
+      "AI ANALYTICS BUILT ON A SEMANTIC LAYER.",
+      "ASK IN PLAIN ENGLISH. GET GOVERNED ANSWERS.",
+      "NO NOTEBOOKS. NO GUESSWORK.",
     ],
-    prompt: "15 MINUTES. THAT'S ALL WE NEED. [Y/N]",
+    prompt: "15 MINUTES. THAT'S ALL IT TAKES. [Y/N]",
     yes: "demo",
     no: "redpill_no",
   },
   redpill_no: {
     lines: [
-      "NO PRESSURE.",
-      "THE DOOR'S OPEN WHEN YOU'RE READY.",
+      "THE DOOR'S OPEN.",
       "",
       "KARL@OMNI.CO",
     ],
@@ -104,9 +116,9 @@ const storyTree: Record<string, StoryNode> = {
     lines: [
       ">> BLUE PILL PROTOCOL ACTIVATED <<",
       "",
-      "BACK TO BUSINESS AS USUAL.",
+      "BACK TO THE NOTEBOOKS.",
     ],
-    prompt: "OR... ONE MORE CHANCE? [Y/N]",
+    prompt: "OR... ONE CONVERSATION FIRST? [Y/N]",
     yes: "redpill",
     no: "bluepill_final",
   },
@@ -127,14 +139,14 @@ const storyTree: Record<string, StoryNode> = {
   demo2: {
     lines: [
       "NO MATTER HOW IT GOES —",
-      "YOU DESERVE BETTER THAN THE STATUS QUO.",
+      "YOU DESERVE A SEMANTIC LAYER THAT WORKS.",
       "",
       "KARL@OMNI.CO",
     ],
   },
 };
 
-const AUTO_SEQUENCE = ["verify", "verified", "start", "trapped"];
+const AUTO_SEQUENCE = ["verify", "verified", "start", "pitch1"];
 
 const TYPING_SPEED = 25;
 const DELETE_SPEED = 4;

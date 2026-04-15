@@ -252,65 +252,88 @@ export const playConfirm = () => {
   } catch {}
 };
 
-// Ambient matrix drone — low filtered noise + sub-bass pulse
-export const startAmbientDrone = (): (() => void) => {
+// Ambient matrix music — ethereal minor key arpeggios + pad
+export const startAmbientMusic = (): (() => void) => {
   try {
     const c = getCtx();
     const master = c.createGain();
     master.connect(c.destination);
     master.gain.value = 0;
-    master.gain.linearRampToValueAtTime(0.035, c.currentTime + 3);
+    master.gain.linearRampToValueAtTime(0.06, c.currentTime + 2);
 
-    // Brown noise layer
-    const bufferSize = c.sampleRate * 4;
-    const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
-    const data = buffer.getChannelData(0);
-    let last = 0;
-    for (let i = 0; i < bufferSize; i++) {
-      const white = Math.random() * 2 - 1;
-      last = (last + 0.02 * white) / 1.02;
-      data[i] = last * 3.5;
-    }
-    const noise = c.createBufferSource();
-    noise.buffer = buffer;
-    noise.loop = true;
+    // Reverb-like delay
+    const delay = c.createDelay();
+    delay.delayTime.value = 0.4;
+    const feedback = c.createGain();
+    feedback.gain.value = 0.35;
+    const delayFilter = c.createBiquadFilter();
+    delayFilter.type = "lowpass";
+    delayFilter.frequency.value = 2000;
+    delay.connect(delayFilter);
+    delayFilter.connect(feedback);
+    feedback.connect(delay);
+    delay.connect(master);
 
-    const noiseLPF = c.createBiquadFilter();
-    noiseLPF.type = "lowpass";
-    noiseLPF.frequency.value = 300;
-    noiseLPF.Q.value = 0.5;
+    // Pad — soft chord (Am: A2, C3, E3)
+    const padGain = c.createGain();
+    padGain.gain.value = 0.15;
+    padGain.connect(master);
+    const padFreqs = [110, 130.81, 164.81];
+    const padOscs = padFreqs.map((f) => {
+      const osc = c.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = f;
+      const g = c.createGain();
+      g.gain.value = 0.3;
+      osc.connect(g);
+      g.connect(padGain);
+      osc.start();
+      return osc;
+    });
 
-    noise.connect(noiseLPF);
-    noiseLPF.connect(master);
-    noise.start();
+    // Slow LFO on pad volume for breathing
+    const padLfo = c.createOscillator();
+    const padLfoGain = c.createGain();
+    padLfo.type = "sine";
+    padLfo.frequency.value = 0.12;
+    padLfoGain.gain.value = 0.06;
+    padLfo.connect(padLfoGain);
+    padLfoGain.connect(padGain.gain);
+    padLfo.start();
 
-    // Sub-bass pulse
-    const sub = c.createOscillator();
-    const subGain = c.createGain();
-    sub.type = "sine";
-    sub.frequency.value = 38;
-    subGain.gain.value = 0.4;
-    sub.connect(subGain);
-    subGain.connect(master);
-    sub.start();
+    // Arpeggio — cycling minor scale notes
+    const arpNotes = [220, 261.63, 329.63, 392, 329.63, 261.63]; // Am arpeggio
+    let arpIndex = 0;
+    const arpGain = c.createGain();
+    arpGain.gain.value = 0.08;
+    arpGain.connect(delay);
+    arpGain.connect(master);
 
-    // Very slow LFO on the noise filter for movement
-    const lfo = c.createOscillator();
-    const lfoGain = c.createGain();
-    lfo.type = "sine";
-    lfo.frequency.value = 0.08;
-    lfoGain.gain.value = 100;
-    lfo.connect(lfoGain);
-    lfoGain.connect(noiseLPF.frequency);
-    lfo.start();
+    const playArpNote = () => {
+      const osc = c.createOscillator();
+      const noteGain = c.createGain();
+      osc.type = "sine";
+      osc.frequency.value = arpNotes[arpIndex % arpNotes.length];
+      noteGain.gain.setValueAtTime(0.3, c.currentTime);
+      noteGain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 1.2);
+      osc.connect(noteGain);
+      noteGain.connect(arpGain);
+      osc.start(c.currentTime);
+      osc.stop(c.currentTime + 1.5);
+      arpIndex++;
+    };
+
+    const arpInterval = setInterval(playArpNote, 800 + Math.random() * 400);
+    // Start first note after a moment
+    setTimeout(playArpNote, 500);
 
     return () => {
-      master.gain.linearRampToValueAtTime(0, c.currentTime + 1.5);
+      master.gain.linearRampToValueAtTime(0, c.currentTime + 2);
+      clearInterval(arpInterval);
       setTimeout(() => {
-        noise.stop();
-        sub.stop();
-        lfo.stop();
-      }, 2000);
+        padOscs.forEach((o) => o.stop());
+        padLfo.stop();
+      }, 2500);
     };
   } catch {
     return () => {};
