@@ -260,7 +260,7 @@ const Terminal = () => {
     }
 
     // End states: zoom back out
-    if (currentNode === "demo2" || currentNode === "final_no") {
+    if (currentNode === "demo2" || currentNode === "redpill_no" || currentNode === "bluepill_final") {
       if (!node.prompt) {
         const timer = setTimeout(() => setShowOutro(true), OUTRO_DELAY);
         return () => clearTimeout(timer);
