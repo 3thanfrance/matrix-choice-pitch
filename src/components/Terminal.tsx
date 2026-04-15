@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { playKeyClick, playEnterKey, playStatic, playConfirm } from "@/lib/sounds";
+import { playKeyClick, playEnterKey, playStatic, playConfirm, startAmbientDrone } from "@/lib/sounds";
 import MatrixAgents from "./MatrixAgents";
 
 declare global {
@@ -228,12 +228,26 @@ const Terminal = () => {
     if (clickCountRef.current % 4 === 0) playKeyClick();
   }, [charIndex, phase]);
 
-  // Sound on specific nodes
+  // Sound on specific nodes + ambient drone
+  const droneStopRef = useRef<(() => void) | null>(null);
   useEffect(() => {
-    if (currentNode === "verify") playStatic(0.2, 0.06);
+    if (currentNode === "verify") {
+      playStatic(0.2, 0.06);
+      if (!droneStopRef.current) {
+        droneStopRef.current = startAmbientDrone();
+      }
+    }
     if (currentNode === "verified") playConfirm();
     if (currentNode === "demo") playConfirm();
   }, [currentNode]);
+
+  // Stop drone on outro
+  useEffect(() => {
+    if (showOutro && droneStopRef.current) {
+      droneStopRef.current();
+      droneStopRef.current = null;
+    }
+  }, [showOutro]);
 
   // Auto-advance for non-interactive nodes
   useEffect(() => {
