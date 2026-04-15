@@ -221,11 +221,11 @@ const Terminal = () => {
     };
   }, [displayedLines, showPrompt, floatOffset, node, showOutro]);
 
-  // Key click sounds
+  // Key click sounds — every 4th character to reduce frequency
   useEffect(() => {
     if (phase !== "typing") return;
     clickCountRef.current++;
-    if (clickCountRef.current % 2 === 0) playKeyClick();
+    if (clickCountRef.current % 4 === 0) playKeyClick();
   }, [charIndex, phase]);
 
   // Sound on specific nodes
