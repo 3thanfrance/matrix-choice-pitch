@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { playKeyClick, playEnterKey, playStatic, playConfirm, startAmbientDrone } from "@/lib/sounds";
+import { playKeyClick, playEnterKey, playStatic, playConfirm, startAmbientMusic } from "@/lib/sounds";
 import MatrixAgents from "./MatrixAgents";
 
 declare global {
