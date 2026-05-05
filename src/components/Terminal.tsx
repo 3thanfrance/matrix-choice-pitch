@@ -54,28 +54,19 @@ const storyTree: Record<string, StoryNode> = {
   pitch1_no: {
     lines: [
       "FAIR ENOUGH.",
-      "BUT CAN ANYONE ON YOUR TEAM",
-      "GET ANSWERS WITHOUT WRITING SQL?",
-    ],
-    prompt: "CAN THEY? [Y/N]",
-    yes: "pitch1_no_yes",
-    no: "redpill",
-  },
-  pitch1_no_yes: {
-    lines: [
-      "BUT ARE THOSE ANSWERS GOVERNED?",
+      "BUT WHEN YOUR TEAM GETS ANSWERS —",
+      "ARE THEY GOVERNED?",
       "SAME METRIC, SAME DEFINITION, EVERY TIME?",
     ],
-    prompt: "EVERY TIME? [Y/N]",
+    prompt: "GOVERNED? [Y/N]",
     yes: "skeptic",
     no: "redpill",
   },
   skeptic: {
     lines: [
       "THEN YOU'RE AHEAD OF MOST.",
-      "WHAT IF YOU COULD DO IT WITH AI",
-      "AND KNOW THE ANSWERS ARE GROUNDED",
-      "IN YOUR ACTUAL BUSINESS LOGIC?",
+      "BUT IS YOUR AI QUERYING THAT GOVERNED MODEL —",
+      "OR GENERATING RAW SQL AROUND IT?",
     ],
     prompt: "READY TO SEE THE WAY OUT? [Y/N]",
     yes: "redpill",
@@ -84,9 +75,9 @@ const storyTree: Record<string, StoryNode> = {
   hesitate: {
     lines: [
       "NO RUSH.",
-      "BUT EVERY WEEK SPENT REBUILDING",
-      "THE SAME LOGIC IN A NOTEBOOK",
-      "IS A WEEK YOUR TEAM DOESN'T GET BACK.",
+      "BUT EVERY METRIC BUILT IN A NOTEBOOK",
+      "THAT NEVER MAKES IT INTO YOUR GOVERNED MODEL",
+      "IS LOGIC YOUR TEAM WILL REBUILD AGAIN.",
     ],
     prompt: "WORTH A CONVERSATION? [Y/N]",
     yes: "redpill",
@@ -99,7 +90,8 @@ const storyTree: Record<string, StoryNode> = {
       "THIS IS OMNI.",
       "AI ANALYTICS BUILT ON A SEMANTIC LAYER.",
       "ASK IN PLAIN ENGLISH. GET GOVERNED ANSWERS.",
-      "NO NOTEBOOKS. NO GUESSWORK.",
+      "NOT GENERATED SQL.",
+      "RESPONSES GROUNDED IN YOUR BUSINESS LOGIC.",
     ],
     prompt: "READY TO ESCAPE THIS MATRIX? [Y/N]",
     yes: "demo",
