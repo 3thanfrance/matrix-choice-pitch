@@ -504,8 +504,18 @@ const MatrixAgents = () => {
       ctx.font = font;
       let yOff = 0;
       let li = 0;
+      let guard = 0;
       while (yOff < H + lineHeight) {
         const line = lines[li % lines.length];
+        li++;
+        // Skip empty/whitespace-only layout lines — they were leaving thick
+        // black horizontal bands across the rain background.
+        const rawText = (line?.text ?? "").replace(/\s+/g, "");
+        if (rawText.length === 0) {
+          if (++guard > lines.length + 4) break; // safety: corpus is all empty
+          continue;
+        }
+        guard = 0;
         const graphemes = Array.from(line.text);
         let xPos = 0;
         for (const g of graphemes) {
@@ -515,7 +525,6 @@ const MatrixAgents = () => {
           xPos += ctx.measureText(g).width;
         }
         yOff += lineHeight;
-        li++;
       }
     }
 
