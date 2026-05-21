@@ -262,20 +262,36 @@ const PretextRain = () => {
         drop.y += drop.speed;
         const x = drop.col * colWidth;
 
-        // Splash on contact with text, but keep drop alive and falling
-        // (killing drops here is what created the black bands behind the terminal).
-        if (maskData && hitsText(x, drop.y) && Math.random() > 0.85) {
-          const topY = findTextTopAt(x, drop.y);
-          spawnSplash(x, topY, 1 + Math.floor(Math.random() * 2));
+        // Vertical sweep: check several points along the drop head for text
+        // collision so fast drops never "jump over" a glyph in a single frame.
+        if (maskData) {
+          const steps = Math.max(2, Math.ceil(drop.speed));
+          let collidedY: number | null = null;
+          for (let s = 0; s <= steps; s++) {
+            const checkY = drop.y - s * (drop.speed / steps);
+            if (hitsText(x, checkY)) {
+              collidedY = checkY;
+              break;
+            }
+          }
+          if (collidedY !== null && Math.random() > 0.6) {
+            const topY = findTextTopAt(x, collidedY);
+            spawnSplash(x, topY, 1 + Math.floor(Math.random() * 2));
+          }
         }
 
         for (let t = 0; t < drop.tailLen; t++) {
           const ty = drop.y - t * lineHeight;
           if (ty < -lineHeight || ty > H) continue;
 
-          // Dim chars that overlap text so the text stays readable,
-          // but never skip drawing them.
-          const overText = maskData ? hitsText(x, ty + lineHeight * 0.5) : false;
+          // Sample the mask across the glyph's vertical extent so partial
+          // overlaps still get dimmed — no more drops shining through text.
+          let overText = false;
+          if (maskData) {
+            for (let dy = 0; dy < lineHeight; dy += 3) {
+              if (hitsText(x, ty + dy)) { overText = true; break; }
+            }
+          }
 
           const charIdx = (Math.floor(drop.y / lineHeight) + t) % drop.chars.length;
           let ch = drop.chars[charIdx];
@@ -285,7 +301,7 @@ const PretextRain = () => {
 
           const fade = 1 - t / drop.tailLen;
           let alpha = t === 0 ? 0.65 : fade * 0.22;
-          if (overText) alpha *= 0.25;
+          if (overText) alpha *= 0.08; // hard fade so text stays readable
 
           if (t < 2 && !overText) {
             ctx.shadowColor = "#00FF41";
@@ -304,6 +320,7 @@ const PretextRain = () => {
           drop.speed = 1.5 + Math.random() * 3;
         }
       }
+
 
       // --- PARTICLES ---
       for (let i = particles.length - 1; i >= 0; i--) {
