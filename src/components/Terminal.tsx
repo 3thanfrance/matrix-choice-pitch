@@ -105,22 +105,9 @@ const storyTree: Record<string, StoryNode> = {
     ],
   },
   bluepill: {
-    lines: [
-      ">> BLUE PILL PROTOCOL ACTIVATED <<",
-      "",
-      "BACK TO THE NOTEBOOKS.",
-    ],
-    prompt: "OR... ONE CONVERSATION FIRST? [Y/N]",
-    yes: "redpill",
-    no: "bluepill_final",
+    lines: [">> BLUE PILL PROTOCOL ACTIVATED <<"],
   },
-  bluepill_final: {
-    lines: [
-      "THE OFFER STANDS.",
-      "",
-      "KARL@OMNI.CO",
-    ],
-  },
+
   demo: {
     lines: [
       "═══════════════════════════",
@@ -282,13 +269,22 @@ const Terminal = () => {
       return () => clearTimeout(timer);
     }
 
+    if (currentNode === "bluepill") {
+      const timer = setTimeout(() => {
+        setNextNodeKey("redpill_no");
+        setPhase("deleting");
+      }, AUTO_LINGER);
+      return () => clearTimeout(timer);
+    }
+
     // End states: zoom back out
-    if (currentNode === "demo2" || currentNode === "redpill_no" || currentNode === "bluepill_final") {
+    if (currentNode === "demo2" || currentNode === "redpill_no") {
       if (!node.prompt) {
         const timer = setTimeout(() => setShowOutro(true), OUTRO_DELAY);
         return () => clearTimeout(timer);
       }
     }
+
   }, [phase, currentNode, node, showOutro]);
 
   // Outro: reverse the intro — pupil zoom out → eye visible → blink → zoom out to silhouette → hold → reboot
