@@ -262,29 +262,20 @@ const PretextRain = () => {
         drop.y += drop.speed;
         const x = drop.col * colWidth;
 
-        let hitText = false;
-        if (maskData) {
-          if (hitsText(x, drop.y)) {
-            hitText = true;
-            const topY = findTextTopAt(x, drop.y);
-            spawnSplash(x, topY, 2 + Math.floor(Math.random() * 2));
-            addToPool(x, topY - lineHeight * 0.5);
-
-            drop.y = -Math.random() * H * 0.3;
-            drop.speed = 1.5 + Math.random() * 3;
-            drop.active = Math.random() > 0.08;
-          }
+        // Splash on contact with text, but keep drop alive and falling
+        // (killing drops here is what created the black bands behind the terminal).
+        if (maskData && hitsText(x, drop.y) && Math.random() > 0.85) {
+          const topY = findTextTopAt(x, drop.y);
+          spawnSplash(x, topY, 1 + Math.floor(Math.random() * 2));
         }
-
-        if (hitText) continue;
 
         for (let t = 0; t < drop.tailLen; t++) {
           const ty = drop.y - t * lineHeight;
           if (ty < -lineHeight || ty > H) continue;
 
-          if (maskData && hitsText(x, ty + lineHeight * 0.5)) {
-            continue;
-          }
+          // Dim chars that overlap text so the text stays readable,
+          // but never skip drawing them.
+          const overText = maskData ? hitsText(x, ty + lineHeight * 0.5) : false;
 
           const charIdx = (Math.floor(drop.y / lineHeight) + t) % drop.chars.length;
           let ch = drop.chars[charIdx];
@@ -293,9 +284,10 @@ const PretextRain = () => {
           }
 
           const fade = 1 - t / drop.tailLen;
-          const alpha = t === 0 ? 0.65 : fade * 0.22;
+          let alpha = t === 0 ? 0.65 : fade * 0.22;
+          if (overText) alpha *= 0.25;
 
-          if (t < 2) {
+          if (t < 2 && !overText) {
             ctx.shadowColor = "#00FF41";
             ctx.shadowBlur = t === 0 ? 8 : 3;
           } else {
@@ -306,14 +298,10 @@ const PretextRain = () => {
           ctx.fillText(ch, x, ty);
         }
 
-        if (drop.y > H - 25 && drop.y < H + lineHeight) {
-          const splashX = drop.col * colWidth;
-          spawnSplash(splashX, H - 8, 3 + Math.floor(Math.random() * 3));
-          addToPool(splashX, H - lineHeight - 6);
-
+        if (drop.y > H + drop.tailLen * lineHeight) {
+          spawnSplash(drop.col * colWidth, H - 8, 2 + Math.floor(Math.random() * 2));
           drop.y = -Math.random() * H * 0.4;
           drop.speed = 1.5 + Math.random() * 3;
-          drop.active = Math.random() > 0.1;
         }
       }
 
