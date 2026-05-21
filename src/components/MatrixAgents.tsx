@@ -502,21 +502,24 @@ const MatrixAgents = () => {
 
       charCells = [];
       ctx.font = font;
+      const avgCharW = ctx.measureText("M").width || fontSize * 0.6;
       let yOff = 0;
       let li = 0;
-      let guard = 0;
       while (yOff < H + lineHeight) {
         const line = lines[li % lines.length];
         li++;
-        // Skip empty/whitespace-only layout lines — they were leaving thick
-        // black horizontal bands across the rain background.
-        const rawText = (line?.text ?? "").replace(/\s+/g, "");
-        if (rawText.length === 0) {
-          if (++guard > lines.length + 4) break; // safety: corpus is all empty
-          continue;
+        let text = line?.text ?? "";
+        // If the layout produced an empty/whitespace-only line, fill it with
+        // corpus chars so we don't leave a black horizontal band across the screen.
+        if (text.replace(/\s+/g, "").length === 0) {
+          const needed = Math.ceil(W / avgCharW) + 4;
+          let filler = "";
+          while (filler.length < needed) {
+            filler += corpusChars[Math.floor(Math.random() * corpusChars.length)];
+          }
+          text = filler;
         }
-        guard = 0;
-        const graphemes = Array.from(line.text);
+        const graphemes = Array.from(text);
         let xPos = 0;
         for (const g of graphemes) {
           if (xPos < W + fontSize) {
