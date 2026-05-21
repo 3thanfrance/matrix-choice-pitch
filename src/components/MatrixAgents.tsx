@@ -496,40 +496,28 @@ const MatrixAgents = () => {
       offscreen.width = W;
       offscreen.height = H;
 
-      const prepared = prepareWithSegments(FULL_CORPUS, font);
-      const result = layoutWithLines(prepared, W, lineHeight);
-      const lines = result.lines;
-
-      charCells = [];
+      // Deterministic dense grid — fill every row across the full viewport
+      // using corpus characters. This eliminates any chance of empty/wrapped
+      // layout lines leaving black horizontal bands across the screen.
       ctx.font = font;
       const avgCharW = ctx.measureText("M").width || fontSize * 0.6;
-      let yOff = 0;
-      let li = 0;
-      while (yOff < H + lineHeight) {
-        const line = lines[li % lines.length];
-        li++;
-        let text = line?.text ?? "";
-        // If the layout produced an empty/whitespace-only line, fill it with
-        // corpus chars so we don't leave a black horizontal band across the screen.
-        if (text.replace(/\s+/g, "").length === 0) {
-          const needed = Math.ceil(W / avgCharW) + 4;
-          let filler = "";
-          while (filler.length < needed) {
-            filler += corpusChars[Math.floor(Math.random() * corpusChars.length)];
-          }
-          text = filler;
+      const colStep = Math.max(6, avgCharW); // grid column width in px
+      const cols = Math.ceil(W / colStep) + 2;
+      const rows = Math.ceil(H / lineHeight) + 2;
+
+      charCells = [];
+      let ci = 0;
+      for (let r = 0; r < rows; r++) {
+        const y = r * lineHeight;
+        for (let c = 0; c < cols; c++) {
+          const x = c * colStep;
+          const ch = corpusChars[ci % corpusChars.length];
+          ci = (ci + 1 + Math.floor(Math.random() * 3)) % corpusChars.length;
+          charCells.push({ ch, x, y });
         }
-        const graphemes = Array.from(text);
-        let xPos = 0;
-        for (const g of graphemes) {
-          if (xPos < W + fontSize) {
-            charCells.push({ ch: g, x: xPos, y: yOff });
-          }
-          xPos += ctx.measureText(g).width;
-        }
-        yOff += lineHeight;
       }
     }
+
 
     rebuildLayout();
     window.addEventListener("resize", rebuildLayout);
