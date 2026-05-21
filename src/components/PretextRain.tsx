@@ -271,34 +271,31 @@ const PretextRain = () => {
 
         // Vertical sweep: check several points along the drop head for text
         // collision so fast drops never "jump over" a glyph in a single frame.
+        let textTopY: number | null = null;
         if (maskData) {
           const steps = Math.max(2, Math.ceil(drop.speed));
-          let collidedY: number | null = null;
           for (let s = 0; s <= steps; s++) {
             const checkY = drop.y - s * (drop.speed / steps);
             if (hitsText(x, checkY)) {
-              collidedY = checkY;
+              textTopY = findTextTopAt(x, checkY);
               break;
             }
           }
-          if (collidedY !== null && Math.random() > 0.6) {
-            const topY = findTextTopAt(x, collidedY);
-            spawnSplash(x, topY, 1 + Math.floor(Math.random() * 2));
+          if (textTopY !== null) {
+            // Always spawn a splash on contact — reads as a clear bounce.
+            spawnSplash(x, textTopY, 2 + Math.floor(Math.random() * 2));
+            // Pin the drop head AT the text top so it visibly stops.
+            drop.y = textTopY;
           }
         }
+
+        // Clamp tail so no glyph is drawn below the contact point.
+        const tailLimitY = textTopY !== null ? textTopY : H + drop.tailLen * lineHeight;
 
         for (let t = 0; t < drop.tailLen; t++) {
           const ty = drop.y - t * lineHeight;
           if (ty < -lineHeight || ty > H) continue;
-
-          // Sample the mask across the glyph's vertical extent so partial
-          // overlaps still get dimmed — no more drops shining through text.
-          let overText = false;
-          if (maskData) {
-            for (let dy = 0; dy < lineHeight; dy += 3) {
-              if (hitsText(x, ty + dy)) { overText = true; break; }
-            }
-          }
+          if (ty > tailLimitY) continue; // never draw below the text top
 
           const charIdx = (Math.floor(drop.y / lineHeight) + t) % drop.chars.length;
           let ch = drop.chars[charIdx];
@@ -307,10 +304,9 @@ const PretextRain = () => {
           }
 
           const fade = 1 - t / drop.tailLen;
-          let alpha = t === 0 ? 0.65 : fade * 0.22;
-          if (overText) alpha *= 0.08; // hard fade so text stays readable
+          const alpha = t === 0 ? 0.75 : fade * 0.22;
 
-          if (t < 2 && !overText) {
+          if (t < 2) {
             ctx.shadowColor = "#00FF41";
             ctx.shadowBlur = t === 0 ? 8 : 3;
           } else {
@@ -319,6 +315,14 @@ const PretextRain = () => {
           }
           ctx.fillStyle = `rgba(0, 255, 65, ${alpha})`;
           ctx.fillText(ch, x, ty);
+        }
+
+        // If we collided, reset the drop after a brief pause so it respawns
+        // from the top instead of sliding through.
+        if (textTopY !== null) {
+          drop.y = -Math.random() * H * 0.4;
+          drop.speed = 1.5 + Math.random() * 3;
+          continue;
         }
 
         if (drop.y > H + drop.tailLen * lineHeight) {
@@ -334,10 +338,20 @@ const PretextRain = () => {
         const p = particles[i];
         p.x += p.vx;
         p.y += p.vy;
-        p.vy += 0.12;
-        p.vx *= 0.98;
+        p.vy += 0.05; // softer gravity so splashes don't read as falling drops
+        if (p.vy > 1.5) p.vy = 1.5; // cap downward speed
+        p.vx *= 0.97;
         p.life--;
-        p.alpha *= 0.96;
+        p.alpha *= 0.94;
+
+        // Kill once the particle falls back to/below where it splashed —
+        // prevents the "drop continues through text" illusion.
+        if (p.vy > 0 && p.y >= p.spawnY) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+
 
         if (p.life <= 0 || p.alpha < 0.01 || p.y > H + 50 || p.x < -50 || p.x > W + 50) {
           particles.splice(i, 1);
