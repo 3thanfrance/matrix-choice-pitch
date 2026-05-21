@@ -105,22 +105,9 @@ const storyTree: Record<string, StoryNode> = {
     ],
   },
   bluepill: {
-    lines: [
-      ">> BLUE PILL PROTOCOL ACTIVATED <<",
-      "",
-      "BACK TO THE NOTEBOOKS.",
-    ],
-    prompt: "OR... ONE CONVERSATION FIRST? [Y/N]",
-    yes: "redpill",
-    no: "bluepill_final",
+    lines: [">> BLUE PILL PROTOCOL ACTIVATED <<"],
   },
-  bluepill_final: {
-    lines: [
-      "THE OFFER STANDS.",
-      "",
-      "KARL@OMNI.CO",
-    ],
-  },
+
   demo: {
     lines: [
       "═══════════════════════════",
