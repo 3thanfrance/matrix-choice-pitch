@@ -35,7 +35,9 @@ interface Particle {
   alpha: number;
   life: number;
   glow: number;
+  spawnY: number;
 }
+
 
 const PretextRain = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
