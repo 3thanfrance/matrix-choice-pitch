@@ -390,9 +390,10 @@ function drawEyeMask(
   ctx.quadraticCurveTo(cx, cy + eyeH * openAmount, cx - eyeW / 2, cy);
   ctx.closePath();
 
-  if (openAmount < 0.03) {
-    ctx.strokeStyle = "rgb(200, 200, 200)";
-    ctx.lineWidth = 2;
+  if (openAmount < 0.08) {
+    // Fully closed — collapse outline to a single horizontal lid line.
+    ctx.strokeStyle = "rgb(220, 220, 220)";
+    ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(cx - eyeW / 2, cy);
     ctx.lineTo(cx + eyeW / 2, cy);
@@ -400,6 +401,7 @@ function drawEyeMask(
     ctx.restore();
     return;
   }
+
 
   ctx.save();
   ctx.clip();
@@ -496,27 +498,41 @@ const MatrixAgents = () => {
       offscreen.width = W;
       offscreen.height = H;
 
-      // Deterministic dense grid — fill every row across the full viewport
-      // using corpus characters. This eliminates any chance of empty/wrapped
-      // layout lines leaving black horizontal bands across the screen.
-      ctx.font = font;
-      const avgCharW = ctx.measureText("M").width || fontSize * 0.6;
-      const colStep = Math.max(6, avgCharW); // grid column width in px
-      const cols = Math.ceil(W / colStep) + 2;
-      const rows = Math.ceil(H / lineHeight) + 2;
+      // Use Pretext for organic, multi-script line composition, then
+      // backfill any short/empty wrapped lines with corpus chars so the
+      // row always spans the full viewport width — no black bands.
+      const prepared = prepareWithSegments(FULL_CORPUS, font);
+      const result = layoutWithLines(prepared, W, lineHeight);
+      const lines = result.lines;
 
       charCells = [];
-      let ci = 0;
-      for (let r = 0; r < rows; r++) {
-        const y = r * lineHeight;
-        for (let c = 0; c < cols; c++) {
-          const x = c * colStep;
-          const ch = corpusChars[ci % corpusChars.length];
-          ci = (ci + 1 + Math.floor(Math.random() * 3)) % corpusChars.length;
-          charCells.push({ ch, x, y });
+      ctx.font = font;
+      const avgCharW = ctx.measureText("M").width || fontSize * 0.6;
+      let yOff = 0;
+      let li = 0;
+      while (yOff < H + lineHeight) {
+        const line = lines[li % lines.length];
+        li++;
+        const text = line?.text ?? "";
+        const graphemes = Array.from(text);
+        let xPos = 0;
+        for (const g of graphemes) {
+          if (g && g !== " " && xPos < W + fontSize) {
+            charCells.push({ ch: g, x: xPos, y: yOff });
+          }
+          xPos += ctx.measureText(g).width || avgCharW;
         }
+        // Backfill the remainder of this row with corpus chars so wrapped
+        // or short layout lines never leave a horizontal black band.
+        while (xPos < W + fontSize) {
+          const g = corpusChars[Math.floor(Math.random() * corpusChars.length)];
+          charCells.push({ ch: g, x: xPos, y: yOff });
+          xPos += ctx.measureText(g).width || avgCharW;
+        }
+        yOff += lineHeight;
       }
     }
+
 
 
     rebuildLayout();

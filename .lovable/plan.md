@@ -1,20 +1,29 @@
-Plan to fix this properly:
+Three targeted fixes:
 
-1. **Stop treating the bands as empty layout lines**
-   - Revert the previous “skip/fill blank Pretext lines” approach because the screenshot shows the big black gaps are coming from the mask/removal logic, not missing corpus rows.
+### 1. Revert the uniform grid background in `MatrixAgents.tsx`
+The grid tiling fixed the bands but made the background look static/wavy and is also why the eye no longer reads as "fully closed" — uniform density removes the contrast that made the blink visible. Go back to the Pretext-driven layout for its organic, multi-script feel, but with a proper fix for short/empty wrapped lines:
 
-2. **Change the intro mask rendering so it never creates solid black voids**
-   - In `MatrixAgents.tsx`, keep the silhouette/eye shape readable, but replace the current hard `continue` that removes characters inside bright mask areas with dimmed/edge-weighted characters.
-   - This means the intro will stay fully filled with Matrix rain while the agent/eye appears through brightness and glow, not through black cutouts.
+- For each layout line, render its graphemes as before.
+- After the last grapheme, if `xPos` hasn't reached `W`, continue filling that same row with corpus characters until it does.
+- If a line's text is entirely empty/whitespace, treat it as a row that needs full filling.
 
-3. **Make the background layout deterministic and fully tiled**
-   - Generate a dense grid of characters row-by-row across the whole viewport instead of relying on wrapped Pretext lines that can create uneven coverage.
-   - This will remove the “line break” failure mode entirely.
+Result: dynamic, varied background like the original — no black bands, no grid pattern.
 
-4. **Fix rain collision with terminal text**
-   - In `PretextRain.tsx`, replace the current single-point collision check with a small vertical sweep across each falling drop head/tail segment.
-   - When a drop intersects the terminal text mask, clamp or heavily fade the overlapping glyphs and spawn splash/pool particles at the text boundary, so drops don’t sometimes pass through the letters.
+### 2. Fix the eye blink so it closes fully
+After reverting to the varied-density background, the closed-eye thin-line mask will read clearly again. Also tighten the close itself in `drawEyeMask`:
 
-5. **Verify visually in the preview**
-   - Capture the intro after the change and check that the background is continuously filled across silhouette, eye, and zoom phases.
-   - Check the terminal screen text to confirm falling drops consistently stop/fade/splash instead of cutting through visible text.
+- Lower the `openAmount < 0.03` threshold to `< 0.08` so the mask snaps to the flat closed line slightly sooner, eliminating the sliver that currently lingers at the end of the blink.
+- Make sure the outer eye outline strokes (currently drawn after the early return) also collapse to a single horizontal line when closed, so the silhouette of the lid is unambiguous.
+
+### 3. Splash/collision physics in `PretextRain.tsx`
+Drops appear to fall through text because the tail keeps drawing below the collision point and splash particles arc back down through the letters, mimicking a continuing drop.
+
+- On collision, record the text-top Y for that drop; clamp tail rendering so no glyphs are drawn below that Y until the drop fully exits the text region. This gives a clean "stop on contact" look.
+- Splash particles: lower gravity (`vy += 0.05` instead of `0.12`), cap downward `vy`, and kill particles as soon as their `y` returns to or below their spawn `y` (so they never re-cross the text downward).
+- Add a small horizontal "spray" bias so splashes clearly redirect sideways, reading as a bounce rather than a continuation.
+
+### Verification
+Reload `/`, watch the full intro (silhouette → eye → pupil zoom), confirm:
+- background is dynamic and band-free,
+- the eye fully closes during every blink,
+- on the terminal screen, drops visibly stop/spray at text instead of passing through.
