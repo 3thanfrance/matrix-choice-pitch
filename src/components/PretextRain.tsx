@@ -206,20 +206,25 @@ const PretextRain = () => {
 
     function spawnSplash(sx: number, sy: number, count: number) {
       for (let s = 0; s < count && particles.length < MAX_PARTICLES; s++) {
-        const angle = -Math.PI * 0.1 - Math.random() * Math.PI * 0.8;
-        const speed = 1 + Math.random() * 3;
+        // Strong horizontal spray with slight upward bias — reads as a bounce.
+        const sideways = Math.random() > 0.5 ? 1 : -1;
+        const angle = -Math.PI * 0.5 + sideways * (Math.PI * 0.25 + Math.random() * Math.PI * 0.2);
+        const speed = 1.5 + Math.random() * 2.5;
         particles.push({
           x: sx + (Math.random() - 0.5) * 4,
           y: sy - Math.random() * 2,
           ch: allChars[Math.floor(Math.random() * allChars.length)],
-          vx: Math.cos(angle) * speed * (Math.random() > 0.5 ? 1 : -1),
+          vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed,
           alpha: 0.35 + Math.random() * 0.35,
-          life: 18 + Math.floor(Math.random() * 25),
+          life: 14 + Math.floor(Math.random() * 18),
           glow: 2 + Math.random() * 3,
-        });
+          // Track spawn Y so we can kill particles that fall back through text.
+          spawnY: sy,
+        } as Particle);
       }
     }
+
 
     function addToPool(x: number, poolY: number) {
       if (pool.length >= MAX_POOL) return;
