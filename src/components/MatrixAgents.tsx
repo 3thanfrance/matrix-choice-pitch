@@ -377,7 +377,7 @@ function drawEyeMask(
   const cy = H / 2;
   const isPortrait = H > W;
   const eyeW = isPortrait
-    ? Math.min(W * 0.62, H * 1.2)
+    ? Math.min(W * 0.72, H * 1.2)
     : Math.min(W * 0.55, H * 1.2);
   const eyeH = eyeW * 0.35;
   const pupilBase = eyeW * 0.08;
@@ -399,16 +399,17 @@ function drawEyeMask(
   ctx.closePath();
 
   if (openAmount < 0.08) {
-    // Fully closed — preserve the original desktop stroke, tighten only on portrait/mobile.
+    // Desktop keeps its original closed-lid stroke; mobile/portrait closes cleanly with no line.
+    if (isPortrait) {
+      ctx.restore();
+      return;
+    }
     ctx.strokeStyle = "rgb(220, 220, 220)";
-    ctx.lineWidth = H > W ? Math.max(2, eyeH * 0.08) : 3;
-    if (H > W) ctx.lineCap = "round";
-    const lidHalf = H > W ? eyeW * 0.3 : eyeW / 2;
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(cx - lidHalf, cy);
-    ctx.lineTo(cx + lidHalf, cy);
+    ctx.moveTo(cx - eyeW / 2, cy);
+    ctx.lineTo(cx + eyeW / 2, cy);
     ctx.stroke();
-    if (H > W) ctx.lineCap = "butt";
     ctx.restore();
     return;
   }
