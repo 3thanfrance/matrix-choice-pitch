@@ -29,7 +29,7 @@ const ZOOM_DURATION = 4500;
 const PUPIL_ZOOM_DURATION = 2000;
 
 function getEyePosition(W: number, H: number) {
-  const figH = Math.min(H * 0.78, W * 0.92);
+  const figH = H > W ? Math.min(H * 0.9, W * 1.35) : Math.min(H * 0.78, W * 0.92);
   const figTop = (H - figH) / 2 - figH * 0.02;
   const headH = figH / 7.5;
   const headW = headH * 0.82;
