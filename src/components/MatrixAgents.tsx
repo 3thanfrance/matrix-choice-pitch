@@ -34,9 +34,10 @@ function getEyePosition(W: number, H: number) {
   const headH = figH / 7.5;
   const headW = headH * 0.82;
   const cx = W / 2;
-  // Center on the LEFT lens of the sunglasses
-  const glassSpacing = headW * 0.05;
-  const glassW = headW * 0.52;
+  // Center on the LEFT lens of the sunglasses (must match drawSilhouetteMask)
+  const isPortrait = H > W;
+  const glassSpacing = headW * (isPortrait ? 0.06 : 0.05);
+  const glassW = headW * (isPortrait ? 0.62 : 0.52);
   const eyeX = cx - glassSpacing - glassW / 2;
   const eyeY = figTop + headH * 0.36; // Glasses Y position
   return { x: eyeX, y: eyeY };
