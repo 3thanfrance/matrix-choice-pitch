@@ -29,7 +29,7 @@ const ZOOM_DURATION = 4500;
 const PUPIL_ZOOM_DURATION = 2000;
 
 function getEyePosition(W: number, H: number) {
-  const figH = Math.min(H * 0.78, W * 1.0);
+  const figH = Math.min(H * 0.78, W * 0.92);
   const figTop = (H - figH) / 2 - figH * 0.02;
   const headH = figH / 7.5;
   const headW = headH * 0.82;
@@ -58,7 +58,7 @@ function cinematicEase(t: number): number {
  */
 function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number) {
   const cx = W / 2;
-  const figH = Math.min(H * 0.78, W * 1.0);
+  const figH = Math.min(H * 0.78, W * 0.92);
   const figTop = (H - figH) / 2 - figH * 0.02;
   const headH = figH / 7.5;
   const headW = headH * 0.82;
@@ -391,16 +391,20 @@ function drawEyeMask(
   ctx.closePath();
 
   if (openAmount < 0.08) {
-    // Fully closed — collapse outline to a single horizontal lid line.
+    // Fully closed — short, centered lid line (avoids stark full-width stroke on mobile).
     ctx.strokeStyle = "rgb(220, 220, 220)";
-    ctx.lineWidth = 3;
+    ctx.lineWidth = Math.max(2, eyeH * 0.08);
+    ctx.lineCap = "round";
+    const lidHalf = eyeW * 0.3;
     ctx.beginPath();
-    ctx.moveTo(cx - eyeW / 2, cy);
-    ctx.lineTo(cx + eyeW / 2, cy);
+    ctx.moveTo(cx - lidHalf, cy);
+    ctx.lineTo(cx + lidHalf, cy);
     ctx.stroke();
+    ctx.lineCap = "butt";
     ctx.restore();
     return;
   }
+
 
 
   ctx.save();
@@ -474,14 +478,15 @@ const MatrixAgents = () => {
 
     let W = window.innerWidth;
     let H = window.innerHeight;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
 
     const offscreen = document.createElement("canvas");
     const offCtx = offscreen.getContext("2d", { alpha: false })!;
 
-    const fontSize = Math.max(9, Math.min(13, Math.floor(W / 100)));
-    const lineHeight = Math.ceil(fontSize * 1.2);
+    const fontSize = Math.max(11, Math.min(14, Math.floor(Math.min(W, H) / 60)));
+    const lineHeight = Math.ceil(fontSize * 1.15);
     const font = `${fontSize}px 'Fira Code', monospace`;
+
 
     type CharCell = { ch: string; x: number; y: number };
     let charCells: CharCell[] = [];
