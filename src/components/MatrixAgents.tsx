@@ -391,16 +391,16 @@ function drawEyeMask(
   ctx.closePath();
 
   if (openAmount < 0.08) {
-    // Fully closed — short, centered lid line (avoids stark full-width stroke on mobile).
+    // Fully closed — preserve the original desktop stroke, tighten only on portrait/mobile.
     ctx.strokeStyle = "rgb(220, 220, 220)";
-    ctx.lineWidth = Math.max(2, eyeH * 0.08);
-    ctx.lineCap = "round";
-    const lidHalf = eyeW * 0.3;
+    ctx.lineWidth = H > W ? Math.max(2, eyeH * 0.08) : 3;
+    if (H > W) ctx.lineCap = "round";
+    const lidHalf = H > W ? eyeW * 0.3 : eyeW / 2;
     ctx.beginPath();
     ctx.moveTo(cx - lidHalf, cy);
     ctx.lineTo(cx + lidHalf, cy);
     ctx.stroke();
-    ctx.lineCap = "butt";
+    if (H > W) ctx.lineCap = "butt";
     ctx.restore();
     return;
   }
@@ -478,13 +478,16 @@ const MatrixAgents = () => {
 
     let W = window.innerWidth;
     let H = window.innerHeight;
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const isPortrait = H > W;
+    const dpr = Math.min(window.devicePixelRatio || 1, isPortrait ? 3 : 2);
 
     const offscreen = document.createElement("canvas");
     const offCtx = offscreen.getContext("2d", { alpha: false })!;
 
-    const fontSize = Math.max(11, Math.min(14, Math.floor(Math.min(W, H) / 60)));
-    const lineHeight = Math.ceil(fontSize * 1.15);
+    const fontSize = isPortrait
+      ? Math.max(11, Math.min(14, Math.floor(Math.min(W, H) / 60)))
+      : Math.max(9, Math.min(13, Math.floor(W / 100)));
+    const lineHeight = Math.ceil(fontSize * (isPortrait ? 1.15 : 1.2));
     const font = `${fontSize}px 'Fira Code', monospace`;
 
 
