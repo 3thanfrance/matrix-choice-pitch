@@ -29,7 +29,7 @@ const ZOOM_DURATION = 4500;
 const PUPIL_ZOOM_DURATION = 2000;
 
 function getEyePosition(W: number, H: number) {
-  const figH = Math.min(H * 0.78, W * 1.0);
+  const figH = Math.min(H * 0.78, W * 0.92);
   const figTop = (H - figH) / 2 - figH * 0.02;
   const headH = figH / 7.5;
   const headW = headH * 0.82;
@@ -58,7 +58,7 @@ function cinematicEase(t: number): number {
  */
 function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number) {
   const cx = W / 2;
-  const figH = Math.min(H * 0.78, W * 1.0);
+  const figH = Math.min(H * 0.78, W * 0.92);
   const figTop = (H - figH) / 2 - figH * 0.02;
   const headH = figH / 7.5;
   const headW = headH * 0.82;
