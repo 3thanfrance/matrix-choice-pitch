@@ -370,7 +370,10 @@ function drawEyeMask(
 ) {
   const cx = W / 2;
   const cy = H / 2;
-  const eyeW = Math.min(W * 0.55, H * 1.2);
+  const isPortrait = H > W;
+  const eyeW = isPortrait
+    ? Math.min(W * 0.62, H * 1.2)
+    : Math.min(W * 0.55, H * 1.2);
   const eyeH = eyeW * 0.35;
   const pupilBase = eyeW * 0.08;
   const pupilPulse = Math.sin(tick * 0.015) * eyeW * 0.025;
