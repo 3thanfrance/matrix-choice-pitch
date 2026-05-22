@@ -1,16 +1,13 @@
-## Goal
-Make the Matrix Agents silhouette larger and clearer on mobile (portrait) viewports without changing the desktop/landwide experience.
+## Issue
+The earlier mobile-crispness pass tightened the desktop figure width from `W * 1.0` to `W * 0.92`, which shrank the silhouette on desktop. The portrait branch is fine; desktop just needs its original sizing back.
 
-## Changes
-All edits in `src/components/MatrixAgents.tsx`:
+## Change
+In `src/components/MatrixAgents.tsx` (lines 32 and 61), split the two branches with their own specs:
 
-1. **Portrait-aware figure sizing** (lines 32 and 61):
-   - Detect `isPortrait = H > W`
-   - Mobile (`isPortrait`): `figH = Math.min(H * 0.9, W * 1.35)` — fills more of the narrow screen so hat, sunglasses, and shoulders read clearly
-   - Desktop/landscape: keep `figH = Math.min(H * 0.78, W * 0.92)` (unchanged)
+```ts
+const figH = H > W
+  ? Math.min(H * 0.9, W * 1.35)   // mobile / portrait — bigger silhouette
+  : Math.min(H * 0.78, W * 1.0);  // desktop / landscape — restored to original
+```
 
-## Expected result
-On a 390×844 phone, figure height increases from ~359 px to ~527 px (`W * 1.35`), giving the glyph-based silhouette more rows/columns for sharper detail. Desktop stays exactly as-is.
-
-## No changes elsewhere
-`Terminal.tsx`, boot sequence, story tree, and pill flash logic remain untouched.
+That's the only change. No other files touched.
