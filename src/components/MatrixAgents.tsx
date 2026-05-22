@@ -212,10 +212,11 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
 
   // rgb(140) → edgeFactor 0.8 = very bright glowing green chars
   ctx.fillStyle = "rgb(140, 140, 140)";
+  const isPortrait = H > W;
   const glassY = figTop + headH * 0.36;
-  const glassW = headW * 0.52;
-  const glassH = headH * 0.16;
-  const glassSpacing = headW * 0.05;
+  const glassW = headW * (isPortrait ? 0.62 : 0.52);
+  const glassH = headH * (isPortrait ? 0.22 : 0.16);
+  const glassSpacing = headW * (isPortrait ? 0.06 : 0.05);
 
   // Left lens
   ctx.beginPath();
