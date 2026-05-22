@@ -308,30 +308,33 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   ctx.lineTo(cx + shoulderW * 0.28, figTop + headH * 1.08);
   ctx.stroke();
 
-  // TIE — BRIGHT edge glow (higher gray = brighter green glow)
+  // TIE — BRIGHT edge glow (higher gray = brighter green glow). Wider on portrait for definition.
   ctx.fillStyle = "rgb(130, 130, 130)";
+  const tieKnotHalf = headH * (isPortrait ? 0.085 : 0.06);
+  const tieBodyHalf = headH * (isPortrait ? 0.12 : 0.085);
+  const tieTipHalf = headH * (isPortrait ? 0.055 : 0.04);
   // Knot
   ctx.beginPath();
-  ctx.moveTo(cx - headH * 0.06, figTop + headH * 0.92);
-  ctx.lineTo(cx + headH * 0.06, figTop + headH * 0.92);
-  ctx.lineTo(cx + headH * 0.085, figTop + headH * 1.08);
-  ctx.lineTo(cx - headH * 0.085, figTop + headH * 1.08);
+  ctx.moveTo(cx - tieKnotHalf, figTop + headH * 0.92);
+  ctx.lineTo(cx + tieKnotHalf, figTop + headH * 0.92);
+  ctx.lineTo(cx + tieBodyHalf, figTop + headH * 1.08);
+  ctx.lineTo(cx - tieBodyHalf, figTop + headH * 1.08);
   ctx.closePath();
   ctx.fill();
 
   // Tie body
   ctx.beginPath();
-  ctx.moveTo(cx - headH * 0.085, figTop + headH * 1.08);
-  ctx.lineTo(cx + headH * 0.085, figTop + headH * 1.08);
+  ctx.moveTo(cx - tieBodyHalf, figTop + headH * 1.08);
+  ctx.lineTo(cx + tieBodyHalf, figTop + headH * 1.08);
   ctx.bezierCurveTo(
-    cx + headH * 0.075, figTop + headH * 2.3,
-    cx + headH * 0.04, figTop + headH * 3.0,
+    cx + tieBodyHalf * 0.88, figTop + headH * 2.3,
+    cx + tieTipHalf, figTop + headH * 3.0,
     cx, figTop + headH * 3.4
   );
   ctx.bezierCurveTo(
-    cx - headH * 0.04, figTop + headH * 3.0,
-    cx - headH * 0.075, figTop + headH * 2.3,
-    cx - headH * 0.085, figTop + headH * 1.08
+    cx - tieTipHalf, figTop + headH * 3.0,
+    cx - tieBodyHalf * 0.88, figTop + headH * 2.3,
+    cx - tieBodyHalf, figTop + headH * 1.08
   );
   ctx.closePath();
   ctx.fill();
