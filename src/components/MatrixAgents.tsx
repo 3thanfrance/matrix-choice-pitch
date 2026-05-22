@@ -380,10 +380,11 @@ function drawEyeMask(
     ? Math.min(W * 0.72, H * 1.2)
     : Math.min(W * 0.55, H * 1.2);
   const eyeH = eyeW * 0.35;
-  const pupilBase = eyeW * (isPortrait ? 0.13 : 0.08);
-  const pupilPulse = Math.sin(tick * 0.015) * eyeW * (isPortrait ? 0.02 : 0.025);
+  // Mobile uses the exact same pupil/iris ratios as desktop, just scaled to the larger portrait eyeW.
+  const pupilBase = eyeW * 0.08;
+  const pupilPulse = Math.sin(tick * 0.015) * eyeW * 0.025;
   const pupilR = pupilBase + pupilPulse;
-  const irisR = eyeW * (isPortrait ? 0.24 : 0.17);
+  const irisR = eyeW * 0.17;
 
   const eased = blinkProgress < 0.5
     ? 2 * blinkProgress * blinkProgress
