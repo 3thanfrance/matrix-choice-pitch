@@ -34,9 +34,10 @@ function getEyePosition(W: number, H: number) {
   const headH = figH / 7.5;
   const headW = headH * 0.82;
   const cx = W / 2;
-  // Center on the LEFT lens of the sunglasses
-  const glassSpacing = headW * 0.05;
-  const glassW = headW * 0.52;
+  // Center on the LEFT lens of the sunglasses (must match drawSilhouetteMask)
+  const isPortrait = H > W;
+  const glassSpacing = headW * (isPortrait ? 0.06 : 0.05);
+  const glassW = headW * (isPortrait ? 0.62 : 0.52);
   const eyeX = cx - glassSpacing - glassW / 2;
   const eyeY = figTop + headH * 0.36; // Glasses Y position
   return { x: eyeX, y: eyeY };
@@ -212,10 +213,11 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
 
   // rgb(140) → edgeFactor 0.8 = very bright glowing green chars
   ctx.fillStyle = "rgb(140, 140, 140)";
+  const isPortrait = H > W;
   const glassY = figTop + headH * 0.36;
-  const glassW = headW * 0.52;
-  const glassH = headH * 0.16;
-  const glassSpacing = headW * 0.05;
+  const glassW = headW * (isPortrait ? 0.62 : 0.52);
+  const glassH = headH * (isPortrait ? 0.22 : 0.16);
+  const glassSpacing = headW * (isPortrait ? 0.06 : 0.05);
 
   // Left lens
   ctx.beginPath();
@@ -306,30 +308,33 @@ function drawSilhouetteMask(ctx: CanvasRenderingContext2D, W: number, H: number)
   ctx.lineTo(cx + shoulderW * 0.28, figTop + headH * 1.08);
   ctx.stroke();
 
-  // TIE — BRIGHT edge glow (higher gray = brighter green glow)
+  // TIE — BRIGHT edge glow (higher gray = brighter green glow). Wider on portrait for definition.
   ctx.fillStyle = "rgb(130, 130, 130)";
+  const tieKnotHalf = headH * (isPortrait ? 0.085 : 0.06);
+  const tieBodyHalf = headH * (isPortrait ? 0.12 : 0.085);
+  const tieTipHalf = headH * (isPortrait ? 0.055 : 0.04);
   // Knot
   ctx.beginPath();
-  ctx.moveTo(cx - headH * 0.06, figTop + headH * 0.92);
-  ctx.lineTo(cx + headH * 0.06, figTop + headH * 0.92);
-  ctx.lineTo(cx + headH * 0.085, figTop + headH * 1.08);
-  ctx.lineTo(cx - headH * 0.085, figTop + headH * 1.08);
+  ctx.moveTo(cx - tieKnotHalf, figTop + headH * 0.92);
+  ctx.lineTo(cx + tieKnotHalf, figTop + headH * 0.92);
+  ctx.lineTo(cx + tieBodyHalf, figTop + headH * 1.08);
+  ctx.lineTo(cx - tieBodyHalf, figTop + headH * 1.08);
   ctx.closePath();
   ctx.fill();
 
   // Tie body
   ctx.beginPath();
-  ctx.moveTo(cx - headH * 0.085, figTop + headH * 1.08);
-  ctx.lineTo(cx + headH * 0.085, figTop + headH * 1.08);
+  ctx.moveTo(cx - tieBodyHalf, figTop + headH * 1.08);
+  ctx.lineTo(cx + tieBodyHalf, figTop + headH * 1.08);
   ctx.bezierCurveTo(
-    cx + headH * 0.075, figTop + headH * 2.3,
-    cx + headH * 0.04, figTop + headH * 3.0,
+    cx + tieBodyHalf * 0.88, figTop + headH * 2.3,
+    cx + tieTipHalf, figTop + headH * 3.0,
     cx, figTop + headH * 3.4
   );
   ctx.bezierCurveTo(
-    cx - headH * 0.04, figTop + headH * 3.0,
-    cx - headH * 0.075, figTop + headH * 2.3,
-    cx - headH * 0.085, figTop + headH * 1.08
+    cx - tieTipHalf, figTop + headH * 3.0,
+    cx - tieBodyHalf * 0.88, figTop + headH * 2.3,
+    cx - tieBodyHalf, figTop + headH * 1.08
   );
   ctx.closePath();
   ctx.fill();
@@ -370,7 +375,10 @@ function drawEyeMask(
 ) {
   const cx = W / 2;
   const cy = H / 2;
-  const eyeW = Math.min(W * 0.55, H * 1.2);
+  const isPortrait = H > W;
+  const eyeW = isPortrait
+    ? Math.min(W * 0.62, H * 1.2)
+    : Math.min(W * 0.55, H * 1.2);
   const eyeH = eyeW * 0.35;
   const pupilBase = eyeW * 0.08;
   const pupilPulse = Math.sin(tick * 0.015) * eyeW * 0.025;
